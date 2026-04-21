@@ -2,15 +2,24 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
-from textual.widgets import Footer, Header, Input, RichLog, Static
+from textual.widgets import Footer, Input, RichLog, Static
 
 from myagent.agents.loader import AgentLoader
+from myagent.engine.messages import ConversationMessage, TextBlock
+from myagent.llm.providers.anthropic import AnthropicProvider
+from myagent.llm.types import DoneChunk, TextChunk
+
+
+def _get_env_or_prompt(key: str, default: str | None = None) -> str | None:
+    """Get configuration from environment variable."""
+    return os.environ.get(key, default)
 
 
 class MyAgentApp(App[None]):
@@ -68,13 +77,8 @@ class MyAgentApp(App[None]):
         ("ctrl+d", "quit", "Exit"),
     ]
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.title = "MyAgent"
-        self.sub_title = "v0.1.0"
-
     current_agent = reactive("general")
-    current_provider = reactive("openai")
+    current_provider = reactive("anthropic")
 
     def __init__(self) -> None:
         super().__init__()
@@ -82,9 +86,36 @@ class MyAgentApp(App[None]):
         self._current_response_text = ""
         self._agent_loader = AgentLoader()
         self._agents = self._agent_loader.load_builtin_agents()
+        self._conversation_history: list[ConversationMessage] = []
+        self._provider: AnthropicProvider | None = None
+        self._init_provider()
+
+    def _init_provider(self) -> None:
+        """Initialize LLM provider from environment variables."""
+        api_key = _get_env_or_prompt("ZHIPU_API_KEY")
+        if not api_key:
+            api_key = _get_env_or_prompt("ANTHROPIC_API_KEY")
+        if not api_key:
+            api_key = _get_env_or_prompt("MYAGENT_API_KEY")
+
+        model = _get_env_or_prompt("ZHIPU_MODEL", "glm-4.7")
+        base_url = _get_env_or_prompt("ZHIPU_BASE_URL", "https://open.bigmodel.cn/api/anthropic")
+
+        if api_key:
+            self._provider = AnthropicProvider(
+                api_key=api_key,
+                model=model,
+                base_url=base_url,
+            )
+            self.current_provider = f"zhipu/{model}"
+        else:
+            self.current_provider = "none (set ZHIPU_API_KEY)"
 
     def compose(self) -> ComposeResult:
-        yield Static("MyAgent v0.1.0 | Agent: general | Provider: openai", id="header")
+        yield Static(
+            f"MyAgent v0.2.0 | Agent: {self.current_agent} | Provider: {self.current_provider}",
+            id="header",
+        )
 
         with Vertical(id="transcript-container"):
             yield RichLog(id="transcript", highlight=True, markup=True)
@@ -98,9 +129,17 @@ class MyAgentApp(App[None]):
 
     def on_mount(self) -> None:
         self.query_one("#composer", Input).focus()
-        self.add_assistant_message(
-            "Welcome to MyAgent! Type a message to start, or use /help for commands."
-        )
+        if self._provider is None:
+            self.add_assistant_message(
+                "Welcome to MyAgent!\n"
+                "[yellow]Warning: No API key configured.[/yellow] "
+                "Set ZHIPU_API_KEY environment variable to enable LLM responses.\n"
+                "Type /help for commands."
+            )
+        else:
+            self.add_assistant_message(
+                "Welcome to MyAgent! Type a message to start chatting, or use /help for commands."
+            )
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         """Handle user input submission."""
@@ -140,17 +179,52 @@ class MyAgentApp(App[None]):
                 self.add_assistant_message(f"Switched to provider: {parts[1]}")
             else:
                 self.add_assistant_message("Usage: /provider <name>")
+        elif cmd == "/model":
+            if len(parts) > 1:
+                self._switch_model(parts[1])
+            else:
+                self.add_assistant_message("Usage: /model <name> (e.g., glm-4.7, glm-5.1)")
         else:
             self.add_assistant_message(f"Unknown command: {cmd}. Type /help for available commands.")
 
-    def _handle_user_message(self, message: str) -> None:
-        """Process user message (placeholder for LLM integration)."""
+    async def _handle_user_message(self, message: str) -> None:
+        """Process user message with real LLM streaming."""
+        if self._provider is None:
+            self.add_assistant_message(
+                "[red]Error: No LLM provider configured.[/red]\n"
+                "Set ZHIPU_API_KEY environment variable and restart."
+            )
+            return
+
         self.update_current_response("Thinking...")
-        self.add_assistant_message(
-            f"[Placeholder] You said: {message}\n"
-            "LLM integration not yet configured. Set API key to enable real responses."
+
+        user_msg = ConversationMessage(
+            role="user",
+            content=[TextBlock(text=message)],
         )
-        self.update_current_response("")
+        self._conversation_history.append(user_msg)
+
+        full_response = ""
+        try:
+            async for chunk in self._provider.stream_messages(self._conversation_history):
+                if isinstance(chunk, TextChunk):
+                    full_response += chunk.text
+                    self.update_current_response(full_response)
+                elif isinstance(chunk, DoneChunk):
+                    break
+
+            self.update_current_response("")
+            self.add_assistant_message(full_response)
+
+            assistant_msg = ConversationMessage(
+                role="assistant",
+                content=[TextBlock(text=full_response)],
+            )
+            self._conversation_history.append(assistant_msg)
+
+        except Exception as e:
+            self.update_current_response("")
+            self.add_assistant_message(f"[red]Error: {type(e).__name__}: {e}[/red]")
 
     def _switch_agent(self, agent_name: str) -> None:
         """Switch to a different agent."""
@@ -162,11 +236,22 @@ class MyAgentApp(App[None]):
             available = ", ".join(self._agents.keys())
             self.add_assistant_message(f"Unknown agent '{agent_name}'. Available: {available}")
 
+    def _switch_model(self, model_name: str) -> None:
+        """Switch to a different model."""
+        if self._provider is None:
+            self.add_assistant_message("[red]Error: No provider configured.[/red]")
+            return
+
+        self._provider.model = model_name
+        self.current_provider = f"zhipu/{model_name}"
+        self._update_header()
+        self.add_assistant_message(f"Switched to model: {model_name}")
+
     def _update_header(self) -> None:
         """Update header text."""
         header = self.query_one("#header", Static)
         header.update(
-            f"MyAgent v0.1.0 | Agent: {self.current_agent} | Provider: {self.current_provider}"
+            f"MyAgent v0.2.0 | Agent: {self.current_agent} | Provider: {self.current_provider}"
         )
 
     def add_user_message(self, message: str) -> None:
@@ -194,8 +279,9 @@ class MyAgentApp(App[None]):
         response_widget.update(Text(text))
 
     def clear_transcript(self) -> None:
-        """Clear the transcript."""
+        """Clear the transcript and conversation history."""
         self._transcript_lines = []
+        self._conversation_history = []
         transcript = self.query_one("#transcript", RichLog)
         transcript.clear()
 
@@ -217,6 +303,7 @@ class MyAgentApp(App[None]):
   /help         - Show this help message
   /agent <name> - Switch to a different agent
   /provider <n> - Switch LLM provider
+  /model <name> - Switch LLM model (e.g., glm-4.7, glm-5.1)
 
 Keyboard shortcuts:
   Ctrl+L - Clear transcript
