@@ -28,3 +28,26 @@ class ToolRegistry:
     def to_api_schema(self) -> list[dict[str, Any]]:
         """Return all tool schemas in API format."""
         return [tool.to_api_schema() for tool in self._tools.values()]
+
+    @classmethod
+    def with_core_tools(cls) -> "ToolRegistry":
+        """Create a registry with all core tools registered."""
+        from myagent.tools.bash import Bash
+        from myagent.tools.read import Read
+        from myagent.tools.write import Write
+        from myagent.tools.edit import Edit
+        from myagent.tools.glob import Glob
+        from myagent.tools.grep import Grep
+        from myagent.tools.web_search import WebSearch
+        from myagent.tools.web_fetch import WebFetch
+
+        registry = cls()
+        registry.register(Bash())
+        registry.register(Read())
+        registry.register(Write())
+        registry.register(Edit())
+        registry.register(Glob())
+        registry.register(Grep())
+        registry.register(WebSearch())
+        registry.register(WebFetch())
+        return registry

@@ -1,37 +1,22 @@
-"""Gateway adapter base class for MyAgent."""
+"""Legacy gateway adapter base class for MyAgent.
+
+Kept for backward compatibility. Use BasePlatformAdapter for new code.
+"""
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Any, Callable, Coroutine
 
-
-@dataclass
-class GatewayMessage:
-    """A message received from or sent to a gateway platform."""
-
-    text: str
-    user_id: str
-    channel_id: str
-    platform: str
-    raw_data: dict[str, Any] | None = None
-
-    def reply(self, text: str) -> GatewayMessage:
-        """Create a reply message."""
-        return GatewayMessage(
-            text=text,
-            user_id="agent",
-            channel_id=self.channel_id,
-            platform=self.platform,
-        )
-
+from myagent.gateway.base import GatewayMessage
 
 MessageHandler = Callable[[GatewayMessage], Coroutine[Any, Any, None]]
 
 
-class GatewayAdapter(ABC):
-    """Abstract base class for gateway adapters."""
+class GatewayAdapter:
+    """Abstract base class for gateway adapters (legacy).
+
+    Kept for backward compatibility. New code should use BasePlatformAdapter.
+    """
 
     name: str = "abstract"
 
@@ -48,17 +33,14 @@ class GatewayAdapter(ABC):
         for handler in self._handlers:
             await handler(message)
 
-    @abstractmethod
     async def start(self) -> None:
         """Start the gateway adapter."""
-        ...
+        self.running = True
 
-    @abstractmethod
     async def stop(self) -> None:
         """Stop the gateway adapter."""
-        ...
+        self.running = False
 
-    @abstractmethod
     async def send(self, message: GatewayMessage) -> None:
         """Send a message through the gateway."""
-        ...
+        pass

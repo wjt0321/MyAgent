@@ -1,4 +1,4 @@
-"""Tests for Gateway adapters."""
+"""Tests for legacy Gateway adapters."""
 
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
@@ -86,72 +86,85 @@ class TestWebhookGateway:
         await gw.stop()
 
 
-class TestGatewayManager:
+class TestLegacyGatewayManager:
+    """Tests for the new GatewayManager (legacy compatibility)."""
+
     @pytest.mark.asyncio
     async def test_manager_creation(self):
         manager = GatewayManager()
-        assert manager.adapters == []
+        assert manager.adapters == {}
 
     @pytest.mark.asyncio
     async def test_register_adapter(self):
+        from myagent.gateway.adapter_base import BasePlatformAdapter
+        from myagent.gateway.base import Platform
+        from myagent.gateway.config import PlatformConfig
+
+        class TestAdapter(BasePlatformAdapter):
+            async def connect(self) -> bool:
+                return True
+            async def disconnect(self) -> None:
+                pass
+            async def send(self, chat_id, content, reply_to=None, metadata=None):
+                from myagent.gateway.base import SendResult
+                return SendResult(success=True)
+            async def get_chat_info(self, chat_id):
+                return {}
+
         manager = GatewayManager()
-        gw = WebhookGateway(port=0)
-        manager.register(gw)
+        adapter = TestAdapter(PlatformConfig(), Platform.WEBHOOK)
+        manager.register_adapter(adapter)
         assert len(manager.adapters) == 1
 
     @pytest.mark.asyncio
     async def test_start_all(self):
+        from myagent.gateway.adapter_base import BasePlatformAdapter
+        from myagent.gateway.base import Platform
+        from myagent.gateway.config import PlatformConfig
+
+        class TestAdapter(BasePlatformAdapter):
+            async def connect(self) -> bool:
+                self._running = True
+                return True
+            async def disconnect(self) -> None:
+                self._running = False
+            async def send(self, chat_id, content, reply_to=None, metadata=None):
+                from myagent.gateway.base import SendResult
+                return SendResult(success=True)
+            async def get_chat_info(self, chat_id):
+                return {}
+
         manager = GatewayManager()
-        gw = WebhookGateway(port=0)
-        manager.register(gw)
+        adapter = TestAdapter(PlatformConfig(), Platform.WEBHOOK)
+        manager.register_adapter(adapter)
 
         await manager.start_all()
-        assert gw.running is True
+        assert adapter.is_connected is True
 
         await manager.stop_all()
 
     @pytest.mark.asyncio
     async def test_stop_all(self):
+        from myagent.gateway.adapter_base import BasePlatformAdapter
+        from myagent.gateway.base import Platform
+        from myagent.gateway.config import PlatformConfig
+
+        class TestAdapter(BasePlatformAdapter):
+            async def connect(self) -> bool:
+                self._running = True
+                return True
+            async def disconnect(self) -> None:
+                self._running = False
+            async def send(self, chat_id, content, reply_to=None, metadata=None):
+                from myagent.gateway.base import SendResult
+                return SendResult(success=True)
+            async def get_chat_info(self, chat_id):
+                return {}
+
         manager = GatewayManager()
-        gw = WebhookGateway(port=0)
-        manager.register(gw)
+        adapter = TestAdapter(PlatformConfig(), Platform.WEBHOOK)
+        manager.register_adapter(adapter)
 
         await manager.start_all()
         await manager.stop_all()
-        assert gw.running is False
-
-    @pytest.mark.asyncio
-    async def test_broadcast(self):
-        manager = GatewayManager()
-        gw = WebhookGateway(port=0)
-        manager.register(gw)
-
-        await manager.start_all()
-
-        msg = GatewayMessage(text="Broadcast", user_id="bot", channel_id="all", platform="webhook")
-        await manager.broadcast(msg)
-
-        await manager.stop_all()
-
-    @pytest.mark.asyncio
-    async def test_on_message_handler(self):
-        manager = GatewayManager()
-        gw = WebhookGateway(port=0)
-        manager.register(gw)
-
-        received = []
-
-        async def handler(msg: GatewayMessage) -> None:
-            received.append(msg)
-
-        manager.on_message(handler)
-        await manager.start_all()
-
-        await gw._handle_incoming(
-            {"text": "Hello", "user_id": "u1", "channel_id": "c1"}
-        )
-
-        await manager.stop_all()
-
-        assert len(received) == 1
-        assert received[0].text == "Hello"
+        assert adapter.is_connected is False
