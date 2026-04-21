@@ -692,11 +692,11 @@ Discord/Slack/Telegram → Gateway → Session Pool → Agent Engine → LLM API
 - [x] 任务管理（TodoWrite）
 
 ### Phase 3: 生产级
-- [ ] 网关层（Discord, Slack, Telegram）
-- [ ] Swarm 多 Agent 协作
-- [ ] 轨迹追踪与训练数据导出
-- [ ] 成本追踪
-- [ ] 安全基础设施
+- [x] 网关层（Discord, Slack, Telegram）
+- [x] Swarm 多 Agent 协作
+- [x] 轨迹追踪与训练数据导出
+- [x] 成本追踪
+- [x] 安全基础设施
 
 ### Phase 4: 高级特性
 - [ ] LSP 集成
