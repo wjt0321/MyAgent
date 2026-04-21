@@ -678,18 +678,18 @@ Discord/Slack/Telegram → Gateway → Session Pool → Agent Engine → LLM API
 ## 9. 开发路线图
 
 ### Phase 1: 核心引擎（MVP）
-- [ ] QueryEngine 实现
-- [ ] 基础工具集（Read, Edit, Write, Bash, Glob, Grep）
-- [ ] Agent 定义系统
-- [ ] CLI 交互界面
-- [ ] 记忆系统
+- [x] QueryEngine 实现
+- [x] 基础工具集（Read, Edit, Write, Bash, Glob, Grep）
+- [x] Agent 定义系统
+- [x] CLI 交互界面
+- [x] 记忆系统
 
 ### Phase 2: 扩展能力
-- [ ] 插件系统
-- [ ] MCP 支持
-- [ ] Web 工具（WebFetch, WebSearch）
-- [ ] 子 Agent 调用
-- [ ] 任务管理（TodoWrite）
+- [x] 插件系统
+- [x] MCP 支持
+- [x] Web 工具（WebFetch, WebSearch）
+- [x] 子 Agent 调用
+- [x] 任务管理（TodoWrite）
 
 ### Phase 3: 生产级
 - [ ] 网关层（Discord, Slack, Telegram）
