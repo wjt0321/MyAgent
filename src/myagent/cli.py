@@ -36,6 +36,22 @@ Type **/help** for available commands.
 
 
 @app.command()
+def init(
+    quick: bool = typer.Option(False, "--quick", "-q", help="Quick mode — skip prompts, use defaults"),
+) -> None:
+    """Initialize MyAgent configuration and workspace."""
+    from myagent.init.wizard import run_wizard
+    run_wizard()
+
+
+@app.command()
+def doctor() -> None:
+    """Diagnose MyAgent configuration issues."""
+    from myagent.init.doctor import run_doctor
+    run_doctor()
+
+
+@app.command()
 def web(
     host: str = typer.Option("127.0.0.1", "--host", help="Host to bind to"),
     port: int = typer.Option(8000, "--port", "-p", help="Port to listen on"),
@@ -49,6 +65,17 @@ def web(
 
     app = create_app()
     uvicorn.run(app, host=host, port=port, log_level="info")
+
+
+@app.command()
+def gateway(
+    port: int = typer.Option(18789, "--port", "-p", help="Gateway WebSocket port"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose logging"),
+) -> None:
+    """Start the MyAgent Gateway server."""
+    console.print(f"[bold green]Starting MyAgent Gateway on port {port}[/bold green]")
+    console.print("[yellow]Note: Gateway server implementation is a placeholder.[/yellow]")
+    console.print("[dim]Press Ctrl+C to stop[/dim]")
 
 
 @app.command()
