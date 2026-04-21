@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+import yaml
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -142,6 +143,9 @@ class MyAgentApp(App[None]):
         self._memory_manager = MemoryManager(
             memory_dir=Path.home() / ".myagent" / "memory"
         )
+        self._config_path = Path.home() / ".myagent" / "config.yaml"
+        self._config: dict[str, Any] = {}
+        self._load_config()
         self._init_provider()
 
     def _init_provider(self) -> None:
@@ -357,6 +361,8 @@ class MyAgentApp(App[None]):
         agent_def = self._agents[agent_name]
         self._current_agent_def = agent_def
         self.current_agent = agent_name
+        self._config["agent"] = agent_name
+        self._save_config()
 
         if self._query_engine is not None:
             tool_names = agent_def.tools
@@ -397,6 +403,8 @@ class MyAgentApp(App[None]):
 
         self._provider.model = model_name
         self.current_provider = f"zhipu/{model_name}"
+        self._config["model"] = model_name
+        self._save_config()
         self._update_header()
         self.add_assistant_message(f"Switched to model: {model_name}")
 
@@ -411,6 +419,31 @@ class MyAgentApp(App[None]):
         for entry in entries:
             lines.append(f"  - {entry.title}")
         self.add_assistant_message("\n".join(lines))
+
+    def _load_config(self) -> None:
+        """Load configuration from file."""
+        if self._config_path.exists():
+            try:
+                with open(self._config_path, "r", encoding="utf-8") as f:
+                    self._config = yaml.safe_load(f) or {}
+            except Exception:
+                self._config = {}
+        else:
+            self._config = {
+                "agent": "general",
+                "model": "glm-4.7",
+                "provider": "zhipu",
+            }
+            self._save_config()
+
+    def _save_config(self) -> None:
+        """Save configuration to file."""
+        try:
+            self._config_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self._config_path, "w", encoding="utf-8") as f:
+                yaml.dump(self._config, f, default_flow_style=False, allow_unicode=True)
+        except Exception:
+            pass
 
     def _update_header(self) -> None:
         """Update header text."""
