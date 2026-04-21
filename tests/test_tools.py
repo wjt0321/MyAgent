@@ -185,3 +185,67 @@ class TestFileTools:
 
         assert result.is_error is True
         assert "not found" in result.output.lower()
+
+
+class TestShellAndSearchTools:
+    def test_bash_tool_echo(self, tmp_path: Path):
+        from myagent.tools.bash import Bash, BashInput
+
+        tool = Bash()
+        ctx = ToolExecutionContext(cwd=tmp_path)
+        result = asyncio.run(tool.execute(BashInput(command="echo hello"), ctx))
+
+        assert result.is_error is False
+        assert "hello" in result.output
+
+    def test_bash_tool_invalid_command(self, tmp_path: Path):
+        from myagent.tools.bash import Bash, BashInput
+
+        tool = Bash()
+        ctx = ToolExecutionContext(cwd=tmp_path)
+        result = asyncio.run(tool.execute(BashInput(command="this_command_does_not_exist_12345"), ctx))
+
+        assert result.is_error is True
+
+    def test_glob_tool_matches(self, tmp_path: Path):
+        from myagent.tools.glob import Glob, GlobInput
+
+        (tmp_path / "a.py").write_text("", encoding="utf-8")
+        (tmp_path / "b.py").write_text("", encoding="utf-8")
+        (tmp_path / "c.txt").write_text("", encoding="utf-8")
+
+        tool = Glob()
+        ctx = ToolExecutionContext(cwd=tmp_path)
+        result = asyncio.run(tool.execute(GlobInput(pattern="*.py"), ctx))
+
+        assert result.is_error is False
+        assert "a.py" in result.output
+        assert "b.py" in result.output
+        assert "c.txt" not in result.output
+
+    def test_glob_tool_is_read_only(self):
+        from myagent.tools.glob import Glob
+
+        tool = Glob()
+        assert tool.is_read_only(None) is True
+
+    def test_grep_tool_finds_matches(self, tmp_path: Path):
+        from myagent.tools.grep import Grep, GrepInput
+
+        (tmp_path / "file1.py").write_text("def hello(): pass\n", encoding="utf-8")
+        (tmp_path / "file2.py").write_text("def world(): pass\n", encoding="utf-8")
+
+        tool = Grep()
+        ctx = ToolExecutionContext(cwd=tmp_path)
+        result = asyncio.run(tool.execute(GrepInput(pattern="hello", glob="*.py"), ctx))
+
+        assert result.is_error is False
+        assert "file1.py" in result.output
+        assert "hello" in result.output
+        assert "file2.py" not in result.output
+
+    def test_grep_tool_is_read_only(self):
+        from myagent.tools.grep import Grep
+
+        tool = Grep()
+        assert tool.is_read_only(None) is True
