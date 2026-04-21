@@ -18,9 +18,14 @@ class TestTUIConfigPersistence:
 
     def test_config_has_default_values(self):
         """Config should have default values."""
-        app = MyAgentApp()
-        assert app._config.get("agent") == "general"
-        assert app._config.get("model") == "glm-4.7"
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "config.yaml"
+            app = MyAgentApp()
+            app._config_path = config_path
+            app._load_config()
+            assert app._config.get("agent") == "general"
+            assert app._config.get("model") == "glm-4.7"
 
     def test_save_and_load_config(self):
         """Config should be saved and loaded correctly."""

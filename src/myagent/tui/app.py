@@ -11,7 +11,7 @@ from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
-from textual.widgets import Footer, Input, RichLog, Static
+from textual.widgets import Footer, RichLog, Static, TextArea
 
 from myagent.agents.loader import AgentLoader
 from myagent.cost.tracker import CostTracker
@@ -103,7 +103,7 @@ class MyAgentApp(App[None]):
     }
 
     #composer-container {
-        height: 3;
+        height: 5;
         border: solid $primary;
     }
 
@@ -121,6 +121,7 @@ class MyAgentApp(App[None]):
     BINDINGS = [
         ("ctrl+l", "clear", "Clear"),
         ("ctrl+d", "quit", "Exit"),
+        ("enter", "submit_message", "Send"),
     ]
 
     current_agent = reactive("general")
@@ -187,12 +188,16 @@ class MyAgentApp(App[None]):
         yield Static("", id="current-response")
 
         with Horizontal(id="composer-container"):
-            yield Input(placeholder="Type a message or /command...", id="composer")
+            yield TextArea(
+                placeholder="Type a message or /command... (Shift+Enter for new line)",
+                id="composer",
+                show_line_numbers=False,
+            )
 
         yield Footer(id="footer")
 
     def on_mount(self) -> None:
-        self.query_one("#composer", Input).focus()
+        self.query_one("#composer", TextArea).focus()
         if self._query_engine is None:
             self.add_assistant_message(
                 "Welcome to MyAgent!\n"
@@ -205,13 +210,18 @@ class MyAgentApp(App[None]):
                 "Welcome to MyAgent! Type a message to start chatting, or use /help for commands."
             )
 
-    def on_input_submitted(self, event: Input.Submitted) -> None:
-        """Handle user input submission."""
-        value = event.value.strip()
+    def on_text_area_changed(self, event: TextArea.Changed) -> None:
+        """Handle text area changes - not used directly."""
+        pass
+
+    def action_submit_message(self) -> None:
+        """Submit the current message from TextArea."""
+        composer = self.query_one("#composer", TextArea)
+        value = composer.text.strip()
         if not value:
             return
 
-        event.input.value = ""
+        composer.text = ""
 
         if value.startswith("/"):
             self._handle_command(value)
