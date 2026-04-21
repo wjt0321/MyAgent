@@ -699,11 +699,11 @@ Discord/Slack/Telegram → Gateway → Session Pool → Agent Engine → LLM API
 - [x] 安全基础设施
 
 ### Phase 4: 高级特性
-- [ ] LSP 集成
-- [ ] TTS/音频支持
-- [ ] 图像理解
-- [ ] 远程桥接
-- [ ] 定时任务
+- [x] LSP 集成
+- [x] TTS/音频支持
+- [x] 图像理解
+- [x] 远程桥接
+- [x] 定时任务
 
 ---
 
