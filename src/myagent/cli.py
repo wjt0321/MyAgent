@@ -36,6 +36,22 @@ Type **/help** for available commands.
 
 
 @app.command()
+def web(
+    host: str = typer.Option("127.0.0.1", "--host", help="Host to bind to"),
+    port: int = typer.Option(8000, "--port", "-p", help="Port to listen on"),
+) -> None:
+    """Start the MyAgent Web UI server."""
+    import uvicorn
+    from myagent.web.server import create_app
+
+    console.print(f"[bold green]Starting MyAgent Web UI on http://{host}:{port}[/bold green]")
+    console.print("[dim]Press Ctrl+C to stop[/dim]")
+
+    app = create_app()
+    uvicorn.run(app, host=host, port=port, log_level="info")
+
+
+@app.command()
 def main(
     agent: str = typer.Option("general", "--agent", "-a", help="Agent to use"),
     prompt: str | None = typer.Option(None, "--prompt", "-p", help="Single prompt mode"),

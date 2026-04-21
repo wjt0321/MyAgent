@@ -15,6 +15,6 @@ class TestCLI:
         assert "MyAgent" in result.output
 
     def test_cli_version(self):
-        result = runner.invoke(app, ["--version"])
+        result = runner.invoke(app, ["main", "--version"])
         assert result.exit_code == 0
         assert "0.1.0" in result.output
