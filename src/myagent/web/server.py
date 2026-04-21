@@ -10,6 +10,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from myagent.web.engine_manager import WebEngineManager
 from myagent.web.session import SessionStore
 
 
@@ -17,6 +18,7 @@ from myagent.web.session import SessionStore
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan manager."""
     app.state.session_store = SessionStore()
+    app.state.engine_manager = WebEngineManager()
     yield
 
 
@@ -84,6 +86,7 @@ def create_app() -> FastAPI:
         """WebSocket endpoint for real-time chat."""
         await websocket.accept()
         store: SessionStore = app.state.session_store
+        engine_manager: WebEngineManager = app.state.engine_manager
         session = store.get(session_id)
 
         if session is None:
@@ -91,10 +94,32 @@ def create_app() -> FastAPI:
             await websocket.close()
             return
 
+        if not engine_manager.is_configured():
+            await websocket.send_json({
+                "type": "error",
+                "message": "LLM provider not configured. Set ZHIPU_API_KEY environment variable.",
+            })
+            await websocket.close()
+            return
+
+        engine = engine_manager.create_engine(session.agent)
+        if engine is None:
+            await websocket.send_json({"type": "error", "message": "Failed to create query engine"})
+            await websocket.close()
+            return
+
         try:
             while True:
                 data = await websocket.receive_json()
                 message = data.get("message", "").strip()
+                action = data.get("action", "")
+
+                if action == "approve_permission":
+                    tool_use_id = data.get("tool_use_id", "")
+                    approved = data.get("approved", False)
+                    async for event in engine.continue_with_permission(tool_use_id, approved):
+                        await _send_event(websocket, event)
+                    continue
 
                 if not message:
                     continue
@@ -107,25 +132,63 @@ def create_app() -> FastAPI:
                     "message": message,
                 })
 
-                await websocket.send_json({
-                    "type": "assistant_start",
-                })
+                await websocket.send_json({"type": "assistant_start"})
 
-                response_text = f"Echo: {message}"
-                session.add_message("assistant", response_text)
-                store._save(session)
-
-                await websocket.send_json({
-                    "type": "assistant_delta",
-                    "text": response_text,
-                })
-
-                await websocket.send_json({
-                    "type": "assistant_done",
-                })
+                await engine_manager.process_message(
+                    engine,
+                    message,
+                    send_callback=websocket.send_json,
+                )
 
         except WebSocketDisconnect:
             pass
+
+    async def _send_event(websocket: WebSocket, event: Any) -> None:
+        """Send a stream event through WebSocket."""
+        from myagent.engine.stream_events import (
+            AssistantTextDelta,
+            AssistantTurnComplete,
+            ErrorEvent,
+            PermissionRequestEvent,
+            PermissionResultEvent,
+            ToolExecutionCompleted,
+            ToolExecutionStarted,
+        )
+
+        if isinstance(event, AssistantTextDelta):
+            await websocket.send_json({"type": "assistant_delta", "text": event.text})
+        elif isinstance(event, ToolExecutionStarted):
+            await websocket.send_json({
+                "type": "tool_call",
+                "tool_name": event.tool_name,
+                "arguments": event.arguments,
+            })
+        elif isinstance(event, ToolExecutionCompleted):
+            await websocket.send_json({
+                "type": "tool_result",
+                "result": event.result,
+                "is_error": event.is_error,
+            })
+        elif isinstance(event, AssistantTurnComplete):
+            await websocket.send_json({"type": "assistant_done"})
+        elif isinstance(event, PermissionRequestEvent):
+            await websocket.send_json({
+                "type": "permission_request",
+                "tool_name": event.tool_name,
+                "arguments": event.arguments,
+                "reason": event.reason,
+            })
+        elif isinstance(event, PermissionResultEvent):
+            await websocket.send_json({
+                "type": "permission_result",
+                "approved": event.approved,
+                "reason": event.reason,
+            })
+        elif isinstance(event, ErrorEvent):
+            await websocket.send_json({
+                "type": "error",
+                "message": f"{type(event.error).__name__}: {event.error}",
+            })
 
     return app
 

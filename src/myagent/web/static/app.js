@@ -184,6 +184,15 @@ class MyAgentWebApp {
             case 'error':
                 this.addMessage('error', data.message, false);
                 break;
+
+            case 'permission_request':
+                this.showPermissionModal(data);
+                break;
+
+            case 'permission_result':
+                const status = data.approved ? 'approved' : 'denied';
+                this.addMessage('tool-result', `Permission ${status}: ${data.reason}`, false);
+                break;
         }
     }
 
@@ -195,6 +204,52 @@ class MyAgentWebApp {
 
         this.ws.send(JSON.stringify({ message: text }));
         this.messageInput.value = '';
+    }
+
+    sendPermissionResponse(toolUseId, approved) {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                action: 'approve_permission',
+                tool_use_id: toolUseId,
+                approved: approved,
+            }));
+        }
+    }
+
+    showPermissionModal(data) {
+        const modal = document.createElement('div');
+        modal.className = 'permission-modal';
+
+        const argsHtml = Object.entries(data.arguments)
+            .map(([k, v]) => `<div class="perm-arg"><strong>${k}:</strong> ${v}</div>`)
+            .join('');
+
+        modal.innerHTML = `
+            <div class="permission-dialog">
+                <h3>Permission Required</h3>
+                <p class="perm-reason">${data.reason}</p>
+                <div class="perm-details">
+                    <div><strong>Tool:</strong> ${data.tool_name}</div>
+                    ${argsHtml}
+                </div>
+                <div class="perm-buttons">
+                    <button class="btn-deny" onclick="window.myAgentApp.handlePermission(false)">Deny</button>
+                    <button class="btn-allow" onclick="window.myAgentApp.handlePermission(true)">Allow</button>
+                </div>
+            </div>
+        `;
+
+        this._pendingPermission = data;
+        document.body.appendChild(modal);
+    }
+
+    handlePermission(approved) {
+        if (this._pendingPermission) {
+            this.sendPermissionResponse(this._pendingPermission.tool_name, approved);
+            this._pendingPermission = null;
+        }
+        const modal = document.querySelector('.permission-modal');
+        if (modal) modal.remove();
     }
 
     addMessage(role, content, append = false) {

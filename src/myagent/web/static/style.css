@@ -255,3 +255,86 @@ body {
     0%, 60%, 100% { transform: translateY(0); }
     30% { transform: translateY(-10px); }
 }
+
+/* Permission Modal */
+.permission-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.permission-dialog {
+    background: #16213e;
+    border: 2px solid #e94560;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 500px;
+    width: 90%;
+}
+
+.permission-dialog h3 {
+    color: #e94560;
+    margin-bottom: 12px;
+}
+
+.perm-reason {
+    color: #aaa;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.perm-details {
+    background: #0f3460;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.perm-arg {
+    margin: 4px 0;
+    color: #ffd700;
+}
+
+.perm-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.btn-deny {
+    background: #555;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-deny:hover {
+    background: #777;
+}
+
+.btn-allow {
+    background: #4ecca3;
+    color: #1a1a2e;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.btn-allow:hover {
+    background: #3db892;
+}
