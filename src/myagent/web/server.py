@@ -81,6 +81,56 @@ def create_app() -> FastAPI:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Session not found")
 
+    @app.get("/api/files")
+    async def list_files(path: str = ".") -> dict[str, Any]:
+        """List files in a directory."""
+        target = Path(path).resolve()
+        if not target.exists():
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Path not found")
+
+        entries = []
+        try:
+            for item in sorted(target.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
+                entries.append({
+                    "name": item.name,
+                    "path": str(item),
+                    "is_dir": item.is_dir(),
+                    "size": item.stat().st_size if item.is_file() else 0,
+                })
+        except PermissionError:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=403, detail="Permission denied")
+
+        return {"path": str(target), "entries": entries}
+
+    @app.get("/api/files/read")
+    async def read_file(path: str) -> dict[str, Any]:
+        """Read a file's content."""
+        target = Path(path).resolve()
+        if not target.exists() or not target.is_file():
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="File not found")
+
+        try:
+            content = target.read_text(encoding="utf-8")
+            return {
+                "path": str(target),
+                "name": target.name,
+                "content": content,
+                "size": len(content),
+            }
+        except UnicodeDecodeError:
+            return {
+                "path": str(target),
+                "name": target.name,
+                "content": "[Binary file]",
+                "size": target.stat().st_size,
+            }
+        except PermissionError:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=403, detail="Permission denied")
+
     @app.websocket("/ws/{session_id}")
     async def websocket_endpoint(websocket: WebSocket, session_id: str) -> None:
         """WebSocket endpoint for real-time chat."""

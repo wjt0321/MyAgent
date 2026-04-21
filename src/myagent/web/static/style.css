@@ -338,3 +338,186 @@ body {
 .btn-allow:hover {
     background: #3db892;
 }
+
+/* Sidebar Sections */
+.sidebar-section {
+    padding: 12px 16px;
+    border-bottom: 1px solid #0f3460;
+}
+
+.sidebar-section h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+/* File Browser */
+.file-browser {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.file-tree {
+    font-size: 13px;
+}
+
+.file-tree-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+    gap: 6px;
+}
+
+.file-tree-item:hover {
+    background: #0f3460;
+}
+
+.file-tree-item .icon {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+}
+
+.file-tree-item .name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-tree-item.dir {
+    font-weight: 500;
+}
+
+.file-tree-children {
+    padding-left: 20px;
+    display: none;
+}
+
+.file-tree-children.expanded {
+    display: block;
+}
+
+.file-tree-toggle {
+    font-size: 10px;
+    width: 12px;
+    text-align: center;
+    color: #888;
+}
+
+/* File Preview Panel */
+.file-preview-panel {
+    width: 400px;
+    background: #16213e;
+    border-left: 1px solid #0f3460;
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #0f3460;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.preview-header span {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.btn-icon:hover {
+    color: #e94560;
+}
+
+.file-preview-panel pre {
+    flex: 1;
+    overflow: auto;
+    padding: 16px;
+    margin: 0;
+    background: #1a1a2e;
+}
+
+.file-preview-panel code {
+    font-family: "Fira Code", "Consolas", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* Markdown rendering in messages */
+.message.assistant .content h1,
+.message.assistant .content h2,
+.message.assistant .content h3 {
+    margin: 12px 0 8px;
+    color: #e94560;
+}
+
+.message.assistant .content code {
+    background: #1a1a2e;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.message.assistant .content pre {
+    background: #1a1a2e;
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 8px 0;
+}
+
+.message.assistant .content pre code {
+    background: none;
+    padding: 0;
+}
+
+.message.assistant .content ul,
+.message.assistant .content ol {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.message.assistant .content li {
+    margin: 4px 0;
+}
+
+.message.assistant .content blockquote {
+    border-left: 3px solid #e94560;
+    padding-left: 12px;
+    margin: 8px 0;
+    color: #aaa;
+}
+
+.message.assistant .content table {
+    border-collapse: collapse;
+    margin: 8px 0;
+    width: 100%;
+}
+
+.message.assistant .content th,
+.message.assistant .content td {
+    border: 1px solid #0f3460;
+    padding: 6px 10px;
+    text-align: left;
+}
+
+.message.assistant .content th {
+    background: #0f3460;
+}

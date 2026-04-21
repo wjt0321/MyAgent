@@ -9,10 +9,12 @@ class MyAgentWebApp {
         this.sessions = [];
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
+        this.expandedDirs = new Set();
 
         this.initElements();
         this.bindEvents();
         this.loadSessions();
+        this.loadFileTree('.');
     }
 
     initElements() {
@@ -24,6 +26,11 @@ class MyAgentWebApp {
         this.statusIndicator = document.getElementById('status-indicator');
         this.currentAgent = document.getElementById('current-agent');
         this.currentModel = document.getElementById('current-model');
+        this.fileTree = document.getElementById('file-tree');
+        this.filePreviewPanel = document.getElementById('file-preview-panel');
+        this.previewFilename = document.getElementById('preview-filename');
+        this.previewContent = document.getElementById('preview-content');
+        this.closePreviewBtn = document.getElementById('close-preview');
     }
 
     bindEvents() {
@@ -37,7 +44,105 @@ class MyAgentWebApp {
         });
 
         this.newSessionBtn.addEventListener('click', () => this.createSession());
+        this.closePreviewBtn.addEventListener('click', () => this.hideFilePreview());
     }
+
+    // ========== File Browser ==========
+
+    async loadFileTree(path) {
+        try {
+            const response = await fetch(`/api/files?path=${encodeURIComponent(path)}`);
+            const data = await response.json();
+            this.renderFileTree(data.entries, path);
+        } catch (error) {
+            console.error('Failed to load file tree:', error);
+        }
+    }
+
+    renderFileTree(entries, parentPath) {
+        this.fileTree.innerHTML = '';
+
+        if (parentPath !== '.') {
+            const upItem = document.createElement('div');
+            upItem.className = 'file-tree-item dir';
+            upItem.innerHTML = `
+                <span class="file-tree-toggle"></span>
+                <span class="icon">📁</span>
+                <span class="name">..</span>
+            `;
+            upItem.addEventListener('click', () => {
+                const parent = parentPath.split('\\').slice(0, -1).join('\\') || '.';
+                this.loadFileTree(parent);
+            });
+            this.fileTree.appendChild(upItem);
+        }
+
+        entries.forEach(entry => {
+            const item = document.createElement('div');
+            item.className = `file-tree-item ${entry.is_dir ? 'dir' : ''}`;
+
+            const toggle = entry.is_dir ?
+                `<span class="file-tree-toggle">▶</span>` :
+                '<span class="file-tree-toggle"></span>';
+            const icon = entry.is_dir ? '📁' : this.getFileIcon(entry.name);
+
+            item.innerHTML = `
+                ${toggle}
+                <span class="icon">${icon}</span>
+                <span class="name">${entry.name}</span>
+            `;
+
+            if (entry.is_dir) {
+                item.addEventListener('click', () => {
+                    this.loadFileTree(entry.path);
+                });
+            } else {
+                item.addEventListener('click', () => {
+                    this.showFilePreview(entry.path, entry.name);
+                });
+            }
+
+            this.fileTree.appendChild(item);
+        });
+    }
+
+    getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const icons = {
+            'py': '🐍', 'js': '📜', 'ts': '📘', 'html': '🌐', 'css': '🎨',
+            'json': '📋', 'yaml': '📋', 'yml': '📋', 'md': '📝', 'txt': '📄',
+            'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
+            'pdf': '📕', 'zip': '📦', 'tar': '📦', 'gz': '📦',
+        };
+        return icons[ext] || '📄';
+    }
+
+    async showFilePreview(path, name) {
+        try {
+            const response = await fetch(`/api/files/read?path=${encodeURIComponent(path)}`);
+            const data = await response.json();
+
+            this.previewFilename.textContent = name;
+            this.previewContent.textContent = data.content;
+
+            // Apply syntax highlighting
+            const ext = name.split('.').pop().toLowerCase();
+            this.previewContent.className = ext;
+            if (window.hljs) {
+                window.hljs.highlightElement(this.previewContent);
+            }
+
+            this.filePreviewPanel.style.display = 'flex';
+        } catch (error) {
+            console.error('Failed to load file:', error);
+        }
+    }
+
+    hideFilePreview() {
+        this.filePreviewPanel.style.display = 'none';
+    }
+
+    // ========== Sessions ==========
 
     async loadSessions() {
         try {
@@ -113,6 +218,8 @@ class MyAgentWebApp {
 
         this.connectWebSocket(sessionId);
     }
+
+    // ========== WebSocket ==========
 
     connectWebSocket(sessionId) {
         if (this.ws) {
@@ -252,11 +359,14 @@ class MyAgentWebApp {
         if (modal) modal.remove();
     }
 
+    // ========== Messages ==========
+
     addMessage(role, content, append = false) {
         if (append) {
             const lastMessage = this.messagesContainer.lastElementChild;
             if (lastMessage && lastMessage.classList.contains(role)) {
-                lastMessage.querySelector('.content').textContent += content;
+                const contentEl = lastMessage.querySelector('.content');
+                contentEl.textContent += content;
                 this.scrollToBottom();
                 return;
             }
@@ -273,13 +383,36 @@ class MyAgentWebApp {
             'error': 'Error'
         };
 
+        let contentHtml;
+        if (role === 'assistant') {
+            // Render Markdown for assistant messages
+            contentHtml = this.renderMarkdown(content);
+        } else {
+            contentHtml = this.escapeHtml(content);
+        }
+
         messageDiv.innerHTML = `
             <div class="role-label">${roleLabels[role] || role}</div>
-            <div class="content">${this.escapeHtml(content)}</div>
+            <div class="content">${contentHtml}</div>
         `;
+
+        // Apply syntax highlighting to code blocks
+        if (role === 'assistant' && window.hljs) {
+            messageDiv.querySelectorAll('pre code').forEach((block) => {
+                window.hljs.highlightElement(block);
+            });
+        }
 
         this.messagesContainer.appendChild(messageDiv);
         this.scrollToBottom();
+    }
+
+    renderMarkdown(text) {
+        if (window.marked) {
+            return window.marked.parse(text);
+        }
+        // Fallback: simple HTML escape
+        return this.escapeHtml(text).replace(/\n/g, '<br>');
     }
 
     showTypingIndicator() {

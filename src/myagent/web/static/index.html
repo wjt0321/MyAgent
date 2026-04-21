@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MyAgent Web UI</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div class="app">
@@ -13,7 +21,16 @@
                 <h1>MyAgent</h1>
                 <button id="new-session-btn" class="btn-primary">+ 新会话</button>
             </div>
-            <div class="session-list" id="session-list"></div>
+            <div class="sidebar-section">
+                <h3>会话</h3>
+                <div class="session-list" id="session-list"></div>
+            </div>
+            <div class="sidebar-section">
+                <h3>文件浏览器</h3>
+                <div class="file-browser" id="file-browser">
+                    <div class="file-tree" id="file-tree"></div>
+                </div>
+            </div>
             <div class="sidebar-footer">
                 <span id="status-indicator" class="status-disconnected">未连接</span>
             </div>
@@ -36,6 +53,14 @@
                 <button id="send-btn" class="btn-primary">发送</button>
             </div>
         </main>
+
+        <aside class="file-preview-panel" id="file-preview-panel" style="display: none;">
+            <div class="preview-header">
+                <span id="preview-filename"></span>
+                <button id="close-preview" class="btn-icon">&times;</button>
+            </div>
+            <pre><code id="preview-content"></code></pre>
+        </aside>
     </div>
 
     <script src="/static/app.js"></script>
