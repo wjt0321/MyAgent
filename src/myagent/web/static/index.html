@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MyAgent Web UI</title>
     <link rel="stylesheet" href="/static/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" id="hljs-theme">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
@@ -14,9 +14,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
-<body>
+<body class="theme-dark">
     <div class="app">
-        <aside class="sidebar">
+        <!-- Mobile Sidebar Toggle -->
+        <button class="mobile-sidebar-toggle" id="mobile-sidebar-toggle">☰</button>
+
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h1>MyAgent</h1>
                 <button id="new-session-btn" class="btn-primary">+ 新会话</button>
@@ -32,14 +35,35 @@
                 </div>
             </div>
             <div class="sidebar-footer">
-                <span id="status-indicator" class="status-disconnected">未连接</span>
+                <div class="footer-row">
+                    <span id="status-indicator" class="status-disconnected">未连接</span>
+                    <button class="btn-icon" id="theme-toggle" title="切换主题">🌙</button>
+                </div>
             </div>
         </aside>
 
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
         <main class="chat-area">
             <div class="chat-header">
-                <span id="current-agent">Agent: general</span>
-                <span id="current-model">Model: glm-4.7</span>
+                <div class="header-left">
+                    <span id="current-agent">Agent: general</span>
+                    <span id="current-model">Model: glm-4.7</span>
+                </div>
+                <div class="header-right">
+                    <select id="agent-select" class="agent-select">
+                        <option value="general">general</option>
+                        <option value="explore">explore</option>
+                        <option value="worker">worker</option>
+                        <option value="reviewer">reviewer</option>
+                    </select>
+                    <button class="btn-icon" id="search-toggle" title="搜索消息">🔍</button>
+                </div>
+            </div>
+
+            <div class="search-bar" id="search-bar" style="display: none;">
+                <input type="text" id="search-input" placeholder="搜索消息...">
+                <button class="btn-icon" id="search-close">✕</button>
             </div>
 
             <div class="messages" id="messages"></div>
@@ -50,7 +74,10 @@
                     placeholder="输入消息... (Shift+Enter 换行, Enter 发送)"
                     rows="3"
                 ></textarea>
-                <button id="send-btn" class="btn-primary">发送</button>
+                <button id="send-btn" class="btn-primary">
+                    <span class="send-text">发送</span>
+                    <span class="send-loading" style="display: none;">⏳</span>
+                </button>
             </div>
         </main>
 

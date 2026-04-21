@@ -9,17 +9,53 @@ class MyAgentWebApp {
         this.sessions = [];
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
-        this.expandedDirs = new Set();
+        this.isSending = false;
+        this.searchQuery = '';
+        this.currentTheme = localStorage.getItem('myagent-theme') || 'dark';
 
+        this.initTheme();
         this.initElements();
         this.bindEvents();
         this.loadSessions();
         this.loadFileTree('.');
     }
 
+    // ========== Theme ==========
+
+    initTheme() {
+        document.body.className = `theme-${this.currentTheme}`;
+        this.updateHLJSTheme();
+    }
+
+    toggleTheme() {
+        this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+        document.body.className = `theme-${this.currentTheme}`;
+        localStorage.setItem('myagent-theme', this.currentTheme);
+        this.updateHLJSTheme();
+        this.updateThemeButton();
+    }
+
+    updateHLJSTheme() {
+        const link = document.getElementById('hljs-theme');
+        if (link) {
+            const theme = this.currentTheme === 'dark' ? 'atom-one-dark' : 'github';
+            link.href = `https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/${theme}.min.css`;
+        }
+    }
+
+    updateThemeButton() {
+        if (this.themeToggle) {
+            this.themeToggle.textContent = this.currentTheme === 'dark' ? '🌙' : '☀️';
+        }
+    }
+
+    // ========== Elements ==========
+
     initElements() {
         this.messageInput = document.getElementById('message-input');
         this.sendBtn = document.getElementById('send-btn');
+        this.sendText = this.sendBtn.querySelector('.send-text');
+        this.sendLoading = this.sendBtn.querySelector('.send-loading');
         this.messagesContainer = document.getElementById('messages');
         this.sessionList = document.getElementById('session-list');
         this.newSessionBtn = document.getElementById('new-session-btn');
@@ -31,7 +67,20 @@ class MyAgentWebApp {
         this.previewFilename = document.getElementById('preview-filename');
         this.previewContent = document.getElementById('preview-content');
         this.closePreviewBtn = document.getElementById('close-preview');
+        this.themeToggle = document.getElementById('theme-toggle');
+        this.mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
+        this.sidebar = document.getElementById('sidebar');
+        this.sidebarOverlay = document.getElementById('sidebar-overlay');
+        this.agentSelect = document.getElementById('agent-select');
+        this.searchToggle = document.getElementById('search-toggle');
+        this.searchBar = document.getElementById('search-bar');
+        this.searchInput = document.getElementById('search-input');
+        this.searchClose = document.getElementById('search-close');
+
+        this.updateThemeButton();
     }
+
+    // ========== Events ==========
 
     bindEvents() {
         this.sendBtn.addEventListener('click', () => this.sendMessage());
@@ -45,6 +94,96 @@ class MyAgentWebApp {
 
         this.newSessionBtn.addEventListener('click', () => this.createSession());
         this.closePreviewBtn.addEventListener('click', () => this.hideFilePreview());
+        this.themeToggle.addEventListener('click', () => this.toggleTheme());
+
+        // Mobile sidebar
+        this.mobileSidebarToggle.addEventListener('click', () => this.openSidebar());
+        this.sidebarOverlay.addEventListener('click', () => this.closeSidebar());
+
+        // Agent select
+        this.agentSelect.addEventListener('change', (e) => this.switchAgent(e.target.value));
+
+        // Search
+        this.searchToggle.addEventListener('click', () => this.toggleSearch());
+        this.searchClose.addEventListener('click', () => this.toggleSearch());
+        this.searchInput.addEventListener('input', (e) => this.performSearch(e.target.value));
+    }
+
+    // ========== Sidebar Mobile ==========
+
+    openSidebar() {
+        this.sidebar.classList.add('show');
+        this.sidebarOverlay.classList.add('show');
+    }
+
+    closeSidebar() {
+        this.sidebar.classList.remove('show');
+        this.sidebarOverlay.classList.remove('show');
+    }
+
+    // ========== Agent Switch ==========
+
+    async switchAgent(agentName) {
+        if (!this.currentSessionId) return;
+
+        // Update session agent via API
+        try {
+            const response = await fetch(`/api/sessions/${this.currentSessionId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ agent: agentName }),
+            });
+
+            if (response.ok) {
+                const session = this.sessions.find(s => s.id === this.currentSessionId);
+                if (session) {
+                    session.agent = agentName;
+                    this.currentAgent.textContent = `Agent: ${agentName}`;
+                    this.renderSessionList();
+                }
+
+                // Reconnect WebSocket to apply new agent config
+                this.connectWebSocket(this.currentSessionId);
+
+                this.addMessage('assistant', `Switched to agent: **${agentName}**`, false);
+            }
+        } catch (error) {
+            console.error('Failed to switch agent:', error);
+        }
+    }
+
+    // ========== Search ==========
+
+    toggleSearch() {
+        const isVisible = this.searchBar.style.display !== 'none';
+        this.searchBar.style.display = isVisible ? 'none' : 'flex';
+        if (!isVisible) {
+            this.searchInput.focus();
+        } else {
+            this.searchInput.value = '';
+            this.clearSearchHighlights();
+        }
+    }
+
+    performSearch(query) {
+        this.clearSearchHighlights();
+        if (!query.trim()) return;
+
+        const messages = this.messagesContainer.querySelectorAll('.message');
+        const lowerQuery = query.toLowerCase();
+
+        messages.forEach(msg => {
+            const content = msg.querySelector('.content');
+            if (content && content.textContent.toLowerCase().includes(lowerQuery)) {
+                msg.classList.add('highlighted');
+                msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    }
+
+    clearSearchHighlights() {
+        this.messagesContainer.querySelectorAll('.message.highlighted')
+            .forEach(msg => msg.classList.remove('highlighted'));
     }
 
     // ========== File Browser ==========
@@ -125,7 +264,6 @@ class MyAgentWebApp {
             this.previewFilename.textContent = name;
             this.previewContent.textContent = data.content;
 
-            // Apply syntax highlighting
             const ext = name.split('.').pop().toLowerCase();
             this.previewContent.className = ext;
             if (window.hljs) {
@@ -133,6 +271,7 @@ class MyAgentWebApp {
             }
 
             this.filePreviewPanel.style.display = 'flex';
+            this.closeSidebar(); // Close mobile sidebar if open
         } catch (error) {
             console.error('Failed to load file:', error);
         }
@@ -168,7 +307,10 @@ class MyAgentWebApp {
                 <div class="session-title">${session.agent} - ${session.id}</div>
                 <div class="session-meta">${this.formatDate(session.updated_at)}</div>
             `;
-            item.addEventListener('click', () => this.selectSession(session.id));
+            item.addEventListener('click', () => {
+                this.selectSession(session.id);
+                this.closeSidebar();
+            });
             this.sessionList.appendChild(item);
         });
     }
@@ -195,6 +337,7 @@ class MyAgentWebApp {
             this.sessions.unshift(session);
             this.renderSessionList();
             this.selectSession(session.id);
+            this.closeSidebar();
         } catch (error) {
             console.error('Failed to create session:', error);
             this.addMessage('error', '创建会话失败');
@@ -205,11 +348,13 @@ class MyAgentWebApp {
         this.currentSessionId = sessionId;
         this.renderSessionList();
         this.messagesContainer.innerHTML = '';
+        this.clearSearchHighlights();
 
         const session = this.sessions.find(s => s.id === sessionId);
         if (session) {
             this.currentAgent.textContent = `Agent: ${session.agent}`;
             this.currentModel.textContent = `Model: ${session.model}`;
+            this.agentSelect.value = session.agent;
 
             session.messages.forEach(msg => {
                 this.addMessage(msg.role, msg.content, false);
@@ -269,6 +414,7 @@ class MyAgentWebApp {
 
             case 'assistant_start':
                 this.showTypingIndicator();
+                this.setSending(true);
                 break;
 
             case 'assistant_delta':
@@ -278,6 +424,7 @@ class MyAgentWebApp {
 
             case 'assistant_done':
                 this.hideTypingIndicator();
+                this.setSending(false);
                 break;
 
             case 'tool_call':
@@ -290,6 +437,7 @@ class MyAgentWebApp {
 
             case 'error':
                 this.addMessage('error', data.message, false);
+                this.setSending(false);
                 break;
 
             case 'permission_request':
@@ -303,14 +451,24 @@ class MyAgentWebApp {
         }
     }
 
+    // ========== Sending State ==========
+
+    setSending(sending) {
+        this.isSending = sending;
+        this.sendBtn.disabled = sending;
+        this.sendText.style.display = sending ? 'none' : 'inline';
+        this.sendLoading.style.display = sending ? 'inline' : 'none';
+    }
+
     sendMessage() {
         const text = this.messageInput.value.trim();
-        if (!text || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        if (!text || !this.ws || this.ws.readyState !== WebSocket.OPEN || this.isSending) {
             return;
         }
 
         this.ws.send(JSON.stringify({ message: text }));
         this.messageInput.value = '';
+        this.setSending(true);
     }
 
     sendPermissionResponse(toolUseId, approved) {
@@ -366,7 +524,11 @@ class MyAgentWebApp {
             const lastMessage = this.messagesContainer.lastElementChild;
             if (lastMessage && lastMessage.classList.contains(role)) {
                 const contentEl = lastMessage.querySelector('.content');
-                contentEl.textContent += content;
+                if (role === 'assistant') {
+                    contentEl.innerHTML = this.renderMarkdown(contentEl.textContent + content);
+                } else {
+                    contentEl.textContent += content;
+                }
                 this.scrollToBottom();
                 return;
             }
@@ -385,7 +547,6 @@ class MyAgentWebApp {
 
         let contentHtml;
         if (role === 'assistant') {
-            // Render Markdown for assistant messages
             contentHtml = this.renderMarkdown(content);
         } else {
             contentHtml = this.escapeHtml(content);
@@ -396,7 +557,6 @@ class MyAgentWebApp {
             <div class="content">${contentHtml}</div>
         `;
 
-        // Apply syntax highlighting to code blocks
         if (role === 'assistant' && window.hljs) {
             messageDiv.querySelectorAll('pre code').forEach((block) => {
                 window.hljs.highlightElement(block);
@@ -411,7 +571,6 @@ class MyAgentWebApp {
         if (window.marked) {
             return window.marked.parse(text);
         }
-        // Fallback: simple HTML escape
         return this.escapeHtml(text).replace(/\n/g, '<br>');
     }
 
