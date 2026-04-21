@@ -43,15 +43,26 @@ def _get_env_or_prompt(key: str, default: str | None = None) -> str | None:
     return os.environ.get(key, default)
 
 
-def _create_default_tool_registry() -> ToolRegistry:
-    """Create a tool registry with all built-in tools."""
+def _create_tool_registry(tool_names: list[str] | None = None) -> ToolRegistry:
+    """Create a tool registry with specified tools (or all by default)."""
+    all_tools: dict[str, Any] = {
+        "Read": Read(),
+        "Bash": Bash(),
+        "Edit": Edit(),
+        "Write": Write(),
+        "Glob": Glob(),
+        "Grep": Grep(),
+    }
+
     registry = ToolRegistry()
-    registry.register(Read())
-    registry.register(Bash())
-    registry.register(Edit())
-    registry.register(Write())
-    registry.register(Glob())
-    registry.register(Grep())
+    if tool_names is None:
+        for tool in all_tools.values():
+            registry.register(tool)
+    else:
+        for name in tool_names:
+            if name in all_tools:
+                registry.register(all_tools[name])
+
     return registry
 
 
@@ -121,11 +132,12 @@ class MyAgentApp(App[None]):
         self._agents = self._agent_loader.load_builtin_agents()
         self._conversation_history: list[ConversationMessage] = []
         self._provider: AnthropicProvider | None = None
-        self._tool_registry = _create_default_tool_registry()
+        self._tool_registry = _create_tool_registry()
         self._permission_checker = PermissionChecker()
         self._cost_tracker = CostTracker()
         self._query_engine: QueryEngine | None = None
         self._turn_count = 0
+        self._current_agent_def = self._agents.get("general")
         self._init_provider()
 
     def _init_provider(self) -> None:
@@ -331,13 +343,45 @@ class MyAgentApp(App[None]):
 
     def _switch_agent(self, agent_name: str) -> None:
         """Switch to a different agent."""
-        if agent_name in self._agents:
-            self.current_agent = agent_name
-            self._update_header()
-            self.add_assistant_message(f"Switched to agent: {agent_name}")
-        else:
+        if agent_name not in self._agents:
             available = ", ".join(self._agents.keys())
             self.add_assistant_message(f"Unknown agent '{agent_name}'. Available: {available}")
+            return
+
+        agent_def = self._agents[agent_name]
+        self._current_agent_def = agent_def
+        self.current_agent = agent_name
+
+        if self._query_engine is not None:
+            tool_names = agent_def.tools
+            if tool_names is not None:
+                new_registry = _create_tool_registry(tool_names)
+            else:
+                disallowed = agent_def.disallowed_tools or []
+                allowed = ["Read", "Bash", "Edit", "Write", "Glob", "Grep"]
+                allowed = [t for t in allowed if t not in disallowed]
+                new_registry = _create_tool_registry(allowed)
+
+            permission_mode = agent_def.permission_mode or "default"
+            if permission_mode == "dontAsk":
+                new_checker = PermissionChecker()
+                new_checker.approve_once("*", {})
+            else:
+                new_checker = PermissionChecker()
+
+            self._query_engine.reconfigure(
+                system_prompt=agent_def.system_prompt or "You are a helpful assistant.",
+                tool_registry=new_registry,
+                max_turns=agent_def.max_turns or 50,
+                permission_checker=new_checker,
+            )
+
+        self._turn_count = 0
+        self._update_header()
+        self.add_assistant_message(
+            f"Switched to agent: {agent_name}\n"
+            f"[dim]Tools: {', '.join(t.name for t in self._query_engine.tool_registry.list_tools())}[/dim]"
+        )
 
     def _switch_model(self, model_name: str) -> None:
         """Switch to a different model."""
@@ -352,12 +396,16 @@ class MyAgentApp(App[None]):
 
     def _update_header(self) -> None:
         """Update header text."""
-        header = self.query_one("#header", Static)
         cost = f"${self._cost_tracker.total_cost:.4f}" if self._cost_tracker.total_cost > 0 else "$0.0000"
-        header.update(
+        header_text = (
             f"MyAgent v0.2.0 | Agent: {self.current_agent} | "
             f"Turns: {self._turn_count} | Cost: {cost} | Provider: {self.current_provider}"
         )
+        try:
+            header = self.query_one("#header", Static)
+            header.update(header_text)
+        except Exception:
+            pass
 
     def add_user_message(self, message: str) -> None:
         """Add a user message to the transcript."""
@@ -393,8 +441,11 @@ class MyAgentApp(App[None]):
     def update_current_response(self, text: str) -> None:
         """Update the current response display."""
         self._current_response_text = text
-        response_widget = self.query_one("#current-response", Static)
-        response_widget.update(Text(text))
+        try:
+            response_widget = self.query_one("#current-response", Static)
+            response_widget.update(Text(text))
+        except Exception:
+            pass
 
     def clear_transcript(self) -> None:
         """Clear the transcript and conversation history."""
@@ -405,14 +456,20 @@ class MyAgentApp(App[None]):
                 ConversationMessage.from_system_text(self._query_engine.system_prompt)
             ]
         self._turn_count = 0
-        transcript = self.query_one("#transcript", RichLog)
-        transcript.clear()
+        try:
+            transcript = self.query_one("#transcript", RichLog)
+            transcript.clear()
+        except Exception:
+            pass
 
     def _add_line(self, line: str) -> None:
         """Add a line to the transcript."""
         self._transcript_lines.append(line)
-        transcript = self.query_one("#transcript", RichLog)
-        transcript.write(line)
+        try:
+            transcript = self.query_one("#transcript", RichLog)
+            transcript.write(line)
+        except Exception:
+            pass
 
     def action_clear(self) -> None:
         """Action handler for Ctrl+L."""

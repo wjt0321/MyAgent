@@ -219,6 +219,28 @@ class QueryEngine:
         async for event in self._run_loop():
             yield event
 
+    def reconfigure(
+        self,
+        system_prompt: str | None = None,
+        tool_registry: ToolRegistry | None = None,
+        max_turns: int | None = None,
+        permission_checker: PermissionChecker | None = None,
+    ) -> None:
+        """Reconfigure the query engine with new settings."""
+        if system_prompt is not None:
+            self.system_prompt = system_prompt
+        if tool_registry is not None:
+            self.tool_registry = tool_registry
+        if max_turns is not None:
+            self.max_turns = max_turns
+        if permission_checker is not None:
+            self.permission_checker = permission_checker
+
+        self.messages = [
+            ConversationMessage.from_system_text(self.system_prompt)
+        ]
+        self._turn_count = 0
+
     async def _execute_tool(self, tool_use: ToolUseBlock) -> ToolResult:
         """Execute a tool and return the result."""
         tool = self.tool_registry.get(tool_use.name)
