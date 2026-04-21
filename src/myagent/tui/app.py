@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any
 
 from rich.text import Text
@@ -12,14 +13,43 @@ from textual.reactive import reactive
 from textual.widgets import Footer, Input, RichLog, Static
 
 from myagent.agents.loader import AgentLoader
+from myagent.cost.tracker import CostTracker
 from myagent.engine.messages import ConversationMessage, TextBlock
+from myagent.engine.query_engine import QueryEngine
+from myagent.engine.stream_events import (
+    AssistantTextDelta,
+    AssistantTurnComplete,
+    ErrorEvent,
+    StreamEvent,
+    ToolExecutionCompleted,
+    ToolExecutionStarted,
+)
 from myagent.llm.providers.anthropic import AnthropicProvider
-from myagent.llm.types import DoneChunk, TextChunk
+from myagent.security.checker import PermissionChecker
+from myagent.tools.bash import Bash
+from myagent.tools.edit import Edit
+from myagent.tools.glob import Glob
+from myagent.tools.grep import Grep
+from myagent.tools.read import Read
+from myagent.tools.registry import ToolRegistry
+from myagent.tools.write import Write
 
 
 def _get_env_or_prompt(key: str, default: str | None = None) -> str | None:
     """Get configuration from environment variable."""
     return os.environ.get(key, default)
+
+
+def _create_default_tool_registry() -> ToolRegistry:
+    """Create a tool registry with all built-in tools."""
+    registry = ToolRegistry()
+    registry.register(Read())
+    registry.register(Bash())
+    registry.register(Edit())
+    registry.register(Write())
+    registry.register(Glob())
+    registry.register(Grep())
+    return registry
 
 
 class MyAgentApp(App[None]):
@@ -88,10 +118,15 @@ class MyAgentApp(App[None]):
         self._agents = self._agent_loader.load_builtin_agents()
         self._conversation_history: list[ConversationMessage] = []
         self._provider: AnthropicProvider | None = None
+        self._tool_registry = _create_default_tool_registry()
+        self._permission_checker = PermissionChecker()
+        self._cost_tracker = CostTracker()
+        self._query_engine: QueryEngine | None = None
+        self._turn_count = 0
         self._init_provider()
 
     def _init_provider(self) -> None:
-        """Initialize LLM provider from environment variables."""
+        """Initialize LLM provider and QueryEngine from environment variables."""
         api_key = _get_env_or_prompt("ZHIPU_API_KEY")
         if not api_key:
             api_key = _get_env_or_prompt("ANTHROPIC_API_KEY")
@@ -108,6 +143,11 @@ class MyAgentApp(App[None]):
                 base_url=base_url,
             )
             self.current_provider = f"zhipu/{model}"
+            self._query_engine = QueryEngine(
+                tool_registry=self._tool_registry,
+                llm_client=self._provider,
+                system_prompt="You are a helpful assistant.",
+            )
         else:
             self.current_provider = "none (set ZHIPU_API_KEY)"
 
@@ -129,7 +169,7 @@ class MyAgentApp(App[None]):
 
     def on_mount(self) -> None:
         self.query_one("#composer", Input).focus()
-        if self._provider is None:
+        if self._query_engine is None:
             self.add_assistant_message(
                 "Welcome to MyAgent!\n"
                 "[yellow]Warning: No API key configured.[/yellow] "
@@ -153,7 +193,7 @@ class MyAgentApp(App[None]):
             self._handle_command(value)
         else:
             self.add_user_message(value)
-            self._handle_user_message(value)
+            self.run_worker(self._handle_user_message(value))
 
     def _handle_command(self, command: str) -> None:
         """Handle slash commands."""
@@ -188,8 +228,8 @@ class MyAgentApp(App[None]):
             self.add_assistant_message(f"Unknown command: {cmd}. Type /help for available commands.")
 
     async def _handle_user_message(self, message: str) -> None:
-        """Process user message with real LLM streaming."""
-        if self._provider is None:
+        """Process user message with QueryEngine event loop."""
+        if self._query_engine is None:
             self.add_assistant_message(
                 "[red]Error: No LLM provider configured.[/red]\n"
                 "Set ZHIPU_API_KEY environment variable and restart."
@@ -197,30 +237,40 @@ class MyAgentApp(App[None]):
             return
 
         self.update_current_response("Thinking...")
-
-        user_msg = ConversationMessage(
-            role="user",
-            content=[TextBlock(text=message)],
-        )
-        self._conversation_history.append(user_msg)
+        self._turn_count += 1
+        self._update_header()
 
         full_response = ""
+        current_tool: str | None = None
+
         try:
-            async for chunk in self._provider.stream_messages(self._conversation_history):
-                if isinstance(chunk, TextChunk):
-                    full_response += chunk.text
+            async for event in self._query_engine.submit_message(message):
+                if isinstance(event, AssistantTextDelta):
+                    full_response += event.text
                     self.update_current_response(full_response)
-                elif isinstance(chunk, DoneChunk):
-                    break
 
-            self.update_current_response("")
-            self.add_assistant_message(full_response)
+                elif isinstance(event, ToolExecutionStarted):
+                    current_tool = event.tool_name
+                    self.update_current_response("")
+                    self.add_tool_call(event.tool_name, event.arguments)
 
-            assistant_msg = ConversationMessage(
-                role="assistant",
-                content=[TextBlock(text=full_response)],
-            )
-            self._conversation_history.append(assistant_msg)
+                elif isinstance(event, ToolExecutionCompleted):
+                    self.add_tool_result(event.result, event.is_error)
+                    current_tool = None
+
+                elif isinstance(event, AssistantTurnComplete):
+                    self.update_current_response("")
+                    if full_response:
+                        self.add_assistant_message(full_response)
+                    full_response = ""
+
+                elif isinstance(event, ErrorEvent):
+                    self.update_current_response("")
+                    self.add_assistant_message(
+                        f"[red]Error: {type(event.error).__name__}: {event.error}[/red]"
+                    )
+                    if not event.recoverable:
+                        return
 
         except Exception as e:
             self.update_current_response("")
@@ -251,7 +301,8 @@ class MyAgentApp(App[None]):
         """Update header text."""
         header = self.query_one("#header", Static)
         header.update(
-            f"MyAgent v0.2.0 | Agent: {self.current_agent} | Provider: {self.current_provider}"
+            f"MyAgent v0.2.0 | Agent: {self.current_agent} | "
+            f"Turns: {self._turn_count} | Provider: {self.current_provider}"
         )
 
     def add_user_message(self, message: str) -> None:
@@ -270,7 +321,8 @@ class MyAgentApp(App[None]):
     def add_tool_result(self, result: str, is_error: bool = False) -> None:
         """Add a tool result to the transcript."""
         color = "red" if is_error else "cyan"
-        self._add_line(f"[bold {color}]Result:[/bold {color}] {result}")
+        preview = result[:500] + "..." if len(result) > 500 else result
+        self._add_line(f"[bold {color}]Result:[/bold {color}] {preview}")
 
     def update_current_response(self, text: str) -> None:
         """Update the current response display."""
@@ -282,6 +334,11 @@ class MyAgentApp(App[None]):
         """Clear the transcript and conversation history."""
         self._transcript_lines = []
         self._conversation_history = []
+        if self._query_engine is not None:
+            self._query_engine.messages = [
+                ConversationMessage.from_system_text(self._query_engine.system_prompt)
+            ]
+        self._turn_count = 0
         transcript = self.query_one("#transcript", RichLog)
         transcript.clear()
 
