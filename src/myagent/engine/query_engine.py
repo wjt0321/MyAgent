@@ -19,6 +19,8 @@ from myagent.engine.stream_events import (
     ToolExecutionCompleted,
     ToolExecutionStarted,
 )
+from myagent.llm.base import BaseProvider
+from myagent.llm.types import DoneChunk, TextChunk, ToolUseChunk
 from myagent.tools.base import ToolExecutionContext
 from myagent.tools.registry import ToolRegistry
 
@@ -36,7 +38,7 @@ class QueryEngine:
         system_prompt: str = "You are a helpful assistant.",
         max_turns: int = 50,
         auto_compact_threshold: float | None = None,
-        llm_client: Any | None = None,
+        llm_client: BaseProvider | None = None,
     ) -> None:
         self.tool_registry = tool_registry
         self.system_prompt = system_prompt
@@ -82,16 +84,15 @@ class QueryEngine:
                 self.messages,
                 self.tool_registry.to_api_schema(),
             ):
-                if getattr(chunk, "type", None) == "text":
-                    text = getattr(chunk, "text", "")
-                    assistant_message.content.append(TextBlock(text=text))
-                    yield AssistantTextDelta(text=text)
+                if isinstance(chunk, TextChunk):
+                    assistant_message.content.append(TextBlock(text=chunk.text))
+                    yield AssistantTextDelta(text=chunk.text)
 
-                elif getattr(chunk, "type", None) == "tool_use":
+                elif isinstance(chunk, ToolUseChunk):
                     tool_use = ToolUseBlock(
-                        id=getattr(chunk, "id", ""),
-                        name=getattr(chunk, "name", ""),
-                        input=getattr(chunk, "input", {}),
+                        id=chunk.id,
+                        name=chunk.name,
+                        input=chunk.input,
                     )
                     assistant_message.content.append(tool_use)
                     current_tool_use = tool_use
@@ -100,6 +101,9 @@ class QueryEngine:
                         tool_use_id=tool_use.id,
                         arguments=tool_use.input,
                     )
+
+                elif isinstance(chunk, DoneChunk):
+                    break
 
             self.messages.append(assistant_message)
 
