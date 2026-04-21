@@ -39,11 +39,17 @@ Type **/help** for available commands.
 def main(
     agent: str = typer.Option("general", "--agent", "-a", help="Agent to use"),
     prompt: str | None = typer.Option(None, "--prompt", "-p", help="Single prompt mode"),
+    tui: bool = typer.Option(False, "--tui", "-t", help="Use TUI interface"),
     version: bool = typer.Option(
         False, "--version", callback=_version_callback, is_eager=True, help="Show version"
     ),
 ) -> None:
     """Start an interactive session with MyAgent."""
+    if tui:
+        from myagent.tui.app import run_tui
+        run_tui()
+        return
+
     from myagent.agents.loader import AgentLoader
     from myagent.engine.query_engine import QueryEngine
     from myagent.tools.bash import Bash
