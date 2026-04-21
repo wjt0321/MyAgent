@@ -77,6 +77,26 @@ class MyAgentWebApp {
         this.searchInput = document.getElementById('search-input');
         this.searchClose = document.getElementById('search-close');
 
+        // Settings modal
+        this.settingsBtn = document.getElementById('settings-btn');
+        this.settingsModal = document.getElementById('settings-modal');
+        this.closeSettingsBtn = document.getElementById('close-settings');
+        this.saveSettingsBtn = document.getElementById('save-settings-btn');
+        this.settingsAgentSelect = document.getElementById('settings-agent-select');
+        this.settingsSystemPrompt = document.getElementById('settings-system-prompt');
+        this.settingsThemeSelect = document.getElementById('settings-theme-select');
+        this.settingsSessionCount = document.getElementById('settings-session-count');
+        this.settingsMessageCount = document.getElementById('settings-message-count');
+
+        // Reset modal
+        this.resetModal = document.getElementById('reset-modal');
+        this.resetMessage = document.getElementById('reset-message');
+        this.resetConfirmBtn = document.getElementById('reset-confirm');
+        this.resetCancelBtn = document.getElementById('reset-cancel');
+        this.resetConversationBtn = document.getElementById('reset-conversation-btn');
+        this.resetAllSessionsBtn = document.getElementById('reset-all-sessions-btn');
+        this.resetConfigBtn = document.getElementById('reset-config-btn');
+
         this.updateThemeButton();
     }
 
@@ -107,6 +127,33 @@ class MyAgentWebApp {
         this.searchToggle.addEventListener('click', () => this.toggleSearch());
         this.searchClose.addEventListener('click', () => this.toggleSearch());
         this.searchInput.addEventListener('input', (e) => this.performSearch(e.target.value));
+
+        // Settings
+        this.settingsBtn.addEventListener('click', () => this.openSettings());
+        this.closeSettingsBtn.addEventListener('click', () => this.closeSettings());
+        this.saveSettingsBtn.addEventListener('click', () => this.saveSettings());
+        this.settingsModal.addEventListener('click', (e) => {
+            if (e.target === this.settingsModal) this.closeSettings();
+        });
+
+        // Theme in settings
+        this.settingsThemeSelect.addEventListener('change', (e) => {
+            this.currentTheme = e.target.value === 'auto' ? 'dark' : e.target.value;
+            document.body.className = `theme-${this.currentTheme}`;
+            localStorage.setItem('myagent-theme', this.currentTheme);
+            this.updateHLJSTheme();
+            this.updateThemeButton();
+        });
+
+        // Reset buttons
+        this.resetConversationBtn.addEventListener('click', () => this.showResetConfirm('conversation'));
+        this.resetAllSessionsBtn.addEventListener('click', () => this.showResetConfirm('all'));
+        this.resetConfigBtn.addEventListener('click', () => this.showResetConfirm('config'));
+        this.resetCancelBtn.addEventListener('click', () => this.hideResetModal());
+        this.resetConfirmBtn.addEventListener('click', () => this.executeReset());
+        this.resetModal.addEventListener('click', (e) => {
+            if (e.target === this.resetModal) this.hideResetModal();
+        });
     }
 
     // ========== Sidebar Mobile ==========
@@ -604,6 +651,115 @@ class MyAgentWebApp {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // ========== Settings ==========
+
+    openSettings() {
+        // Populate current values
+        const session = this.sessions.find(s => s.id === this.currentSessionId);
+        if (session) {
+            this.settingsAgentSelect.value = session.agent || 'general';
+        }
+        this.settingsThemeSelect.value = this.currentTheme;
+
+        // Update stats
+        this.settingsSessionCount.textContent = this.sessions.length;
+        const totalMessages = this.sessions.reduce((sum, s) => sum + (s.messages ? s.messages.length : 0), 0);
+        this.settingsMessageCount.textContent = totalMessages;
+
+        this.settingsModal.style.display = 'flex';
+    }
+
+    closeSettings() {
+        this.settingsModal.style.display = 'none';
+    }
+
+    async saveSettings() {
+        const agent = this.settingsAgentSelect.value;
+        const systemPrompt = this.settingsSystemPrompt.value.trim();
+
+        if (this.currentSessionId) {
+            try {
+                const response = await fetch(`/api/sessions/${this.currentSessionId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ agent }),
+                });
+
+                if (response.ok) {
+                    const session = this.sessions.find(s => s.id === this.currentSessionId);
+                    if (session) {
+                        session.agent = agent;
+                        this.currentAgent.textContent = `Agent: ${agent}`;
+                        this.agentSelect.value = agent;
+                        this.renderSessionList();
+                    }
+                    this.connectWebSocket(this.currentSessionId);
+                }
+            } catch (error) {
+                console.error('Failed to save settings:', error);
+            }
+        }
+
+        this.closeSettings();
+        this.addMessage('assistant', '设置已保存', false);
+    }
+
+    // ========== Reset ==========
+
+    showResetConfirm(type) {
+        this._resetType = type;
+        const messages = {
+            conversation: '确定要重置当前对话吗？所有消息将被清空。',
+            all: '确定要重置所有会话吗？所有会话数据将被删除。',
+            config: '确定要重置配置吗？配置将恢复为默认值（API Key 不会被清除）。',
+        };
+        this.resetMessage.textContent = messages[type] || '确定要重置吗？';
+        this.resetModal.style.display = 'flex';
+    }
+
+    hideResetModal() {
+        this.resetModal.style.display = 'none';
+        this._resetType = null;
+    }
+
+    async executeReset() {
+        const type = this._resetType;
+        if (!type) return;
+
+        try {
+            switch (type) {
+                case 'conversation':
+                    if (this.currentSessionId) {
+                        await fetch(`/api/sessions/${this.currentSessionId}/messages`, { method: 'DELETE' });
+                        this.messagesContainer.innerHTML = '';
+                        const session = this.sessions.find(s => s.id === this.currentSessionId);
+                        if (session) session.messages = [];
+                        this.addMessage('assistant', '对话已重置', false);
+                    }
+                    break;
+
+                case 'all':
+                    await fetch('/api/sessions', { method: 'DELETE' });
+                    this.sessions = [];
+                    this.currentSessionId = null;
+                    this.messagesContainer.innerHTML = '';
+                    this.renderSessionList();
+                    this.addMessage('assistant', '所有会话已重置', false);
+                    break;
+
+                case 'config':
+                    await fetch('/api/config', { method: 'DELETE' });
+                    this.addMessage('assistant', '配置已重置为默认值', false);
+                    break;
+            }
+        } catch (error) {
+            console.error('Reset failed:', error);
+            this.addMessage('error', '重置失败: ' + error.message, false);
+        }
+
+        this.hideResetModal();
     }
 }
 

@@ -879,3 +879,203 @@ body {
         padding: 14px;
     }
 }
+
+/* ========== Settings Modal ========== */
+.settings-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.settings-dialog {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 520px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: modalSlideIn 0.2s ease;
+}
+
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.settings-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.settings-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.settings-section {
+    margin-bottom: 20px;
+}
+
+.settings-section h3 {
+    margin: 0 0 12px 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.setting-row label {
+    min-width: 100px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.setting-row select,
+.setting-row textarea {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.setting-row textarea {
+    resize: vertical;
+    font-family: inherit;
+}
+
+.setting-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    flex-basis: 100%;
+    margin-left: 112px;
+}
+
+.info-row {
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.settings-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-secondary {
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-tertiary);
+}
+
+.btn-danger {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #dc3545;
+    color: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+/* ========== Reset Confirmation Modal ========== */
+.reset-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.reset-dialog {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: modalSlideIn 0.2s ease;
+}
+
+.reset-dialog h3 {
+    margin: 0 0 12px 0;
+    font-size: 1.1rem;
+}
+
+.reset-dialog p {
+    margin: 0 0 20px 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.reset-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.footer-actions {
+    display: flex;
+    gap: 8px;
+}

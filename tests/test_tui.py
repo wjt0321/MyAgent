@@ -60,7 +60,8 @@ async def test_add_user_message():
         # RichLog stores lines internally, check via _lines or just verify no error
         transcript = pilot.app.query_one("#transcript")
         assert transcript is not None
-        assert len(app._transcript_lines) == 2  # welcome + user msg
+        # Logo + welcome + user msg = 3 lines
+        assert len(app._transcript_lines) == 3
         assert "Hello" in app._transcript_lines[-1]
 
 
@@ -69,7 +70,8 @@ async def test_add_assistant_message():
     app = MyAgentApp()
     async with app.run_test() as pilot:
         app.add_assistant_message("Hi there!")
-        assert len(app._transcript_lines) == 2  # welcome + assistant msg
+        # Logo + welcome + assistant msg = 3 lines
+        assert len(app._transcript_lines) == 3
         assert "Hi there!" in app._transcript_lines[-1]
 
 
@@ -78,7 +80,8 @@ async def test_add_tool_call():
     app = MyAgentApp()
     async with app.run_test() as pilot:
         app.add_tool_call("Read", {"path": "test.py"})
-        assert len(app._transcript_lines) == 2  # welcome + tool call
+        # Logo + welcome + tool call = 3 lines
+        assert len(app._transcript_lines) == 3
         assert "Read" in app._transcript_lines[-1]
 
 

@@ -37,7 +37,10 @@
             <div class="sidebar-footer">
                 <div class="footer-row">
                     <span id="status-indicator" class="status-disconnected">未连接</span>
-                    <button class="btn-icon" id="theme-toggle" title="切换主题">🌙</button>
+                    <div class="footer-actions">
+                        <button class="btn-icon" id="settings-btn" title="设置">⚙️</button>
+                        <button class="btn-icon" id="theme-toggle" title="切换主题">🌙</button>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -88,6 +91,93 @@
             </div>
             <pre><code id="preview-content"></code></pre>
         </aside>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settings-modal" style="display: none;">
+        <div class="settings-dialog">
+            <div class="settings-header">
+                <h2>⚙️ 设置</h2>
+                <button class="btn-icon" id="close-settings">&times;</button>
+            </div>
+            <div class="settings-body">
+                <div class="settings-section">
+                    <h3>🤖 Agent 配置</h3>
+                    <div class="setting-row">
+                        <label>当前 Agent</label>
+                        <select id="settings-agent-select">
+                            <option value="general">general</option>
+                            <option value="explore">explore</option>
+                            <option value="worker">worker</option>
+                            <option value="reviewer">reviewer</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <label>系统提示词</label>
+                        <textarea id="settings-system-prompt" rows="3" placeholder="输入系统提示词..."></textarea>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>🔧 重置选项</h3>
+                    <div class="setting-row">
+                        <button class="btn-secondary" id="reset-conversation-btn">🗑️ 重置当前对话</button>
+                        <span class="setting-desc">清空当前会话的消息历史</span>
+                    </div>
+                    <div class="setting-row">
+                        <button class="btn-secondary" id="reset-all-sessions-btn">🗑️ 重置所有会话</button>
+                        <span class="setting-desc">删除所有会话数据</span>
+                    </div>
+                    <div class="setting-row">
+                        <button class="btn-secondary" id="reset-config-btn">🗑️ 重置配置</button>
+                        <span class="setting-desc">恢复默认配置（保留 API Key）</span>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>🎨 外观</h3>
+                    <div class="setting-row">
+                        <label>主题</label>
+                        <select id="settings-theme-select">
+                            <option value="dark">深色</option>
+                            <option value="light">浅色</option>
+                            <option value="auto">跟随系统</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>📊 信息</h3>
+                    <div class="setting-row info-row">
+                        <span>版本</span>
+                        <span>v0.8.0</span>
+                    </div>
+                    <div class="setting-row info-row">
+                        <span>会话数</span>
+                        <span id="settings-session-count">0</span>
+                    </div>
+                    <div class="setting-row info-row">
+                        <span>消息数</span>
+                        <span id="settings-message-count">0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-footer">
+                <button class="btn-primary" id="save-settings-btn">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Confirmation Modal -->
+    <div class="reset-modal" id="reset-modal" style="display: none;">
+        <div class="reset-dialog">
+            <h3>⚠️ 确认重置</h3>
+            <p id="reset-message">确定要重置吗？此操作不可撤销。</p>
+            <div class="reset-buttons">
+                <button class="btn-deny" id="reset-cancel">取消</button>
+                <button class="btn-danger" id="reset-confirm">确认重置</button>
+            </div>
+        </div>
     </div>
 
     <script src="/static/app.js"></script>

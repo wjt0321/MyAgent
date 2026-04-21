@@ -37,6 +37,7 @@ from myagent.tools.grep import Grep
 from myagent.tools.read import Read
 from myagent.tools.registry import ToolRegistry
 from myagent.tools.write import Write
+from myagent.tui.logo import get_logo
 from myagent.tui.screens import PermissionModalScreen
 
 
@@ -198,16 +199,22 @@ class MyAgentApp(App[None]):
 
     def on_mount(self) -> None:
         self.query_one("#composer", TextArea).focus()
+
+        # Display ASCII logo on startup
+        import shutil
+        term_width = shutil.get_terminal_size().columns
+        logo = get_logo(term_width)
+        self.add_assistant_message(f"[dim]{logo}[/dim]")
+
         if self._query_engine is None:
             self.add_assistant_message(
-                "Welcome to MyAgent!\n"
                 "[yellow]Warning: No API key configured.[/yellow] "
                 "Set ZHIPU_API_KEY environment variable to enable LLM responses.\n"
                 "Type /help for commands."
             )
         else:
             self.add_assistant_message(
-                "Welcome to MyAgent! Type a message to start chatting, or use /help for commands."
+                "Welcome! Type a message to start chatting, or use /help for commands."
             )
 
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
