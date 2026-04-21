@@ -353,9 +353,10 @@ class MyAgentApp(App[None]):
     def _update_header(self) -> None:
         """Update header text."""
         header = self.query_one("#header", Static)
+        cost = f"${self._cost_tracker.total_cost:.4f}" if self._cost_tracker.total_cost > 0 else "$0.0000"
         header.update(
             f"MyAgent v0.2.0 | Agent: {self.current_agent} | "
-            f"Turns: {self._turn_count} | Provider: {self.current_provider}"
+            f"Turns: {self._turn_count} | Cost: {cost} | Provider: {self.current_provider}"
         )
 
     def add_user_message(self, message: str) -> None:
@@ -367,15 +368,27 @@ class MyAgentApp(App[None]):
         self._add_line(f"[bold green]Agent:[/bold green] {message}")
 
     def add_tool_call(self, tool_name: str, arguments: dict[str, Any]) -> None:
-        """Add a tool call to the transcript."""
-        args_str = ", ".join(f"{k}={v}" for k, v in arguments.items())
-        self._add_line(f"[bold yellow]Tool:[/bold yellow] {tool_name}({args_str})")
+        """Add a tool call to the transcript with formatted display."""
+        args_lines = "\n".join(f"    [dim]{k}:[/dim] {v}" for k, v in arguments.items())
+        self._add_line(
+            f"[bold yellow]╭─ Tool: {tool_name} ─╮[/bold yellow]\n"
+            f"{args_lines}\n"
+            f"[bold yellow]╰───────────────────╯[/bold yellow]"
+        )
 
     def add_tool_result(self, result: str, is_error: bool = False) -> None:
-        """Add a tool result to the transcript."""
-        color = "red" if is_error else "cyan"
+        """Add a tool result to the transcript with formatted display."""
+        if is_error:
+            prefix = "[bold red]Error:[/bold red]"
+        else:
+            prefix = "[bold cyan]Result:[/bold cyan]"
+
         preview = result[:500] + "..." if len(result) > 500 else result
-        self._add_line(f"[bold {color}]Result:[/bold {color}] {preview}")
+        lines = preview.split("\n")
+        if len(lines) > 10:
+            preview = "\n".join(lines[:10]) + "\n..."
+
+        self._add_line(f"{prefix}\n    {preview.replace(chr(10), chr(10) + '    ')}")
 
     def update_current_response(self, text: str) -> None:
         """Update the current response display."""
