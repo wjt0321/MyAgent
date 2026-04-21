@@ -6,8 +6,12 @@ from typing import Any, Type
 
 from myagent.llm.base import BaseProvider
 from myagent.llm.providers.anthropic import AnthropicProvider
+from myagent.llm.providers.deepseek import DeepSeekProvider
+from myagent.llm.providers.minimax import MiniMaxProvider
+from myagent.llm.providers.moonshot import MoonshotProvider
 from myagent.llm.providers.openai import OpenAIProvider
 from myagent.llm.providers.openrouter import OpenRouterProvider
+from myagent.llm.providers.zhipu import ZhipuProvider
 
 
 class ProviderRegistry:
@@ -45,6 +49,10 @@ class ProviderRegistry:
         """Create a registry with built-in providers pre-registered."""
         registry = cls()
         registry.register("anthropic", AnthropicProvider)
+        registry.register("deepseek", DeepSeekProvider)
+        registry.register("minimax", MiniMaxProvider)
+        registry.register("moonshot", MoonshotProvider)
         registry.register("openai", OpenAIProvider)
         registry.register("openrouter", OpenRouterProvider)
+        registry.register("zhipu", ZhipuProvider)
         return registry
