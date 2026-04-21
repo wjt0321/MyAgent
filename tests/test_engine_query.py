@@ -19,6 +19,8 @@ from myagent.engine.stream_events import (
     ToolExecutionCompleted,
     ToolExecutionStarted,
 )
+from myagent.llm.base import BaseProvider
+from myagent.llm.types import DoneChunk, StreamChunk, TextChunk, ToolUseChunk
 from myagent.tools.base import BaseTool, ToolExecutionContext, ToolResult
 from myagent.tools.registry import ToolRegistry
 from pydantic import BaseModel
@@ -37,26 +39,37 @@ class FakeTool(BaseTool):
         return ToolResult(output=f"Result: {arguments.message}")
 
 
-class FakeLLMClient:
-    """Fake LLM client for testing."""
+class FakeProvider(BaseProvider):
+    """Fake LLM provider for testing."""
 
-    def __init__(self, responses: list[list[Any]] | None = None) -> None:
+    name = "fake"
+
+    def __init__(self, responses: list[list[StreamChunk]] | None = None) -> None:
+        super().__init__(api_key="fake", model="fake")
         self.responses = responses or []
         self.call_count = 0
 
     async def stream_messages(
         self,
         messages: list[ConversationMessage],
-        tools: list[dict[str, Any]],
-    ) -> AsyncIterator[Any]:
+        tools: list[dict[str, Any]] | None = None,
+    ) -> AsyncIterator[StreamChunk]:
         if self.call_count >= len(self.responses):
-            yield type("obj", (object,), {"type": "text", "text": "Done"})()
+            yield TextChunk(text="Done")
+            yield DoneChunk()
             return
 
         response = self.responses[self.call_count]
         self.call_count += 1
-        for item in response:
-            yield item
+        for chunk in response:
+            yield chunk
+
+    async def complete(
+        self,
+        messages: list[ConversationMessage],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> str:
+        return "Complete"
 
 
 class TestQueryEngine:
@@ -87,14 +100,15 @@ class TestQueryEngine:
     async def test_query_engine_basic_text_response(self):
         registry = ToolRegistry()
 
-        fake_client = FakeLLMClient(responses=[[
-            type("Event", (), {"type": "text", "text": "Hello user"})(),
+        fake_provider = FakeProvider(responses=[[
+            TextChunk(text="Hello user"),
+            DoneChunk(),
         ]])
 
         engine = QueryEngine(
             tool_registry=registry,
             system_prompt="Test",
-            llm_client=fake_client,
+            llm_client=fake_provider,
         )
 
         events = []
@@ -110,24 +124,21 @@ class TestQueryEngine:
         registry = ToolRegistry()
         registry.register(FakeTool())
 
-        fake_client = FakeLLMClient(responses=[
+        fake_provider = FakeProvider(responses=[
             [
-                type("Event", (), {
-                    "type": "tool_use",
-                    "id": "t1",
-                    "name": "fake_tool",
-                    "input": {"message": "test"},
-                })(),
+                ToolUseChunk(id="t1", name="fake_tool", input={"message": "test"}),
+                DoneChunk(),
             ],
             [
-                type("Event", (), {"type": "text", "text": "Done with tool"})(),
+                TextChunk(text="Done with tool"),
+                DoneChunk(),
             ],
         ])
 
         engine = QueryEngine(
             tool_registry=registry,
             system_prompt="Test",
-            llm_client=fake_client,
+            llm_client=fake_provider,
         )
 
         events = []
@@ -147,14 +158,10 @@ class TestQueryEngine:
         registry = ToolRegistry()
         registry.register(FakeTool())
 
-        fake_client = FakeLLMClient(responses=[
+        fake_provider = FakeProvider(responses=[
             [
-                type("Event", (), {
-                    "type": "tool_use",
-                    "id": f"t{i}",
-                    "name": "fake_tool",
-                    "input": {"message": f"test{i}"},
-                })(),
+                ToolUseChunk(id=f"t{i}", name="fake_tool", input={"message": f"test{i}"}),
+                DoneChunk(),
             ]
             for i in range(5)
         ])
@@ -162,7 +169,7 @@ class TestQueryEngine:
         engine = QueryEngine(
             tool_registry=registry,
             system_prompt="Test",
-            llm_client=fake_client,
+            llm_client=fake_provider,
             max_turns=3,
         )
 
@@ -174,14 +181,15 @@ class TestQueryEngine:
     async def test_query_engine_turn_complete_event(self):
         registry = ToolRegistry()
 
-        fake_client = FakeLLMClient(responses=[[
-            type("Event", (), {"type": "text", "text": "Response"})(),
+        fake_provider = FakeProvider(responses=[[
+            TextChunk(text="Response"),
+            DoneChunk(),
         ]])
 
         engine = QueryEngine(
             tool_registry=registry,
             system_prompt="Test",
-            llm_client=fake_client,
+            llm_client=fake_provider,
         )
 
         events = []
