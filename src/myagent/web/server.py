@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from myagent.web.engine_manager import WebEngineManager
+from myagent.web.health import router as health_router
 from myagent.web.session import SessionStore
 
 
@@ -26,9 +27,12 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(
         title="MyAgent Web UI",
-        version="0.1.0",
+        version="0.6.0",
         lifespan=lifespan,
     )
+
+    # Include health check router
+    app.include_router(health_router)
 
     static_dir = Path(__file__).parent / "static"
     if static_dir.exists():

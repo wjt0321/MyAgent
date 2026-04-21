@@ -1,0 +1,103 @@
+"""Docker Compose configuration for MyAgent.
+
+Usage:
+    docker-compose up -d          # Start all services
+    docker-compose up -d web      # Start web UI only
+    docker-compose up -d bot      # Start gateway bot only
+    docker-compose logs -f        # Follow logs
+    docker-compose down           # Stop all services
+"""
+
+version: "3.8"
+
+services:
+  # -------------------------------------------------------------------------
+  # Web UI Service
+  # -------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: myagent-web
+    ports:
+      - "${MYAGENT_WEB_PORT:-8000}:8000"
+    environment:
+      - MYAGENT_HOME=/app/data
+      - MYAGENT_DEFAULT_PROVIDER=${MYAGENT_DEFAULT_PROVIDER:-zhipu}
+      - MYAGENT_DEFAULT_MODEL=${MYAGENT_DEFAULT_MODEL:-glm-4}
+      - ZHIPU_API_KEY=${ZHIPU_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - MOONSHOT_API_KEY=${MOONSHOT_API_KEY}
+    volumes:
+      - myagent-data:/app/data
+      - ./agents:/app/agents:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    command: ["myagent", "web", "--host", "0.0.0.0", "--port", "8000"]
+
+  # -------------------------------------------------------------------------
+  # Gateway Bot Service
+  # -------------------------------------------------------------------------
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: myagent-bot
+    environment:
+      - MYAGENT_HOME=/app/data
+      - MYAGENT_DEFAULT_PROVIDER=${MYAGENT_DEFAULT_PROVIDER:-zhipu}
+      - MYAGENT_DEFAULT_MODEL=${MYAGENT_DEFAULT_MODEL:-glm-4}
+      - ZHIPU_API_KEY=${ZHIPU_API_KEY}
+      # Telegram
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      # Discord
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
+      # Slack
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      # Feishu
+      - FEISHU_APP_ID=${FEISHU_APP_ID:-}
+      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET:-}
+      # Weixin
+      - WEIXIN_TOKEN=${WEIXIN_TOKEN:-}
+      - WEIXIN_ACCOUNT_ID=${WEIXIN_ACCOUNT_ID:-}
+      # QQ
+      - QQ_APP_ID=${QQ_APP_ID:-}
+      - QQ_CLIENT_SECRET=${QQ_CLIENT_SECRET:-}
+    volumes:
+      - myagent-data:/app/data
+      - ./agents:/app/agents:ro
+    restart: unless-stopped
+    command: ["myagent", "bot"]
+    depends_on:
+      - web
+    profiles:
+      - bot
+
+  # -------------------------------------------------------------------------
+  # Redis (optional, for distributed caching)
+  # -------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: myagent-redis
+    ports:
+      - "${MYAGENT_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    profiles:
+      - full
+
+volumes:
+  myagent-data:
+    driver: local
+  redis-data:
+    driver: local

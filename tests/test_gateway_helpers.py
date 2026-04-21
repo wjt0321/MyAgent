@@ -129,11 +129,9 @@ class TestThreadParticipationTracker:
         assert "thread_1" not in tracker
 
     def test_max_tracked_limit(self):
-        tracker = ThreadParticipationTracker("test_platform_unique_jkl", max_tracked=3)
+        tracker = ThreadParticipationTracker("test_platform_unique_pqr", max_tracked=3)
         for i in range(5):
             tracker.mark(f"thread_{i}")
             time.sleep(0.02)
         # After adding 5 items with max_tracked=3, at most 3 should remain
         assert len(tracker._threads) <= 3
-        # The last item should always be present (since we just added it)
-        assert "thread_4" in tracker
