@@ -24,6 +24,7 @@ class TestFeishuAdapter:
         assert adapter.platform == Platform.FEISHU
         assert adapter.app_id == "test_id"
         assert adapter.api_base == "https://open.feishu.cn/open-apis"
+        assert adapter.auth_mode == "tenant"  # Default mode
 
     def test_lark_domain(self):
         config = PlatformConfig(
@@ -32,6 +33,31 @@ class TestFeishuAdapter:
         )
         adapter = FeishuAdapter(config)
         assert adapter.api_base == "https://open.larksuite.com/open-apis"
+
+    def test_app_auth_mode(self):
+        config = PlatformConfig(
+            enabled=True,
+            extra={"app_id": "test", "app_secret": "test", "auth_mode": "app"},
+        )
+        adapter = FeishuAdapter(config)
+        assert adapter.auth_mode == "app"
+
+    def test_user_auth_mode(self):
+        config = PlatformConfig(
+            enabled=True,
+            extra={
+                "app_id": "test",
+                "app_secret": "test",
+                "auth_mode": "user",
+                "oauth_app_id": "oauth_id",
+                "oauth_app_secret": "oauth_secret",
+                "user_access_token": "user_token_123",
+            },
+        )
+        adapter = FeishuAdapter(config)
+        assert adapter.auth_mode == "user"
+        assert adapter.oauth_app_id == "oauth_id"
+        assert adapter._user_access_token == "user_token_123"
 
     def test_connect_without_deps(self):
         config = PlatformConfig(extra={"app_id": "test", "app_secret": "test"})

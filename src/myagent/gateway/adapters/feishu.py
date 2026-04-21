@@ -46,7 +46,13 @@ LARK_API_BASE = "https://open.larksuite.com/open-apis"
 
 
 class FeishuAdapter(BasePlatformAdapter):
-    """Feishu (Lark) platform adapter."""
+    """Feishu (Lark) platform adapter.
+
+    Supports multiple authentication modes:
+    - **tenant_access_token** (default): app_id + app_secret, for app-level API calls
+    - **user_access_token**: OAuth2 authorization code flow, for user-level API calls
+    - **app_access_token**: app_id + app_secret, for app-level API calls (alternative)
+    """
 
     name = "Feishu"
 
@@ -57,8 +63,19 @@ class FeishuAdapter(BasePlatformAdapter):
         self.domain = config.extra.get("domain", "feishu")
         self.encrypt_key = config.extra.get("encrypt_key", "")
         self.verification_token = config.extra.get("verification_token", "")
-        self._access_token: Optional[str] = None
-        self._token_expires_at = 0.0
+        # Auth mode: "tenant" (default), "user", or "app"
+        self.auth_mode = config.extra.get("auth_mode", "tenant")
+        # OAuth2 credentials (for user_access_token mode)
+        self.oauth_app_id = config.extra.get("oauth_app_id", "")
+        self.oauth_app_secret = config.extra.get("oauth_app_secret", "")
+        self.oauth_redirect_uri = config.extra.get("oauth_redirect_uri", "")
+        # Pre-set user_access_token if provided in config (before connect)
+        self._user_access_token: Optional[str] = config.extra.get("user_access_token")
+        self._user_token_expires_at = 0.0
+        self._tenant_access_token: Optional[str] = None
+        self._tenant_token_expires_at = 0.0
+        self._app_access_token: Optional[str] = None
+        self._app_token_expires_at = 0.0
         self._dedup = MessageDeduplicator()
         self._session: Any = None
 
@@ -70,18 +87,38 @@ class FeishuAdapter(BasePlatformAdapter):
         if not AIOHTTP_AVAILABLE:
             logger.error("[%s] aiohttp not installed. Run: pip install aiohttp", self.name)
             return False
-        if not self.app_id or not self.app_secret:
-            logger.error("[%s] app_id and app_secret required", self.name)
-            return False
 
         self._session = aiohttp.ClientSession()
-        token = await self._get_access_token()
-        if not token:
-            logger.error("[%s] Failed to get access token", self.name)
-            return False
+
+        # Validate credentials based on auth mode
+        if self.auth_mode == "tenant":
+            if not self.app_id or not self.app_secret:
+                logger.error("[%s] tenant mode requires app_id and app_secret", self.name)
+                return False
+            token = await self._get_tenant_access_token()
+            if not token:
+                logger.error("[%s] Failed to get tenant_access_token", self.name)
+                return False
+        elif self.auth_mode == "app":
+            if not self.app_id or not self.app_secret:
+                logger.error("[%s] app mode requires app_id and app_secret", self.name)
+                return False
+            token = await self._get_app_access_token()
+            if not token:
+                logger.error("[%s] Failed to get app_access_token", self.name)
+                return False
+        elif self.auth_mode == "user":
+            if not self.oauth_app_id or not self.oauth_app_secret:
+                logger.error("[%s] user mode requires oauth_app_id and oauth_app_secret", self.name)
+                return False
+            logger.info("[%s] User auth mode — user_access_token must be provided via config", self.name)
+            # In user mode, the token should be provided externally
+            self._user_access_token = self.config.extra.get("user_access_token")
+            if not self._user_access_token:
+                logger.warning("[%s] No user_access_token provided — some APIs may fail", self.name)
 
         self._running = True
-        logger.info("[%s] Connected (domain=%s)", self.name, self.domain)
+        logger.info("[%s] Connected (domain=%s, auth_mode=%s)", self.name, self.domain, self.auth_mode)
         return True
 
     async def disconnect(self) -> None:
@@ -91,9 +128,10 @@ class FeishuAdapter(BasePlatformAdapter):
             self._session = None
         logger.info("[%s] Disconnected", self.name)
 
-    async def _get_access_token(self) -> Optional[str]:
-        if self._access_token and time.time() < self._token_expires_at - 60:
-            return self._access_token
+    async def _get_tenant_access_token(self) -> Optional[str]:
+        """Get tenant_access_token using app_id + app_secret (internal app)."""
+        if self._tenant_access_token and time.time() < self._tenant_token_expires_at - 60:
+            return self._tenant_access_token
 
         url = f"{self.api_base}/auth/v3/tenant_access_token/internal"
         payload = {"app_id": self.app_id, "app_secret": self.app_secret}
@@ -101,12 +139,74 @@ class FeishuAdapter(BasePlatformAdapter):
         async with self._session.post(url, json=payload) as resp:
             data = await resp.json()
             if data.get("code") == 0:
-                self._access_token = data.get("tenant_access_token")
+                self._tenant_access_token = data.get("tenant_access_token")
                 expires_in = data.get("expire", 7200)
-                self._token_expires_at = time.time() + expires_in
-                return self._access_token
-            logger.error("[%s] Token error: %s", self.name, data)
+                self._tenant_token_expires_at = time.time() + expires_in
+                logger.debug("[%s] Got tenant_access_token, expires in %ds", self.name, expires_in)
+                return self._tenant_access_token
+            logger.error("[%s] tenant_access_token error: %s", self.name, data)
             return None
+
+    async def _get_app_access_token(self) -> Optional[str]:
+        """Get app_access_token using app_id + app_secret (ISV app)."""
+        if self._app_access_token and time.time() < self._app_token_expires_at - 60:
+            return self._app_access_token
+
+        url = f"{self.api_base}/auth/v3/app_access_token/internal"
+        payload = {"app_id": self.app_id, "app_secret": self.app_secret}
+
+        async with self._session.post(url, json=payload) as resp:
+            data = await resp.json()
+            if data.get("code") == 0:
+                self._app_access_token = data.get("app_access_token")
+                expires_in = data.get("expire", 7200)
+                self._app_token_expires_at = time.time() + expires_in
+                logger.debug("[%s] Got app_access_token, expires in %ds", self.name, expires_in)
+                return self._app_access_token
+            logger.error("[%s] app_access_token error: %s", self.name, data)
+            return None
+
+    async def _refresh_user_access_token(self) -> Optional[str]:
+        """Refresh user_access_token using refresh_token."""
+        refresh_token = self.config.extra.get("refresh_token")
+        if not refresh_token:
+            logger.error("[%s] No refresh_token available for user_access_token refresh", self.name)
+            return None
+
+        url = f"{self.api_base}/authen/v1/refresh_access_token"
+        payload = {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+        }
+        # Use app_access_token for this endpoint
+        app_token = await self._get_app_access_token()
+        headers = {"Authorization": f"Bearer {app_token}"} if app_token else {}
+
+        async with self._session.post(url, headers=headers, json=payload) as resp:
+            data = await resp.json()
+            if data.get("code") == 0:
+                token_data = data.get("data", {})
+                self._user_access_token = token_data.get("access_token")
+                expires_in = token_data.get("expires_in", 7200)
+                self._user_token_expires_at = time.time() + expires_in
+                # Update refresh_token if rotated
+                new_refresh = token_data.get("refresh_token")
+                if new_refresh:
+                    self.config.extra["refresh_token"] = new_refresh
+                logger.debug("[%s] Refreshed user_access_token, expires in %ds", self.name, expires_in)
+                return self._user_access_token
+            logger.error("[%s] user_access_token refresh error: %s", self.name, data)
+            return None
+
+    def _get_access_token(self) -> Optional[str]:
+        """Get the appropriate access token based on auth_mode."""
+        if self.auth_mode == "tenant":
+            return self._tenant_access_token
+        elif self.auth_mode == "app":
+            return self._app_access_token
+        elif self.auth_mode == "user":
+            return self._user_access_token
+        return None
 
     async def send(
         self,
@@ -115,7 +215,13 @@ class FeishuAdapter(BasePlatformAdapter):
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> SendResult:
-        token = await self._get_access_token()
+        # Ensure token is fresh for tenant/app mode
+        if self.auth_mode == "tenant":
+            token = await self._get_tenant_access_token()
+        elif self.auth_mode == "app":
+            token = await self._get_app_access_token()
+        else:
+            token = self._get_access_token()
         if not token:
             return SendResult(success=False, error="No access token", retryable=True)
 
@@ -165,7 +271,13 @@ class FeishuAdapter(BasePlatformAdapter):
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> SendResult:
-        token = await self._get_access_token()
+        # Ensure token is fresh
+        if self.auth_mode == "tenant":
+            token = await self._get_tenant_access_token()
+        elif self.auth_mode == "app":
+            token = await self._get_app_access_token()
+        else:
+            token = self._get_access_token()
         if not token:
             return SendResult(success=False, error="No access token")
 
@@ -245,7 +357,13 @@ class FeishuAdapter(BasePlatformAdapter):
         return None
 
     async def get_chat_info(self, chat_id: str) -> Dict[str, Any]:
-        token = await self._get_access_token()
+        # Ensure token is fresh
+        if self.auth_mode == "tenant":
+            token = await self._get_tenant_access_token()
+        elif self.auth_mode == "app":
+            token = await self._get_app_access_token()
+        else:
+            token = self._get_access_token()
         if not token:
             return {"name": "Unknown", "type": "dm"}
 

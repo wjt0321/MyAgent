@@ -351,11 +351,24 @@ def _apply_env_overrides(config: GatewayConfig) -> None:
             "app_secret": feishu_app_secret,
             "domain": os.getenv("FEISHU_DOMAIN", "feishu"),
             "connection_mode": os.getenv("FEISHU_CONNECTION_MODE", "websocket"),
+            # Auth mode: "tenant" (default), "app", or "user"
+            "auth_mode": os.getenv("FEISHU_AUTH_MODE", "tenant"),
         })
         if os.getenv("FEISHU_ENCRYPT_KEY"):
             config.platforms[Platform.FEISHU].extra["encrypt_key"] = os.getenv("FEISHU_ENCRYPT_KEY")
         if os.getenv("FEISHU_VERIFICATION_TOKEN"):
             config.platforms[Platform.FEISHU].extra["verification_token"] = os.getenv("FEISHU_VERIFICATION_TOKEN")
+        # OAuth2 user mode credentials
+        if os.getenv("FEISHU_OAUTH_APP_ID"):
+            config.platforms[Platform.FEISHU].extra["oauth_app_id"] = os.getenv("FEISHU_OAUTH_APP_ID")
+        if os.getenv("FEISHU_OAUTH_APP_SECRET"):
+            config.platforms[Platform.FEISHU].extra["oauth_app_secret"] = os.getenv("FEISHU_OAUTH_APP_SECRET")
+        if os.getenv("FEISHU_OAUTH_REDIRECT_URI"):
+            config.platforms[Platform.FEISHU].extra["oauth_redirect_uri"] = os.getenv("FEISHU_OAUTH_REDIRECT_URI")
+        if os.getenv("FEISHU_USER_ACCESS_TOKEN"):
+            config.platforms[Platform.FEISHU].extra["user_access_token"] = os.getenv("FEISHU_USER_ACCESS_TOKEN")
+        if os.getenv("FEISHU_REFRESH_TOKEN"):
+            config.platforms[Platform.FEISHU].extra["refresh_token"] = os.getenv("FEISHU_REFRESH_TOKEN")
 
     # Weixin (WeChat)
     weixin_token = os.getenv("WEIXIN_TOKEN")
