@@ -1,5 +1,6 @@
 """Tests for myagent tools."""
 
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -91,3 +92,96 @@ class TestToolRegistry:
         registry.register(tool1)
         registry.register(tool2)
         assert registry.get("dummy") is tool2
+
+
+class TestFileTools:
+    def test_read_tool_reads_file(self, tmp_path: Path):
+        from myagent.tools.read import Read, ReadInput
+
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("hello world", encoding="utf-8")
+
+        tool = Read()
+        ctx = ToolExecutionContext(cwd=tmp_path)
+        result = asyncio.run(tool.execute(ReadInput(path=str(test_file)), ctx))
+
+        assert result.output == "hello world"
+        assert result.is_error is False
+
+    def test_read_tool_file_not_found(self, tmp_path: Path):
+        from myagent.tools.read import Read, ReadInput
+
+        tool = Read()
+        ctx = ToolExecutionContext(cwd=tmp_path)
+        result = asyncio.run(tool.execute(ReadInput(path="nonexistent.txt"), ctx))
+
+        assert result.is_error is True
+        assert "not found" in result.output.lower() or "does not exist" in result.output.lower()
+
+    def test_read_tool_is_read_only(self):
+        from myagent.tools.read import Read
+
+        tool = Read()
+        assert tool.is_read_only(None) is True
+
+    def test_write_tool_creates_file(self, tmp_path: Path):
+        from myagent.tools.write import Write, WriteInput
+
+        tool = Write()
+        ctx = ToolExecutionContext(cwd=tmp_path)
+        result = asyncio.run(
+            tool.execute(WriteInput(path="new_file.txt", content="new content"), ctx)
+        )
+
+        assert result.is_error is False
+        assert (tmp_path / "new_file.txt").read_text(encoding="utf-8") == "new content"
+
+    def test_write_tool_overwrites_file(self, tmp_path: Path):
+        from myagent.tools.write import Write, WriteInput
+
+        test_file = tmp_path / "existing.txt"
+        test_file.write_text("old content", encoding="utf-8")
+
+        tool = Write()
+        ctx = ToolExecutionContext(cwd=tmp_path)
+        result = asyncio.run(
+            tool.execute(WriteInput(path="existing.txt", content="new content"), ctx)
+        )
+
+        assert result.is_error is False
+        assert test_file.read_text(encoding="utf-8") == "new content"
+
+    def test_edit_tool_replaces_text(self, tmp_path: Path):
+        from myagent.tools.edit import Edit, EditInput
+
+        test_file = tmp_path / "edit_me.txt"
+        test_file.write_text("hello old world", encoding="utf-8")
+
+        tool = Edit()
+        ctx = ToolExecutionContext(cwd=tmp_path)
+        result = asyncio.run(
+            tool.execute(
+                EditInput(path="edit_me.txt", old_string="old", new_string="new"), ctx
+            )
+        )
+
+        assert result.is_error is False
+        assert test_file.read_text(encoding="utf-8") == "hello new world"
+
+    def test_edit_tool_old_string_not_found(self, tmp_path: Path):
+        from myagent.tools.edit import Edit, EditInput
+
+        test_file = tmp_path / "edit_me.txt"
+        test_file.write_text("hello world", encoding="utf-8")
+
+        tool = Edit()
+        ctx = ToolExecutionContext(cwd=tmp_path)
+        result = asyncio.run(
+            tool.execute(
+                EditInput(path="edit_me.txt", old_string="nonexistent", new_string="new"),
+                ctx,
+            )
+        )
+
+        assert result.is_error is True
+        assert "not found" in result.output.lower()
