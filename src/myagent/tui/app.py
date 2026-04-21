@@ -14,6 +14,7 @@ from textual.widgets import Footer, Input, RichLog, Static
 
 from myagent.agents.loader import AgentLoader
 from myagent.cost.tracker import CostTracker
+from myagent.memory.manager import MemoryManager
 from myagent.engine.messages import ConversationMessage, TextBlock
 from myagent.engine.query_engine import QueryEngine
 from myagent.engine.stream_events import (
@@ -138,6 +139,9 @@ class MyAgentApp(App[None]):
         self._query_engine: QueryEngine | None = None
         self._turn_count = 0
         self._current_agent_def = self._agents.get("general")
+        self._memory_manager = MemoryManager(
+            memory_dir=Path.home() / ".myagent" / "memory"
+        )
         self._init_provider()
 
     def _init_provider(self) -> None:
@@ -240,6 +244,8 @@ class MyAgentApp(App[None]):
                 self._switch_model(parts[1])
             else:
                 self.add_assistant_message("Usage: /model <name> (e.g., glm-4.7, glm-5.1)")
+        elif cmd == "/memory":
+            self._show_memory()
         else:
             self.add_assistant_message(f"Unknown command: {cmd}. Type /help for available commands.")
 
@@ -394,6 +400,18 @@ class MyAgentApp(App[None]):
         self._update_header()
         self.add_assistant_message(f"Switched to model: {model_name}")
 
+    def _show_memory(self) -> None:
+        """Show memory entries."""
+        entries = self._memory_manager.list_entries()
+        if not entries:
+            self.add_assistant_message("No memory entries yet.")
+            return
+
+        lines = ["[bold]Memory Entries:[/bold]"]
+        for entry in entries:
+            lines.append(f"  - {entry.title}")
+        self.add_assistant_message("\n".join(lines))
+
     def _update_header(self) -> None:
         """Update header text."""
         cost = f"${self._cost_tracker.total_cost:.4f}" if self._cost_tracker.total_cost > 0 else "$0.0000"
@@ -484,6 +502,7 @@ class MyAgentApp(App[None]):
   /agent <name> - Switch to a different agent
   /provider <n> - Switch LLM provider
   /model <name> - Switch LLM model (e.g., glm-4.7, glm-5.1)
+  /memory       - Show memory entries
 
 Keyboard shortcuts:
   Ctrl+L - Clear transcript
