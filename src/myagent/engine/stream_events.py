@@ -51,3 +51,21 @@ class ErrorEvent(StreamEvent):
 @dataclass
 class CompactProgressEvent(StreamEvent):
     message: str
+
+
+@dataclass
+class PermissionRequestEvent(StreamEvent):
+    """Event emitted when a tool execution needs user permission."""
+
+    tool_name: str
+    arguments: dict[str, Any]
+    reason: str
+
+
+@dataclass
+class PermissionResultEvent(StreamEvent):
+    """Event emitted after user responds to a permission request."""
+
+    tool_name: str
+    approved: bool
+    reason: str

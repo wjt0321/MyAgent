@@ -21,9 +21,18 @@ from myagent.engine.stream_events import (
 )
 from myagent.llm.base import BaseProvider
 from myagent.llm.types import DoneChunk, StreamChunk, TextChunk, ToolUseChunk
+from myagent.security.checker import PermissionChecker, PermissionLevel
 from myagent.tools.base import BaseTool, ToolExecutionContext, ToolResult
 from myagent.tools.registry import ToolRegistry
 from pydantic import BaseModel
+
+
+class AllowAllPermissionChecker(PermissionChecker):
+    """Permission checker that allows all tools for testing."""
+
+    def check(self, tool_name: str, arguments: dict[str, Any]) -> Any:
+        from myagent.security.checker import PermissionResult
+        return PermissionResult(PermissionLevel.ALLOW, "Test mode: all allowed")
 
 
 class FakeInput(BaseModel):
@@ -139,6 +148,7 @@ class TestQueryEngine:
             tool_registry=registry,
             system_prompt="Test",
             llm_client=fake_provider,
+            permission_checker=AllowAllPermissionChecker(),
         )
 
         events = []
@@ -171,6 +181,7 @@ class TestQueryEngine:
             system_prompt="Test",
             llm_client=fake_provider,
             max_turns=3,
+            permission_checker=AllowAllPermissionChecker(),
         )
 
         with pytest.raises(MaxTurnsExceeded):

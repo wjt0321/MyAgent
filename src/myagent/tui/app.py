@@ -20,6 +20,8 @@ from myagent.engine.stream_events import (
     AssistantTextDelta,
     AssistantTurnComplete,
     ErrorEvent,
+    PermissionRequestEvent,
+    PermissionResultEvent,
     StreamEvent,
     ToolExecutionCompleted,
     ToolExecutionStarted,
@@ -33,6 +35,7 @@ from myagent.tools.grep import Grep
 from myagent.tools.read import Read
 from myagent.tools.registry import ToolRegistry
 from myagent.tools.write import Write
+from myagent.tui.screens import PermissionModalScreen
 
 
 def _get_env_or_prompt(key: str, default: str | None = None) -> str | None:
@@ -147,6 +150,7 @@ class MyAgentApp(App[None]):
                 tool_registry=self._tool_registry,
                 llm_client=self._provider,
                 system_prompt="You are a helpful assistant.",
+                permission_checker=self._permission_checker,
             )
         else:
             self.current_provider = "none (set ZHIPU_API_KEY)"
@@ -240,29 +244,43 @@ class MyAgentApp(App[None]):
         self._turn_count += 1
         self._update_header()
 
+        await self._process_event_stream(self._query_engine.submit_message(message))
+
+    async def _process_event_stream(
+        self, stream: Any
+    ) -> None:
+        """Process a stream of events from QueryEngine."""
         full_response = ""
-        current_tool: str | None = None
 
         try:
-            async for event in self._query_engine.submit_message(message):
+            async for event in stream:
                 if isinstance(event, AssistantTextDelta):
                     full_response += event.text
                     self.update_current_response(full_response)
 
                 elif isinstance(event, ToolExecutionStarted):
-                    current_tool = event.tool_name
                     self.update_current_response("")
                     self.add_tool_call(event.tool_name, event.arguments)
 
                 elif isinstance(event, ToolExecutionCompleted):
                     self.add_tool_result(event.result, event.is_error)
-                    current_tool = None
 
                 elif isinstance(event, AssistantTurnComplete):
                     self.update_current_response("")
                     if full_response:
                         self.add_assistant_message(full_response)
                     full_response = ""
+
+                elif isinstance(event, PermissionRequestEvent):
+                    self.update_current_response("")
+                    await self._handle_permission_request(event)
+                    return
+
+                elif isinstance(event, PermissionResultEvent):
+                    status = "approved" if event.approved else "denied"
+                    self.add_assistant_message(
+                        f"[yellow]Permission {status}: {event.reason}[/yellow]"
+                    )
 
                 elif isinstance(event, ErrorEvent):
                     self.update_current_response("")
@@ -275,6 +293,41 @@ class MyAgentApp(App[None]):
         except Exception as e:
             self.update_current_response("")
             self.add_assistant_message(f"[red]Error: {type(e).__name__}: {e}[/red]")
+
+    async def _handle_permission_request(self, event: PermissionRequestEvent) -> None:
+        """Show permission modal and continue with user response."""
+        def on_result(approved: bool) -> None:
+            self.run_worker(self._continue_after_permission(event, approved))
+
+        self.push_screen(
+            PermissionModalScreen(
+                tool_name=event.tool_name,
+                arguments=event.arguments,
+                reason=event.reason,
+            ),
+            callback=on_result,
+        )
+
+    async def _continue_after_permission(
+        self, event: PermissionRequestEvent, approved: bool
+    ) -> None:
+        """Continue processing after user grants or denies permission."""
+        tool_use_id = ""
+        for msg in reversed(self._query_engine.messages):
+            if msg.role == "assistant":
+                for block in msg.content:
+                    if hasattr(block, "name") and block.name == event.tool_name:
+                        tool_use_id = block.id
+                        break
+                if tool_use_id:
+                    break
+
+        if not tool_use_id:
+            self.add_assistant_message("[red]Error: Could not find tool use to resume.[/red]")
+            return
+
+        stream = self._query_engine.continue_with_permission(tool_use_id, approved)
+        await self._process_event_stream(stream)
 
     def _switch_agent(self, agent_name: str) -> None:
         """Switch to a different agent."""

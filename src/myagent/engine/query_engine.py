@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Callable
 
 from myagent.engine.messages import (
     ConversationMessage,
@@ -15,13 +15,16 @@ from myagent.engine.stream_events import (
     AssistantTextDelta,
     AssistantTurnComplete,
     ErrorEvent,
+    PermissionRequestEvent,
+    PermissionResultEvent,
     StreamEvent,
     ToolExecutionCompleted,
     ToolExecutionStarted,
 )
 from myagent.llm.base import BaseProvider
 from myagent.llm.types import DoneChunk, TextChunk, ToolUseChunk
-from myagent.tools.base import ToolExecutionContext
+from myagent.security.checker import PermissionChecker, PermissionLevel
+from myagent.tools.base import ToolExecutionContext, ToolResult
 from myagent.tools.registry import ToolRegistry
 
 
@@ -39,12 +42,14 @@ class QueryEngine:
         max_turns: int = 50,
         auto_compact_threshold: float | None = None,
         llm_client: BaseProvider | None = None,
+        permission_checker: PermissionChecker | None = None,
     ) -> None:
         self.tool_registry = tool_registry
         self.system_prompt = system_prompt
         self.max_turns = max_turns
         self.auto_compact_threshold = auto_compact_threshold
         self.llm_client = llm_client
+        self.permission_checker = permission_checker or PermissionChecker()
         self.messages: list[ConversationMessage] = [
             ConversationMessage.from_system_text(system_prompt)
         ]
@@ -111,19 +116,30 @@ class QueryEngine:
                 yield AssistantTurnComplete(message=assistant_message)
                 return
 
-            tool = self.tool_registry.get(current_tool_use.name)
-            if tool is None:
+            permission_result = self.permission_checker.check(
+                current_tool_use.name,
+                current_tool_use.input,
+            )
+
+            if permission_result.level == PermissionLevel.DENY:
                 result = ToolResult(
-                    output=f"Error: Tool '{current_tool_use.name}' not found.",
+                    output=f"Permission denied: {permission_result.reason}",
                     is_error=True,
                 )
+                yield PermissionResultEvent(
+                    tool_name=current_tool_use.name,
+                    approved=False,
+                    reason=permission_result.reason,
+                )
+            elif permission_result.level == PermissionLevel.ASK:
+                yield PermissionRequestEvent(
+                    tool_name=current_tool_use.name,
+                    arguments=current_tool_use.input,
+                    reason=permission_result.reason,
+                )
+                return
             else:
-                try:
-                    parsed = tool.input_model.model_validate(current_tool_use.input)
-                    ctx = ToolExecutionContext(cwd=Path.cwd())
-                    result = await tool.execute(parsed, ctx)
-                except Exception as e:
-                    result = ToolResult(output=f"Error: {e}", is_error=True)
+                result = await self._execute_tool(current_tool_use)
 
             self.messages.append(
                 ConversationMessage(
@@ -143,3 +159,78 @@ class QueryEngine:
                 result=result.output,
                 is_error=result.is_error,
             )
+
+    async def continue_with_permission(
+        self, tool_use_id: str, approved: bool
+    ) -> AsyncIterator[StreamEvent]:
+        """Continue the loop after user grants or denies permission."""
+        assistant_message = self.messages[-1]
+        current_tool_use = None
+
+        for block in assistant_message.content:
+            if isinstance(block, ToolUseBlock) and block.id == tool_use_id:
+                current_tool_use = block
+                break
+
+        if current_tool_use is None:
+            yield ErrorEvent(
+                error=RuntimeError(f"Tool use {tool_use_id} not found."),
+                recoverable=False,
+            )
+            return
+
+        if approved:
+            result = await self._execute_tool(current_tool_use)
+            yield PermissionResultEvent(
+                tool_name=current_tool_use.name,
+                approved=True,
+                reason="User approved",
+            )
+        else:
+            result = ToolResult(
+                output="Permission denied by user.",
+                is_error=True,
+            )
+            yield PermissionResultEvent(
+                tool_name=current_tool_use.name,
+                approved=False,
+                reason="User denied",
+            )
+
+        self.messages.append(
+            ConversationMessage(
+                role="user",
+                content=[
+                    ToolResultBlock(
+                        tool_use_id=current_tool_use.id,
+                        content=result.output,
+                        is_error=result.is_error,
+                    )
+                ],
+            )
+        )
+
+        yield ToolExecutionCompleted(
+            tool_use_id=current_tool_use.id,
+            result=result.output,
+            is_error=result.is_error,
+        )
+
+        async for event in self._run_loop():
+            yield event
+
+    async def _execute_tool(self, tool_use: ToolUseBlock) -> ToolResult:
+        """Execute a tool and return the result."""
+        tool = self.tool_registry.get(tool_use.name)
+        if tool is None:
+            return ToolResult(
+                output=f"Error: Tool '{tool_use.name}' not found.",
+                is_error=True,
+            )
+
+        try:
+            parsed = tool.input_model.model_validate(tool_use.input)
+            ctx = ToolExecutionContext(cwd=Path.cwd())
+            return await tool.execute(parsed, ctx)
+        except Exception as e:
+            return ToolResult(output=f"Error: {e}", is_error=True)
