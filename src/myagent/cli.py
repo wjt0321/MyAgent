@@ -2,12 +2,45 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 import typer
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 
 from myagent import __version__
+
+# Load .env file from project root or current directory
+_env_loaded = False
+
+
+def _load_env() -> None:
+    global _env_loaded
+    if _env_loaded:
+        return
+    # Try project root first
+    project_root = Path(__file__).parent.parent.parent
+    env_file = project_root / ".env"
+    if env_file.exists():
+        load_dotenv(env_file, override=True)
+        _env_loaded = True
+        return
+    # Try current working directory
+    env_file = Path(".env").resolve()
+    if env_file.exists():
+        load_dotenv(env_file, override=True)
+        _env_loaded = True
+        return
+    # Try MYAGENT_HOME
+    home = os.getenv("MYAGENT_HOME")
+    if home:
+        env_file = Path(home) / ".env"
+        if env_file.exists():
+            load_dotenv(env_file, override=True)
+            _env_loaded = True
 
 def _version_callback(value: bool) -> None:
     if value:
@@ -40,6 +73,7 @@ def init(
     quick: bool = typer.Option(False, "--quick", "-q", help="Quick mode — skip prompts, use defaults"),
 ) -> None:
     """Initialize MyAgent configuration and workspace."""
+    _load_env()
     from myagent.init.wizard import run_wizard
     run_wizard()
 
@@ -47,6 +81,7 @@ def init(
 @app.command()
 def doctor() -> None:
     """Diagnose MyAgent configuration issues."""
+    _load_env()
     from myagent.init.doctor import run_doctor
     run_doctor()
 
@@ -57,6 +92,7 @@ def web(
     port: int = typer.Option(8000, "--port", "-p", help="Port to listen on"),
 ) -> None:
     """Start the MyAgent Web UI server."""
+    _load_env()
     import uvicorn
     from myagent.web.server import create_app
 
@@ -73,6 +109,7 @@ def gateway(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose logging"),
 ) -> None:
     """Start the MyAgent Gateway server."""
+    _load_env()
     console.print(f"[bold green]Starting MyAgent Gateway on port {port}[/bold green]")
     console.print("[yellow]Note: Gateway server implementation is a placeholder.[/yellow]")
     console.print("[dim]Press Ctrl+C to stop[/dim]")
@@ -88,6 +125,7 @@ def main(
     ),
 ) -> None:
     """Start an interactive session with MyAgent."""
+    _load_env()
     if tui:
         from myagent.tui.app import run_tui
         run_tui()
