@@ -676,7 +676,16 @@ class MyAgentWebApp {
             if (lastMessage && lastMessage.classList.contains(role)) {
                 const contentEl = lastMessage.querySelector('.content');
                 if (role === 'assistant') {
-                    contentEl.innerHTML = this.renderMarkdown(contentEl.textContent + content);
+                    // Store raw text in data attribute, render full markdown each time
+                    const rawText = (lastMessage.dataset.rawText || '') + content;
+                    lastMessage.dataset.rawText = rawText;
+                    contentEl.innerHTML = this.renderMarkdown(rawText);
+                    // Re-highlight code blocks
+                    if (window.hljs) {
+                        contentEl.querySelectorAll('pre code').forEach((block) => {
+                            window.hljs.highlightElement(block);
+                        });
+                    }
                 } else {
                     contentEl.textContent += content;
                 }
@@ -707,6 +716,11 @@ class MyAgentWebApp {
             <div class="role-label">${roleLabels[role] || role}</div>
             <div class="content">${contentHtml}</div>
         `;
+
+        // Store raw text for streaming append
+        if (role === 'assistant') {
+            messageDiv.dataset.rawText = content;
+        }
 
         if (role === 'assistant' && window.hljs) {
             messageDiv.querySelectorAll('pre code').forEach((block) => {
