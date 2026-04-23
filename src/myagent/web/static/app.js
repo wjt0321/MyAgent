@@ -446,8 +446,19 @@ class MyAgentWebApp {
             this.handleWebSocketMessage(data);
         };
 
-        this.ws.onclose = () => {
+        this.ws.onclose = (event) => {
             this.setStatus('disconnected');
+            // Only reconnect if it was not a clean close due to server-side error
+            // (code 1000 = normal, 1001 = going away, 1005 = no status)
+            // Code 1006 = abnormal closure (server error, network issue)
+            if (event.code === 1006 || event.code === 1011) {
+                // Server error - show error once and stop reconnecting
+                if (this.reconnectAttempts === 0) {
+                    this.addMessage('error', '连接失败：服务器配置错误，请检查 LLM API Key 设置。', false);
+                }
+                this.reconnectAttempts = this.maxReconnectAttempts; // Prevent further reconnects
+                return;
+            }
             this.attemptReconnect(sessionId);
         };
 
