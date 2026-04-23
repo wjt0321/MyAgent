@@ -21,6 +21,7 @@ class MyAgentWebApp {
         this.loadFileTree('.');
         this.loadWorkspace();
         this.loadCurrentTask();
+        this.loadTeam();
     }
 
     // ========== Theme ==========
@@ -115,6 +116,9 @@ class MyAgentWebApp {
         this.taskRejectBtn = document.getElementById('task-reject');
         this.closeTaskWorkflowBtn = document.getElementById('close-task-workflow');
         this.currentTask = null;
+
+        // Team panel
+        this.teamPanel = document.getElementById('team-panel');
 
         // Reset modal
         this.resetModal = document.getElementById('reset-modal');
@@ -928,6 +932,78 @@ class MyAgentWebApp {
                 </div>
             </div>
         `;
+    }
+
+    // ========== Team Panel ==========
+
+    async loadTeam() {
+        try {
+            const response = await fetch('/api/team');
+            if (response.ok) {
+                const data = await response.json();
+                this.renderTeamPanel(data);
+            }
+        } catch (error) {
+            console.error('Failed to load team:', error);
+            if (this.teamPanel) {
+                this.teamPanel.innerHTML = '<div class="team-empty">加载失败</div>';
+            }
+        }
+    }
+
+    renderTeamPanel(data) {
+        if (!this.teamPanel) return;
+
+        const team = data.team || {};
+        const members = team.members || [];
+
+        if (members.length === 0) {
+            this.teamPanel.innerHTML = '<div class="team-empty">暂无团队成员</div>';
+            return;
+        }
+
+        const roleLabels = {
+            'lead': '负责人',
+            'planner': '规划师',
+            'executor': '执行者',
+            'reviewer': '审查员',
+            'explorer': '探索者',
+            'specialist': '专家'
+        };
+
+        const memberItems = members.map(member => {
+            const initials = member.name.substring(0, 2).toUpperCase();
+            const statusClass = member.status || 'idle';
+            return `
+                <div class="team-member">
+                    <div class="team-member-avatar" style="background: ${member.avatar_color || '#6366f1'}">${initials}</div>
+                    <div class="team-member-info">
+                        <div class="team-member-name">${member.name}</div>
+                        <div class="team-member-role">${roleLabels[member.role] || member.role}</div>
+                    </div>
+                    <div class="team-member-status ${statusClass}"></div>
+                </div>
+            `;
+        }).join('');
+
+        const stats = `
+            <div class="team-stats">
+                <div class="team-stat">
+                    <div class="team-stat-value">${data.idle_members || 0}</div>
+                    <div class="team-stat-label">空闲</div>
+                </div>
+                <div class="team-stat">
+                    <div class="team-stat-value">${data.busy_members || 0}</div>
+                    <div class="team-stat-label">忙碌</div>
+                </div>
+                <div class="team-stat">
+                    <div class="team-stat-value">${data.total_completed || 0}</div>
+                    <div class="team-stat-label">完成</div>
+                </div>
+            </div>
+        `;
+
+        this.teamPanel.innerHTML = memberItems + stats;
     }
 
     // ========== Messages ==========

@@ -16,6 +16,7 @@ from myagent.web.session import SessionStore
 from myagent.memory.manager import MemoryEntry, MemoryManager, MemoryType
 from myagent.tasks.engine import TaskEngine
 from myagent.tasks.models import Task, TaskStatus
+from myagent.teams.orchestrator import TeamOrchestrator
 from myagent.workspace.manager import WorkspaceManager, get_workspace_dir
 
 
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.session_store = SessionStore()
     app.state.engine_manager = WebEngineManager()
     app.state.task_engine = TaskEngine(app.state.engine_manager)
+    app.state.team_orchestrator = TeamOrchestrator(app.state.task_engine)
     yield
 
 
@@ -124,6 +126,12 @@ def create_app() -> FastAPI:
         if memory_dir.exists():
             return MemoryManager(memory_dir)
         return None
+
+    @app.get("/api/team")
+    async def get_team() -> dict[str, Any]:
+        """Get current team status."""
+        orchestrator: TeamOrchestrator = app.state.team_orchestrator
+        return orchestrator.get_team_status()
 
     @app.get("/api/memories")
     async def list_memories() -> list[dict[str, Any]]:
