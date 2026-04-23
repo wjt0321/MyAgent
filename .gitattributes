@@ -1,0 +1,34 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Python files
+*.py text eol=lf linguist-language=Python
+
+# Web files
+*.js text eol=lf linguist-language=JavaScript
+*.css text eol=lf linguist-language=CSS
+*.html text eol=lf linguist-language=HTML
+
+# Markdown files
+*.md text eol=lf linguist-documentation
+
+# YAML files
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Docker
+Dockerfile text eol=lf
+
+# SVG
+*.svg text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
