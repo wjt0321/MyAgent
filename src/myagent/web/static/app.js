@@ -361,13 +361,32 @@ class MyAgentWebApp {
             const item = document.createElement('div');
             item.className = `session-item ${session.id === this.currentSessionId ? 'active' : ''}`;
             item.innerHTML = `
-                <div class="session-title">${session.agent}</div>
+                <div class="session-item-header">
+                    <div class="session-title">${session.agent}</div>
+                    <button class="session-delete" title="删除会话" data-session-id="${session.id}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                    </button>
+                </div>
                 <div class="session-meta">${this.formatDate(session.updated_at)}</div>
             `;
-            item.addEventListener('click', () => {
+
+            // Click on item body selects session
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.session-delete')) return;
                 this.selectSession(session.id);
                 this.closeSidebar();
             });
+
+            // Click on delete button
+            const deleteBtn = item.querySelector('.session-delete');
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showDeleteSessionConfirm(session.id);
+            });
+
             this.sessionList.appendChild(item);
         });
     }
@@ -726,10 +745,58 @@ class MyAgentWebApp {
         this.addMessage('assistant', '设置已保存', false);
     }
 
+    // ========== Session Delete ==========
+
+    showDeleteSessionConfirm(sessionId) {
+        this._deleteSessionId = sessionId;
+        const session = this.sessions.find(s => s.id === sessionId);
+        const name = session ? session.agent : '此会话';
+        this.resetMessage.textContent = `确定要删除 "${name}" 吗？此操作不可撤销。`;
+        this.resetConfirmBtn.textContent = '删除';
+        this.resetConfirmBtn.className = 'btn-danger';
+        this.resetModal.classList.add('show');
+    }
+
+    async executeDeleteSession() {
+        const sessionId = this._deleteSessionId;
+        if (!sessionId) return;
+
+        try {
+            const response = await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
+            if (response.ok) {
+                this.sessions = this.sessions.filter(s => s.id !== sessionId);
+
+                if (this.currentSessionId === sessionId) {
+                    this.currentSessionId = null;
+                    this.messagesContainer.innerHTML = '';
+                    this.welcomeScreen.style.display = 'flex';
+                    if (this.ws) {
+                        this.ws.close();
+                        this.ws = null;
+                    }
+                    this.setStatus('disconnected');
+                }
+
+                this.renderSessionList();
+            } else {
+                this.addMessage('error', '删除会话失败', false);
+            }
+        } catch (error) {
+            console.error('Failed to delete session:', error);
+            this.addMessage('error', '删除会话失败: ' + error.message, false);
+        }
+
+        this.hideResetModal();
+        this._deleteSessionId = null;
+        this.resetConfirmBtn.textContent = '确认重置';
+    }
+
     // ========== Reset ==========
 
     showResetConfirm(type) {
         this._resetType = type;
+        this._deleteSessionId = null;
+        this.resetConfirmBtn.textContent = '确认重置';
         const messages = {
             conversation: '确定要重置当前对话吗？所有消息将被清空。',
             all: '确定要重置所有会话吗？所有会话数据将被删除。',
@@ -742,9 +809,17 @@ class MyAgentWebApp {
     hideResetModal() {
         this.resetModal.classList.remove('show');
         this._resetType = null;
+        this._deleteSessionId = null;
+        this.resetConfirmBtn.textContent = '确认重置';
     }
 
     async executeReset() {
+        // If deleting a session
+        if (this._deleteSessionId) {
+            await this.executeDeleteSession();
+            return;
+        }
+
         const type = this._resetType;
         if (!type) return;
 
