@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from myagent.web.engine_manager import WebEngineManager
 from myagent.web.health import router as health_router
 from myagent.web.session import SessionStore
+from myagent.memory.manager import MemoryEntry, MemoryManager, MemoryType
 from myagent.workspace.manager import WorkspaceManager, get_workspace_dir
 
 
@@ -112,6 +113,65 @@ def create_app() -> FastAPI:
                     continue
 
         return workspace_info
+
+    def _get_memory_manager() -> MemoryManager | None:
+        """Get memory manager if workspace is initialized."""
+        ws_dir = get_workspace_dir()
+        memory_dir = ws_dir / "memory"
+        if memory_dir.exists():
+            return MemoryManager(memory_dir)
+        return None
+
+    @app.get("/api/memories")
+    async def list_memories() -> list[dict[str, Any]]:
+        """List all memories."""
+        mm = _get_memory_manager()
+        if mm is None:
+            return []
+        return [
+            {
+                "name": e.name,
+                "description": e.description,
+                "type": e.type.value,
+                "filename": e.path.name if e.path else None,
+                "content": e.content,
+            }
+            for e in mm.list_memories()
+        ]
+
+    @app.post("/api/memories", status_code=201)
+    async def create_memory(request: dict[str, Any]) -> dict[str, Any]:
+        """Create or update a memory."""
+        mm = _get_memory_manager()
+        if mm is None:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="Workspace not initialized")
+
+        entry = MemoryEntry(
+            name=request["name"],
+            description=request.get("description", ""),
+            type=MemoryType(request.get("type", "user")),
+            content=request["content"],
+        )
+        path = mm.save_memory(entry)
+        return {
+            "status": "saved",
+            "name": entry.name,
+            "filename": path.name,
+        }
+
+    @app.delete("/api/memories/{name}")
+    async def delete_memory(name: str) -> dict[str, str]:
+        """Delete a memory by name."""
+        mm = _get_memory_manager()
+        if mm is None:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="Workspace not initialized")
+
+        if mm.delete_memory(name):
+            return {"status": "deleted"}
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Memory not found")
 
     @app.get("/api/sessions")
     async def list_sessions() -> list[dict[str, Any]]:
@@ -250,11 +310,22 @@ def create_app() -> FastAPI:
 
                 await websocket.send_json({"type": "assistant_start"})
 
-                await engine_manager.process_message(
+                response = await engine_manager.process_message(
                     engine,
                     message,
                     send_callback=websocket.send_json,
                 )
+
+                # Save assistant response to session
+                if response:
+                    session.add_message("assistant", response)
+                    store._save(session)
+
+                    # Trigger memory collection in background
+                    import asyncio
+                    asyncio.create_task(
+                        engine_manager.collect_memory(message, response)
+                    )
 
         except WebSocketDisconnect:
             pass

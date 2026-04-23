@@ -95,6 +95,17 @@ class MyAgentWebApp {
         this.settingsMessageCount = document.getElementById('settings-message-count');
         this.workspaceInfo = document.getElementById('workspace-info');
 
+        // Memory management
+        this.memoryList = document.getElementById('memory-list');
+        this.memoryForm = document.getElementById('memory-form');
+        this.newMemoryBtn = document.getElementById('new-memory-btn');
+        this.memoryName = document.getElementById('memory-name');
+        this.memoryDescription = document.getElementById('memory-description');
+        this.memoryType = document.getElementById('memory-type');
+        this.memoryContent = document.getElementById('memory-content');
+        this.memorySaveBtn = document.getElementById('memory-save');
+        this.memoryCancelBtn = document.getElementById('memory-cancel');
+
         // Reset modal
         this.resetModal = document.getElementById('reset-modal');
         this.resetMessage = document.getElementById('reset-message');
@@ -167,6 +178,11 @@ class MyAgentWebApp {
             this.updateHLJSTheme();
             this.updateThemeIcon();
         });
+
+        // Memory management
+        this.newMemoryBtn.addEventListener('click', () => this.showMemoryForm());
+        this.memoryCancelBtn.addEventListener('click', () => this.hideMemoryForm());
+        this.memorySaveBtn.addEventListener('click', () => this.saveMemory());
 
         // Reset buttons
         this.resetConversationBtn.addEventListener('click', () => this.showResetConfirm('conversation'));
@@ -871,6 +887,154 @@ class MyAgentWebApp {
         return div.innerHTML;
     }
 
+    // ========== Memory Management ==========
+
+    async loadMemories() {
+        try {
+            const response = await fetch('/api/memories');
+            this.memories = await response.json();
+            this.renderMemoryList();
+        } catch (error) {
+            console.error('Failed to load memories:', error);
+            if (this.memoryList) {
+                this.memoryList.innerHTML = '<div class="memory-loading">加载失败</div>';
+            }
+        }
+    }
+
+    renderMemoryList() {
+        if (!this.memoryList) return;
+
+        if (!this.memories || this.memories.length === 0) {
+            this.memoryList.innerHTML = '<div class="memory-empty">暂无记忆</div>';
+            return;
+        }
+
+        const typeLabels = {
+            'user': '用户',
+            'feedback': '反馈',
+            'project': '项目',
+            'reference': '参考'
+        };
+
+        const items = this.memories.map(mem => `
+            <div class="memory-card" data-name="${mem.name}">
+                <div class="memory-card-header">
+                    <div class="memory-card-name">${mem.name}</div>
+                    <span class="memory-card-type">${typeLabels[mem.type] || mem.type}</span>
+                </div>
+                <div class="memory-card-desc">${mem.description || ''}</div>
+                <div class="memory-card-content">${this.escapeHtml(mem.content || '').substring(0, 100)}${(mem.content || '').length > 100 ? '...' : ''}</div>
+                <div class="memory-card-actions">
+                    <button class="memory-btn-edit" data-name="${mem.name}">编辑</button>
+                    <button class="memory-btn-delete" data-name="${mem.name}">删除</button>
+                </div>
+            </div>
+        `).join('');
+
+        this.memoryList.innerHTML = items;
+
+        // Bind edit/delete handlers
+        this.memoryList.querySelectorAll('.memory-btn-edit').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const name = btn.dataset.name;
+                const mem = this.memories.find(m => m.name === name);
+                if (mem) this.editMemory(mem);
+            });
+        });
+
+        this.memoryList.querySelectorAll('.memory-btn-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteMemory(btn.dataset.name);
+            });
+        });
+    }
+
+    showMemoryForm() {
+        this.memoryForm.style.display = 'block';
+        this.memoryList.style.display = 'none';
+        this.newMemoryBtn.style.display = 'none';
+        this._editingMemory = null;
+        this.memoryName.value = '';
+        this.memoryDescription.value = '';
+        this.memoryType.value = 'user';
+        this.memoryContent.value = '';
+        this.memoryName.disabled = false;
+    }
+
+    hideMemoryForm() {
+        this.memoryForm.style.display = 'none';
+        this.memoryList.style.display = 'block';
+        this.newMemoryBtn.style.display = 'inline-block';
+        this._editingMemory = null;
+    }
+
+    editMemory(mem) {
+        this._editingMemory = mem.name;
+        this.memoryName.value = mem.name;
+        this.memoryName.disabled = true;
+        this.memoryDescription.value = mem.description || '';
+        this.memoryType.value = mem.type || 'user';
+        this.memoryContent.value = mem.content || '';
+        this.memoryForm.style.display = 'block';
+        this.memoryList.style.display = 'none';
+        this.newMemoryBtn.style.display = 'none';
+    }
+
+    async saveMemory() {
+        const name = this.memoryName.value.trim();
+        const description = this.memoryDescription.value.trim();
+        const type = this.memoryType.value;
+        const content = this.memoryContent.value.trim();
+
+        if (!name || !content) {
+            alert('名称和内容不能为空');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/memories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description, type, content })
+            });
+
+            if (response.ok) {
+                this.hideMemoryForm();
+                await this.loadMemories();
+                // Also refresh workspace sidebar
+                this.loadWorkspace();
+            } else {
+                alert('保存失败');
+            }
+        } catch (error) {
+            console.error('Failed to save memory:', error);
+            alert('保存失败: ' + error.message);
+        }
+    }
+
+    async deleteMemory(name) {
+        if (!confirm(`确定要删除记忆 "${name}" 吗？`)) return;
+
+        try {
+            const response = await fetch(`/api/memories/${encodeURIComponent(name)}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                await this.loadMemories();
+                this.loadWorkspace();
+            } else {
+                alert('删除失败');
+            }
+        } catch (error) {
+            console.error('Failed to delete memory:', error);
+            alert('删除失败: ' + error.message);
+        }
+    }
+
     // ========== Settings ==========
 
     openSettings() {
@@ -881,6 +1045,7 @@ class MyAgentWebApp {
         this.settingsThemeSelect.value = this.currentTheme;
 
         this.settingsSessionCount.textContent = this.sessions.length;
+        this.loadMemories();
         const totalMessages = this.sessions.reduce((sum, s) => sum + (s.messages ? s.messages.length : 0), 0);
         this.settingsMessageCount.textContent = totalMessages;
 

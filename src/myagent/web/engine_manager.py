@@ -19,6 +19,8 @@ from myagent.engine.stream_events import (
     ToolExecutionStarted,
 )
 from myagent.llm.providers.anthropic import AnthropicProvider
+from myagent.memory.collection import MemoryCollector
+from myagent.memory.manager import MemoryManager
 from myagent.security.checker import PermissionChecker
 from myagent.tools.bash import Bash
 from myagent.tools.edit import Edit
@@ -27,6 +29,7 @@ from myagent.tools.grep import Grep
 from myagent.tools.read import Read
 from myagent.tools.registry import ToolRegistry
 from myagent.tools.write import Write
+from myagent.workspace.manager import get_workspace_dir
 
 
 def _get_env(key: str, default: str | None = None) -> str | None:
@@ -60,7 +63,20 @@ class WebEngineManager:
         self._provider: AnthropicProvider | None = None
         self._agent_loader = AgentLoader()
         self._agents = self._agent_loader.load_builtin_agents()
+        self._memory_collector: MemoryCollector | None = None
         self._init_provider()
+        self._init_memory_collector()
+
+    def _init_memory_collector(self) -> None:
+        """Initialize memory collector from workspace."""
+        try:
+            ws_dir = get_workspace_dir()
+            memory_dir = ws_dir / "memory"
+            if memory_dir.exists():
+                mm = MemoryManager(memory_dir)
+                self._memory_collector = MemoryCollector(mm)
+        except Exception:
+            pass  # Memory collection is optional
 
     def _init_provider(self) -> None:
         api_key = _get_env("ZHIPU_API_KEY") or _get_env("ANTHROPIC_API_KEY") or _get_env("MYAGENT_API_KEY")
@@ -114,8 +130,11 @@ class WebEngineManager:
         engine: QueryEngine,
         message: str,
         send_callback: Any,
-    ) -> None:
-        """Process a message through QueryEngine and send events via callback."""
+    ) -> str:
+        """Process a message through QueryEngine and send events via callback.
+
+        Returns the full assistant response text.
+        """
         full_response = ""
 
         async for event in engine.submit_message(message):
@@ -147,7 +166,7 @@ class WebEngineManager:
                     "arguments": event.arguments,
                     "reason": event.reason,
                 })
-                return
+                return full_response
 
             elif isinstance(event, PermissionResultEvent):
                 await send_callback({
@@ -161,3 +180,26 @@ class WebEngineManager:
                     "type": "error",
                     "message": f"{type(event.error).__name__}: {event.error}",
                 })
+
+        return full_response
+
+    async def collect_memory(
+        self,
+        user_message: str,
+        assistant_response: str,
+    ) -> None:
+        """Collect memory from a conversation turn.
+
+        This runs asynchronously in the background.
+        """
+        if self._memory_collector is None or self._provider is None:
+            return
+
+        try:
+            self._memory_collector.collect_from_turn(
+                user_message,
+                assistant_response,
+                self._provider,
+            )
+        except Exception:
+            pass  # Memory collection failures should not break chat
