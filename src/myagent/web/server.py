@@ -20,6 +20,7 @@ from myagent.teams.orchestrator import TeamOrchestrator
 from myagent.codebase.indexer import CodebaseIndexer
 from myagent.codebase.search import CodebaseSearch
 from myagent.workspace.manager import WorkspaceManager, get_workspace_dir
+from myagent.config.settings import Settings
 
 
 @asynccontextmanager
@@ -256,8 +257,8 @@ def create_app() -> FastAPI:
         """Create a new session."""
         store: SessionStore = app.state.session_store
         agent = request.get("agent", "general")
-        # Fix hardcoded model
-        model = request.get("model") or "anthropic/claude-3.5-sonnet"
+        settings = Settings.load()
+        model = request.get("model") or settings.model.default
         session = store.create(agent=agent, model=model)
         return session.to_dict()
 
@@ -365,7 +366,7 @@ def create_app() -> FastAPI:
         if not engine_manager.is_configured():
             await websocket.send_json({
                 "type": "error",
-                "message": "LLM provider not configured. Set ZHIPU_API_KEY environment variable.",
+                "message": "LLM provider not configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or other provider environment variable.",
             })
             await websocket.close()
             return
@@ -385,8 +386,14 @@ def create_app() -> FastAPI:
                 if action == "approve_permission":
                     tool_use_id = data.get("tool_use_id", "")
                     approved = data.get("approved", False)
-                    async for event in engine.continue_with_permission(tool_use_id, approved):
-                        await _send_event(websocket, event)
+                    try:
+                        async for event in engine.continue_with_permission(tool_use_id, approved):
+                            await _send_event(websocket, event)
+                    except Exception as e:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": f"Permission handling error: {str(e)}",
+                        })
                     continue
 
                 if not message:
@@ -402,22 +409,28 @@ def create_app() -> FastAPI:
 
                 await websocket.send_json({"type": "assistant_start"})
 
-                response = await engine_manager.process_message(
-                    engine,
-                    message,
-                    send_callback=websocket.send_json,
-                )
-
-                # Save assistant response to session
-                if response:
-                    session.add_message("assistant", response)
-                    store._save(session)
-
-                    # Trigger memory collection in background
-                    import asyncio
-                    asyncio.create_task(
-                        engine_manager.collect_memory(message, response)
+                try:
+                    response = await engine_manager.process_message(
+                        engine,
+                        message,
+                        send_callback=websocket.send_json,
                     )
+
+                    # Save assistant response to session
+                    if response:
+                        session.add_message("assistant", response)
+                        store._save(session)
+
+                        # Trigger memory collection in background
+                        import asyncio
+                        asyncio.create_task(
+                            engine_manager.collect_memory(message, response)
+                        )
+                except Exception as e:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": f"Processing error: {str(e)}",
+                    })
 
         except WebSocketDisconnect:
             pass

@@ -155,6 +155,14 @@ class MyAgentWebApp {
             }
         });
 
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.closeSettings();
+                this.closeSidebar();
+            }
+        });
+
         // Auto-resize textarea
         this.messageInput.addEventListener('input', () => {
             this.messageInput.style.height = 'auto';
@@ -183,6 +191,17 @@ class MyAgentWebApp {
         this.saveSettingsBtn.addEventListener('click', () => this.saveSettings());
         this.settingsModal.addEventListener('click', (e) => {
             if (e.target === this.settingsModal) this.closeSettings();
+        });
+
+        // Quick action cards
+        document.querySelectorAll('.quick-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const prompt = card.dataset.prompt;
+                if (prompt) {
+                    this.messageInput.value = prompt;
+                    this.sendMessage();
+                }
+            });
         });
 
         // Settings tabs
@@ -453,7 +472,7 @@ class MyAgentWebApp {
                                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                             </svg>
                         </span>
-                        <span class="name">${entry.name}</span>
+                        <span class="name">${this.escapeHtml(entry.name)}</span>
                     </div>
                     <div class="file-tree-children" style="display: none;"></div>
                 `;
@@ -492,7 +511,7 @@ class MyAgentWebApp {
                 item.innerHTML = `
                     <div class="file-tree-item" style="padding-left: ${12 + indent + 18}px">
                         <span class="icon">${iconSvg}</span>
-                        <span class="name">${entry.name}</span>
+                        <span class="name">${this.escapeHtml(entry.name)}</span>
                     </div>
                 `;
 
@@ -732,11 +751,11 @@ class MyAgentWebApp {
                 break;
 
             case 'tool_call':
-                this.addMessage('tool-call', `Tool: ${data.tool_name}\n${JSON.stringify(data.arguments, null, 2)}`, false);
+                this.addToolCall(data.tool_name, data.arguments);
                 break;
 
             case 'tool_result':
-                this.addMessage('tool-result', data.result, false);
+                this.addToolResult(data.result, data.is_error);
                 break;
 
             case 'error':
@@ -1074,15 +1093,17 @@ class MyAgentWebApp {
         if (role === 'assistant') {
             contentHtml = this.renderMarkdown(content);
         } else if (role === 'tool-call' || role === 'tool-result') {
-            const summaryLabel = role === 'tool-call' ? '🛠️ Tool Executing...' : '✅ Tool Result';
-            contentHtml = `<details><summary>${summaryLabel}</summary><pre><code>${this.escapeHtml(content)}</code></pre></details>`;
+            contentHtml = this.escapeHtml(content);
         } else {
             contentHtml = this.escapeHtml(content);
         }
 
+        const timestamp = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
         messageDiv.innerHTML = `
             <div class="role-label">${roleLabels[role] || role}</div>
             <div class="content">${contentHtml}</div>
+            <div class="message-timestamp">${timestamp}</div>
         `;
 
         // Store raw text for streaming append
@@ -1110,6 +1131,48 @@ class MyAgentWebApp {
         }
 
         this.messagesContainer.appendChild(messageDiv);
+        this.scrollToBottom();
+    }
+
+    addToolCall(toolName, args) {
+        const div = document.createElement('div');
+        div.className = 'message tool-call';
+        div.innerHTML = `
+            <div class="role-label">Tool</div>
+            <div class="content">
+                <details class="tool-collapsible">
+                    <summary>
+                        <span class="tool-icon">🔧</span>
+                        <span class="tool-name">${this.escapeHtml(toolName)}</span>
+                        <span class="tool-toggle">▶</span>
+                    </summary>
+                    <pre><code>${this.escapeHtml(JSON.stringify(args, null, 2))}</code></pre>
+                </details>
+            </div>
+        `;
+        this.messagesContainer.appendChild(div);
+        this.scrollToBottom();
+    }
+
+    addToolResult(result, isError) {
+        const div = document.createElement('div');
+        div.className = `message tool-result ${isError ? 'error' : ''}`;
+        const icon = isError ? '❌' : '✅';
+        const label = isError ? 'Error' : 'Result';
+        div.innerHTML = `
+            <div class="role-label">${label}</div>
+            <div class="content">
+                <details class="tool-collapsible">
+                    <summary>
+                        <span class="tool-icon">${icon}</span>
+                        <span class="tool-name">${isError ? 'Execution Failed' : 'Execution Complete'}</span>
+                        <span class="tool-toggle">▶</span>
+                    </summary>
+                    <pre><code>${this.escapeHtml(result)}</code></pre>
+                </details>
+            </div>
+        `;
+        this.messagesContainer.appendChild(div);
         this.scrollToBottom();
     }
 

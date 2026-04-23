@@ -771,6 +771,51 @@ body {
   max-width: 300px;
 }
 
+/* Quick Action Cards */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  max-width: 480px;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.quick-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-align: left;
+}
+
+.quick-card:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-glow);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+
+.quick-card .quick-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.quick-card .quick-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.quick-card .quick-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
 /* Message Bubbles */
 .message {
   display: flex;
@@ -854,6 +899,14 @@ body {
   background: var(--danger-soft);
   border: 1px solid rgba(239,68,68,0.2);
   color: var(--danger);
+}
+
+.message-timestamp {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: 4px;
+  opacity: 0.6;
 }
 
 .message.highlighted {
@@ -1053,19 +1106,65 @@ body {
 }
 
 /* Tool execution details block styling */
-details summary {
+.tool-collapsible {
+  margin: 0;
+}
+
+.tool-collapsible summary {
   cursor: pointer;
   font-weight: 500;
-  color: var(--accent-hover);
-  padding: 8px 12px;
-  background: var(--bg-tertiary);
+  padding: 6px 10px;
   border-radius: var(--radius-sm);
-  margin-bottom: 8px;
   outline: none;
-  border: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  user-select: none;
 }
-details pre {
-  margin-top: 0;
+
+.tool-collapsible summary::-webkit-details-marker {
+  display: none;
+}
+
+.tool-collapsible .tool-icon {
+  font-size: 14px;
+}
+
+.tool-collapsible .tool-name {
+  flex: 1;
+  font-size: 13px;
+}
+
+.tool-collapsible .tool-toggle {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+  color: var(--text-muted);
+}
+
+.tool-collapsible[open] .tool-toggle {
+  transform: rotate(90deg);
+}
+
+.tool-collapsible pre {
+  margin: 8px 0 0;
+  padding: 10px;
+  background: var(--bg-code);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  overflow-x: auto;
+}
+
+.message.tool-call .tool-collapsible summary {
+  color: var(--warning);
+}
+
+.message.tool-result .tool-collapsible summary {
+  color: var(--success);
+}
+
+.message.tool-result.error .tool-collapsible summary {
+  color: var(--danger);
 }
 
 .message.assistant .content h1,
