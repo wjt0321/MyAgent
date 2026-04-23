@@ -170,4 +170,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-Inspired by [Hermes Agent](https://github.com/hermes), [OpenClaw](https://github.com/openclaw/openclaw), [Claude Code](https://github.com/anthropics/claude-code), and [OpenHarness](https://github.com/openharness).
+Inspired by [Hermes Agent](https://github.com/NousResearch/hermes-agent), [OpenClaw](https://github.com/openclaw/openclaw), [Claude Code](https://github.com/anthropics/claude-code), and [OpenHarness](https://github.com/HKUDS/OpenHarness).
