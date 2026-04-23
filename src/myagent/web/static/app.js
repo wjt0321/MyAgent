@@ -275,41 +275,79 @@ class MyAgentWebApp {
 
     renderFileTree(entries, parentPath) {
         this.fileTree.innerHTML = '';
+        this._fileTreeData = { entries, parentPath };
+        this._renderFileTreeNodes(entries, this.fileTree, parentPath, 0);
+    }
 
-        if (parentPath !== '.') {
-            const upItem = document.createElement('div');
-            upItem.className = 'file-tree-item dir';
-            upItem.innerHTML = `
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.5"><path d="M15 18l-6-6 6-6"/></svg>
-                <span class="name">..</span>
-            `;
-            upItem.addEventListener('click', () => {
-                const parent = parentPath.split('\\').slice(0, -1).join('\\') || '.';
-                this.loadFileTree(parent);
-            });
-            this.fileTree.appendChild(upItem);
-        }
-
+    _renderFileTreeNodes(entries, container, parentPath, depth) {
         entries.forEach(entry => {
             const item = document.createElement('div');
-            item.className = `file-tree-item ${entry.is_dir ? 'dir' : ''}`;
+            item.className = 'file-tree-node';
 
-            const iconSvg = entry.is_dir
-                ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>'
-                : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
-
-            item.innerHTML = `
-                <span class="icon">${iconSvg}</span>
-                <span class="name">${entry.name}</span>
-            `;
+            const indent = depth * 14;
 
             if (entry.is_dir) {
-                item.addEventListener('click', () => this.loadFileTree(entry.path));
+                // Directory with expand/collapse
+                item.innerHTML = `
+                    <div class="file-tree-item dir" style="padding-left: ${12 + indent}px">
+                        <span class="expand-icon">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </span>
+                        <span class="icon">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </span>
+                        <span class="name">${entry.name}</span>
+                    </div>
+                    <div class="file-tree-children" style="display: none;"></div>
+                `;
+
+                const header = item.querySelector('.file-tree-item');
+                const childrenContainer = item.querySelector('.file-tree-children');
+                const expandIcon = item.querySelector('.expand-icon');
+                let loaded = false;
+
+                header.addEventListener('click', async () => {
+                    const isExpanded = childrenContainer.style.display !== 'none';
+                    if (isExpanded) {
+                        childrenContainer.style.display = 'none';
+                        expandIcon.style.transform = 'rotate(0deg)';
+                    } else {
+                        childrenContainer.style.display = 'block';
+                        expandIcon.style.transform = 'rotate(90deg)';
+                        if (!loaded) {
+                            try {
+                                const response = await fetch(`/api/files?path=${encodeURIComponent(entry.path)}`);
+                                const data = await response.json();
+                                this._renderFileTreeNodes(data.entries, childrenContainer, entry.path, depth + 1);
+                                loaded = true;
+                            } catch (error) {
+                                console.error('Failed to load directory:', error);
+                            }
+                        }
+                    }
+                });
             } else {
-                item.addEventListener('click', () => this.showFilePreview(entry.path, entry.name));
+                // File
+                const iconSvg = entry.name.endsWith('.md')
+                    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>'
+                    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+
+                item.innerHTML = `
+                    <div class="file-tree-item" style="padding-left: ${12 + indent + 18}px">
+                        <span class="icon">${iconSvg}</span>
+                        <span class="name">${entry.name}</span>
+                    </div>
+                `;
+
+                const header = item.querySelector('.file-tree-item');
+                header.addEventListener('click', () => this.showFilePreview(entry.path, entry.name));
             }
 
-            this.fileTree.appendChild(item);
+            container.appendChild(item);
         });
     }
 
@@ -319,12 +357,19 @@ class MyAgentWebApp {
             const data = await response.json();
 
             this.previewFilename.textContent = name;
-            this.previewContent.textContent = data.content;
-
             const ext = name.split('.').pop().toLowerCase();
-            this.previewContent.className = ext;
-            if (window.hljs) {
-                window.hljs.highlightElement(this.previewContent);
+
+            if (ext === 'md' && window.marked) {
+                // Render Markdown
+                this.previewContent.innerHTML = window.marked.parse(data.content);
+                this.previewContent.className = 'markdown-preview';
+            } else {
+                // Code/text preview
+                this.previewContent.textContent = data.content;
+                this.previewContent.className = ext;
+                if (window.hljs) {
+                    window.hljs.highlightElement(this.previewContent);
+                }
             }
 
             this.filePreviewPanel.classList.add('show');
