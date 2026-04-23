@@ -2,14 +2,17 @@
 * text=auto
 
 # Python files
-*.py text eol=lf linguist-language=Python
+*.py text eol=lf linguist-language=Python linguist-detectable=true
 
 # Web files
-*.js text eol=lf linguist-language=JavaScript
-*.css text eol=lf linguist-language=CSS
-*.html text eol=lf linguist-language=HTML
+*.js text eol=lf linguist-language=JavaScript linguist-detectable=true
+*.css text eol=lf linguist-language=CSS linguist-detectable=true
+*.html text eol=lf linguist-language=HTML linguist-detectable=true
 
-# Markdown files
+# Un-vendor static directory (GitHub Linguist ignores `static/` by default)
+src/myagent/web/static/** linguist-vendored=false
+
+# Markdown files (Marked as documentation so they don't skew the language stats)
 *.md text eol=lf linguist-documentation
 
 # YAML files
