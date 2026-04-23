@@ -1,13 +1,5 @@
 <p align="center">
-<pre>
-  __  __       _                  _
- |  \/  | __ _| |_ _ __ __ _  ___| |_
- | |\/| |/ _` | __| '__/ _` |/ _ \ __|
- | |  | | (_| | |_| | | (_| |  __/ |_
- |_|  |_|\__,_|\__|_|  \__,_|\___|\__|
-
-       Autonomous AI Agent Platform
-</pre>
+  <img src="images/logo.svg" alt="MyAgent" width="400">
 </p>
 
 <p align="center">
