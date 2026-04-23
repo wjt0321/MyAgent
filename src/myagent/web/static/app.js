@@ -1,5 +1,6 @@
 /**
  * MyAgent Web UI - Frontend Application
+ * Modern, polished interaction layer
  */
 
 class MyAgentWebApp {
@@ -32,7 +33,7 @@ class MyAgentWebApp {
         document.body.className = `theme-${this.currentTheme}`;
         localStorage.setItem('myagent-theme', this.currentTheme);
         this.updateHLJSTheme();
-        this.updateThemeButton();
+        this.updateThemeIcon();
     }
 
     updateHLJSTheme() {
@@ -43,9 +44,13 @@ class MyAgentWebApp {
         }
     }
 
-    updateThemeButton() {
-        if (this.themeToggle) {
-            this.themeToggle.textContent = this.currentTheme === 'dark' ? '🌙' : '☀️';
+    updateThemeIcon() {
+        const icon = document.getElementById('theme-icon');
+        if (!icon) return;
+        if (this.currentTheme === 'dark') {
+            icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+        } else {
+            icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
         }
     }
 
@@ -54,12 +59,12 @@ class MyAgentWebApp {
     initElements() {
         this.messageInput = document.getElementById('message-input');
         this.sendBtn = document.getElementById('send-btn');
-        this.sendText = this.sendBtn.querySelector('.send-text');
-        this.sendLoading = this.sendBtn.querySelector('.send-loading');
         this.messagesContainer = document.getElementById('messages');
+        this.welcomeScreen = document.getElementById('welcome-screen');
         this.sessionList = document.getElementById('session-list');
         this.newSessionBtn = document.getElementById('new-session-btn');
         this.statusIndicator = document.getElementById('status-indicator');
+        this.statusDot = document.getElementById('status-dot');
         this.currentAgent = document.getElementById('current-agent');
         this.currentModel = document.getElementById('current-model');
         this.fileTree = document.getElementById('file-tree');
@@ -97,7 +102,11 @@ class MyAgentWebApp {
         this.resetAllSessionsBtn = document.getElementById('reset-all-sessions-btn');
         this.resetConfigBtn = document.getElementById('reset-config-btn');
 
-        this.updateThemeButton();
+        // Settings tabs
+        this.tabBtns = document.querySelectorAll('.tab-btn');
+        this.tabContents = document.querySelectorAll('.tab-content');
+
+        this.updateThemeIcon();
     }
 
     // ========== Events ==========
@@ -110,6 +119,12 @@ class MyAgentWebApp {
                 e.preventDefault();
                 this.sendMessage();
             }
+        });
+
+        // Auto-resize textarea
+        this.messageInput.addEventListener('input', () => {
+            this.messageInput.style.height = 'auto';
+            this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 200) + 'px';
         });
 
         this.newSessionBtn.addEventListener('click', () => this.createSession());
@@ -136,13 +151,19 @@ class MyAgentWebApp {
             if (e.target === this.settingsModal) this.closeSettings();
         });
 
+        // Settings tabs
+        this.tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+        });
+
         // Theme in settings
         this.settingsThemeSelect.addEventListener('change', (e) => {
-            this.currentTheme = e.target.value === 'auto' ? 'dark' : e.target.value;
+            const val = e.target.value;
+            this.currentTheme = val === 'auto' ? 'dark' : val;
             document.body.className = `theme-${this.currentTheme}`;
             localStorage.setItem('myagent-theme', this.currentTheme);
             this.updateHLJSTheme();
-            this.updateThemeButton();
+            this.updateThemeIcon();
         });
 
         // Reset buttons
@@ -153,6 +174,17 @@ class MyAgentWebApp {
         this.resetConfirmBtn.addEventListener('click', () => this.executeReset());
         this.resetModal.addEventListener('click', (e) => {
             if (e.target === this.resetModal) this.hideResetModal();
+        });
+    }
+
+    // ========== Tabs ==========
+
+    switchTab(tabName) {
+        this.tabBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+        this.tabContents.forEach(content => {
+            content.classList.toggle('active', content.dataset.tab === tabName);
         });
     }
 
@@ -173,7 +205,6 @@ class MyAgentWebApp {
     async switchAgent(agentName) {
         if (!this.currentSessionId) return;
 
-        // Update session agent via API
         try {
             const response = await fetch(`/api/sessions/${this.currentSessionId}`, {
                 method: 'PATCH',
@@ -185,14 +216,11 @@ class MyAgentWebApp {
                 const session = this.sessions.find(s => s.id === this.currentSessionId);
                 if (session) {
                     session.agent = agentName;
-                    this.currentAgent.textContent = `Agent: ${agentName}`;
+                    this.currentAgent.textContent = agentName;
                     this.renderSessionList();
                 }
-
-                // Reconnect WebSocket to apply new agent config
                 this.connectWebSocket(this.currentSessionId);
-
-                this.addMessage('assistant', `Switched to agent: **${agentName}**`, false);
+                this.addMessage('assistant', `已切换到 agent: **${agentName}**`, false);
             }
         } catch (error) {
             console.error('Failed to switch agent:', error);
@@ -202,8 +230,8 @@ class MyAgentWebApp {
     // ========== Search ==========
 
     toggleSearch() {
-        const isVisible = this.searchBar.style.display !== 'none';
-        this.searchBar.style.display = isVisible ? 'none' : 'flex';
+        const isVisible = this.searchBar.classList.contains('show');
+        this.searchBar.classList.toggle('show', !isVisible);
         if (!isVisible) {
             this.searchInput.focus();
         } else {
@@ -252,8 +280,7 @@ class MyAgentWebApp {
             const upItem = document.createElement('div');
             upItem.className = 'file-tree-item dir';
             upItem.innerHTML = `
-                <span class="file-tree-toggle"></span>
-                <span class="icon">📁</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.5"><path d="M15 18l-6-6 6-6"/></svg>
                 <span class="name">..</span>
             `;
             upItem.addEventListener('click', () => {
@@ -267,40 +294,23 @@ class MyAgentWebApp {
             const item = document.createElement('div');
             item.className = `file-tree-item ${entry.is_dir ? 'dir' : ''}`;
 
-            const toggle = entry.is_dir ?
-                `<span class="file-tree-toggle">▶</span>` :
-                '<span class="file-tree-toggle"></span>';
-            const icon = entry.is_dir ? '📁' : this.getFileIcon(entry.name);
+            const iconSvg = entry.is_dir
+                ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>'
+                : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
 
             item.innerHTML = `
-                ${toggle}
-                <span class="icon">${icon}</span>
+                <span class="icon">${iconSvg}</span>
                 <span class="name">${entry.name}</span>
             `;
 
             if (entry.is_dir) {
-                item.addEventListener('click', () => {
-                    this.loadFileTree(entry.path);
-                });
+                item.addEventListener('click', () => this.loadFileTree(entry.path));
             } else {
-                item.addEventListener('click', () => {
-                    this.showFilePreview(entry.path, entry.name);
-                });
+                item.addEventListener('click', () => this.showFilePreview(entry.path, entry.name));
             }
 
             this.fileTree.appendChild(item);
         });
-    }
-
-    getFileIcon(filename) {
-        const ext = filename.split('.').pop().toLowerCase();
-        const icons = {
-            'py': '🐍', 'js': '📜', 'ts': '📘', 'html': '🌐', 'css': '🎨',
-            'json': '📋', 'yaml': '📋', 'yml': '📋', 'md': '📝', 'txt': '📄',
-            'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
-            'pdf': '📕', 'zip': '📦', 'tar': '📦', 'gz': '📦',
-        };
-        return icons[ext] || '📄';
     }
 
     async showFilePreview(path, name) {
@@ -317,15 +327,15 @@ class MyAgentWebApp {
                 window.hljs.highlightElement(this.previewContent);
             }
 
-            this.filePreviewPanel.style.display = 'flex';
-            this.closeSidebar(); // Close mobile sidebar if open
+            this.filePreviewPanel.classList.add('show');
+            this.closeSidebar();
         } catch (error) {
             console.error('Failed to load file:', error);
         }
     }
 
     hideFilePreview() {
-        this.filePreviewPanel.style.display = 'none';
+        this.filePreviewPanel.classList.remove('show');
     }
 
     // ========== Sessions ==========
@@ -351,7 +361,7 @@ class MyAgentWebApp {
             const item = document.createElement('div');
             item.className = `session-item ${session.id === this.currentSessionId ? 'active' : ''}`;
             item.innerHTML = `
-                <div class="session-title">${session.agent} - ${session.id}</div>
+                <div class="session-title">${session.agent}</div>
                 <div class="session-meta">${this.formatDate(session.updated_at)}</div>
             `;
             item.addEventListener('click', () => {
@@ -399,13 +409,16 @@ class MyAgentWebApp {
 
         const session = this.sessions.find(s => s.id === sessionId);
         if (session) {
-            this.currentAgent.textContent = `Agent: ${session.agent}`;
-            this.currentModel.textContent = `Model: ${session.model}`;
+            this.welcomeScreen.style.display = 'none';
+            this.currentAgent.textContent = session.agent;
+            this.currentModel.textContent = session.model;
             this.agentSelect.value = session.agent;
 
             session.messages.forEach(msg => {
                 this.addMessage(msg.role, msg.content, false);
             });
+        } else {
+            this.welcomeScreen.style.display = 'flex';
         }
 
         this.connectWebSocket(sessionId);
@@ -503,8 +516,7 @@ class MyAgentWebApp {
     setSending(sending) {
         this.isSending = sending;
         this.sendBtn.disabled = sending;
-        this.sendText.style.display = sending ? 'none' : 'inline';
-        this.sendLoading.style.display = sending ? 'inline' : 'none';
+        this.sendBtn.style.opacity = sending ? '0.5' : '1';
     }
 
     sendMessage() {
@@ -515,6 +527,7 @@ class MyAgentWebApp {
 
         this.ws.send(JSON.stringify({ message: text }));
         this.messageInput.value = '';
+        this.messageInput.style.height = 'auto';
         this.setSending(true);
     }
 
@@ -633,9 +646,7 @@ class MyAgentWebApp {
 
     hideTypingIndicator() {
         const indicator = document.querySelector('.typing-indicator');
-        if (indicator) {
-            indicator.remove();
-        }
+        if (indicator) indicator.remove();
     }
 
     scrollToBottom() {
@@ -643,8 +654,9 @@ class MyAgentWebApp {
     }
 
     setStatus(status) {
-        this.statusIndicator.textContent = status === 'connected' ? '已连接' : '未连接';
-        this.statusIndicator.className = status === 'connected' ? 'status-connected' : 'status-disconnected';
+        const isConnected = status === 'connected';
+        this.statusIndicator.textContent = isConnected ? '已连接' : '未连接';
+        this.statusDot.classList.toggle('connected', isConnected);
     }
 
     escapeHtml(text) {
@@ -656,28 +668,25 @@ class MyAgentWebApp {
     // ========== Settings ==========
 
     openSettings() {
-        // Populate current values
         const session = this.sessions.find(s => s.id === this.currentSessionId);
         if (session) {
             this.settingsAgentSelect.value = session.agent || 'general';
         }
         this.settingsThemeSelect.value = this.currentTheme;
 
-        // Update stats
         this.settingsSessionCount.textContent = this.sessions.length;
         const totalMessages = this.sessions.reduce((sum, s) => sum + (s.messages ? s.messages.length : 0), 0);
         this.settingsMessageCount.textContent = totalMessages;
 
-        this.settingsModal.style.display = 'flex';
+        this.settingsModal.classList.add('show');
     }
 
     closeSettings() {
-        this.settingsModal.style.display = 'none';
+        this.settingsModal.classList.remove('show');
     }
 
     async saveSettings() {
         const agent = this.settingsAgentSelect.value;
-        const systemPrompt = this.settingsSystemPrompt.value.trim();
 
         if (this.currentSessionId) {
             try {
@@ -691,7 +700,7 @@ class MyAgentWebApp {
                     const session = this.sessions.find(s => s.id === this.currentSessionId);
                     if (session) {
                         session.agent = agent;
-                        this.currentAgent.textContent = `Agent: ${agent}`;
+                        this.currentAgent.textContent = agent;
                         this.agentSelect.value = agent;
                         this.renderSessionList();
                     }
@@ -715,12 +724,12 @@ class MyAgentWebApp {
             all: '确定要重置所有会话吗？所有会话数据将被删除。',
             config: '确定要重置配置吗？配置将恢复为默认值（API Key 不会被清除）。',
         };
-        this.resetMessage.textContent = messages[type] || '确定要重置吗？';
-        this.resetModal.style.display = 'flex';
+        this.resetMessage.textContent = messages[type] || '确定要执行此操作吗？此操作不可撤销。';
+        this.resetModal.classList.add('show');
     }
 
     hideResetModal() {
-        this.resetModal.style.display = 'none';
+        this.resetModal.classList.remove('show');
         this._resetType = null;
     }
 
@@ -745,6 +754,7 @@ class MyAgentWebApp {
                     this.sessions = [];
                     this.currentSessionId = null;
                     this.messagesContainer.innerHTML = '';
+                    this.welcomeScreen.style.display = 'flex';
                     this.renderSessionList();
                     this.addMessage('assistant', '所有会话已重置', false);
                     break;
