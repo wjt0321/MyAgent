@@ -20,6 +20,7 @@ class MyAgentWebApp {
         this.loadSessions();
         this.loadFileTree('.');
         this.loadWorkspace();
+        this.loadCurrentTask();
     }
 
     // ========== Theme ==========
@@ -106,6 +107,15 @@ class MyAgentWebApp {
         this.memorySaveBtn = document.getElementById('memory-save');
         this.memoryCancelBtn = document.getElementById('memory-cancel');
 
+        // Task workflow
+        this.taskPanel = document.getElementById('task-panel');
+        this.taskWorkflowModal = document.getElementById('task-workflow-modal');
+        this.taskPlanSteps = document.getElementById('task-plan-steps');
+        this.taskApproveBtn = document.getElementById('task-approve');
+        this.taskRejectBtn = document.getElementById('task-reject');
+        this.closeTaskWorkflowBtn = document.getElementById('close-task-workflow');
+        this.currentTask = null;
+
         // Reset modal
         this.resetModal = document.getElementById('reset-modal');
         this.resetMessage = document.getElementById('reset-message');
@@ -183,6 +193,14 @@ class MyAgentWebApp {
         this.newMemoryBtn.addEventListener('click', () => this.showMemoryForm());
         this.memoryCancelBtn.addEventListener('click', () => this.hideMemoryForm());
         this.memorySaveBtn.addEventListener('click', () => this.saveMemory());
+
+        // Task workflow
+        this.closeTaskWorkflowBtn.addEventListener('click', () => this.hideTaskWorkflow());
+        this.taskRejectBtn.addEventListener('click', () => this.hideTaskWorkflow());
+        this.taskApproveBtn.addEventListener('click', () => this.approveTask());
+        this.taskWorkflowModal.addEventListener('click', (e) => {
+            if (e.target === this.taskWorkflowModal) this.hideTaskWorkflow();
+        });
 
         // Reset buttons
         this.resetConversationBtn.addEventListener('click', () => this.showResetConfirm('conversation'));
@@ -727,9 +745,23 @@ class MyAgentWebApp {
         this.sendBtn.style.opacity = sending ? '0.5' : '1';
     }
 
-    sendMessage() {
+    async sendMessage() {
         const text = this.messageInput.value.trim();
-        if (!text || !this.ws || this.ws.readyState !== WebSocket.OPEN || this.isSending) {
+        if (!text) return;
+
+        // Check for /plan command
+        if (text.startsWith('/plan ')) {
+            const request = text.slice(6).trim();
+            if (request) {
+                this.addMessage('user', text, false);
+                this.messageInput.value = '';
+                this.messageInput.style.height = 'auto';
+                await this.createTaskPlan(request);
+            }
+            return;
+        }
+
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN || this.isSending) {
             return;
         }
 
@@ -783,6 +815,119 @@ class MyAgentWebApp {
         }
         const modal = document.querySelector('.permission-modal');
         if (modal) modal.remove();
+    }
+
+    // ========== Task Workflow ==========
+
+    async createTaskPlan(request) {
+        try {
+            const response = await fetch('/api/tasks/plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ request })
+            });
+
+            if (!response.ok) throw new Error('Failed to create plan');
+
+            const task = await response.json();
+            this.currentTask = task;
+            this.showTaskWorkflow(task);
+            this.renderTaskPanel();
+            return task;
+        } catch (error) {
+            console.error('Failed to create task plan:', error);
+            return null;
+        }
+    }
+
+    showTaskWorkflow(task) {
+        if (!this.taskPlanSteps) return;
+
+        const steps = (task.subtasks || []).map((subtask, index) => `
+            <div class="task-plan-step">
+                <div class="task-plan-step-num">${index + 1}</div>
+                <div class="task-plan-step-text">${this.escapeHtml(subtask.description)}</div>
+            </div>
+        `).join('');
+
+        this.taskPlanSteps.innerHTML = steps || '<div class="task-empty">暂无步骤</div>';
+        this.taskWorkflowModal.classList.add('show');
+    }
+
+    hideTaskWorkflow() {
+        this.taskWorkflowModal.classList.remove('show');
+    }
+
+    async approveTask() {
+        if (!this.currentTask) return;
+
+        try {
+            const response = await fetch(`/api/tasks/${this.currentTask.id}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                this.hideTaskWorkflow();
+                this.currentTask.plan_approved = true;
+                this.renderTaskPanel();
+                // Show approval message in chat
+                this.addMessage('assistant', `任务 "${this.currentTask.title}" 已批准，开始执行...`);
+            }
+        } catch (error) {
+            console.error('Failed to approve task:', error);
+        }
+    }
+
+    async loadCurrentTask() {
+        try {
+            const response = await fetch('/api/tasks/current');
+            if (response.ok) {
+                const task = await response.json();
+                this.currentTask = task;
+                this.renderTaskPanel();
+            }
+        } catch (error) {
+            console.error('Failed to load current task:', error);
+        }
+    }
+
+    renderTaskPanel() {
+        if (!this.taskPanel) return;
+
+        if (!this.currentTask) {
+            this.taskPanel.innerHTML = '<div class="task-empty">暂无任务</div>';
+            return;
+        }
+
+        const task = this.currentTask;
+        const statusLabels = {
+            'pending': '待处理',
+            'planning': '规划中',
+            'planned': '待批准',
+            'executing': '执行中',
+            'executed': '待审查',
+            'reviewing': '审查中',
+            'done': '已完成',
+            'failed': '失败',
+            'cancelled': '已取消'
+        };
+
+        const completed = (task.subtasks || []).filter(s =>
+            ['done', 'failed'].includes(s.status)
+        ).length;
+        const total = (task.subtasks || []).length;
+        const progress = total > 0 ? (completed / total * 100) : 0;
+
+        this.taskPanel.innerHTML = `
+            <div class="task-card" data-task-id="${task.id}">
+                <div class="task-card-title">${this.escapeHtml(task.title)}</div>
+                <span class="task-card-status ${task.status}">${statusLabels[task.status] || task.status}</span>
+                <div class="task-progress">
+                    <div class="task-progress-bar" style="width: ${progress}%"></div>
+                </div>
+            </div>
+        `;
     }
 
     // ========== Messages ==========

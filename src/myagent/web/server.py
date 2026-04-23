@@ -14,6 +14,8 @@ from myagent.web.engine_manager import WebEngineManager
 from myagent.web.health import router as health_router
 from myagent.web.session import SessionStore
 from myagent.memory.manager import MemoryEntry, MemoryManager, MemoryType
+from myagent.tasks.engine import TaskEngine
+from myagent.tasks.models import Task, TaskStatus
 from myagent.workspace.manager import WorkspaceManager, get_workspace_dir
 
 
@@ -22,6 +24,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan manager."""
     app.state.session_store = SessionStore()
     app.state.engine_manager = WebEngineManager()
+    app.state.task_engine = TaskEngine(app.state.engine_manager)
     yield
 
 
@@ -172,6 +175,37 @@ def create_app() -> FastAPI:
             return {"status": "deleted"}
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Memory not found")
+
+    @app.post("/api/tasks/plan", status_code=201)
+    async def create_task_plan(request: dict[str, Any]) -> dict[str, Any]:
+        """Create a plan for a task."""
+        task_engine: TaskEngine = app.state.task_engine
+        user_request = request.get("request", "")
+        if not user_request:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="Request is required")
+
+        task = await task_engine.create_plan(user_request)
+        return task.to_dict()
+
+    @app.get("/api/tasks/current")
+    async def get_current_task() -> dict[str, Any] | None:
+        """Get the currently active task."""
+        task_engine: TaskEngine = app.state.task_engine
+        task = task_engine.get_current_task()
+        return task.to_dict() if task else None
+
+    @app.post("/api/tasks/{task_id}/approve")
+    async def approve_task_plan(task_id: str) -> dict[str, Any]:
+        """Approve a task plan and start execution."""
+        task_engine: TaskEngine = app.state.task_engine
+        task = task_engine.get_current_task()
+        if task is None or task.id != task_id:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        task.plan_approved = True
+        return {"status": "approved", "task": task.to_dict()}
 
     @app.get("/api/sessions")
     async def list_sessions() -> list[dict[str, Any]]:

@@ -1881,3 +1881,178 @@ body {
   gap: 10px;
   justify-content: flex-end;
 }
+
+/* ---------- Task Panel ---------- */
+.task-panel {
+  padding: 0 10px 8px;
+}
+
+.task-empty {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.task-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.task-card:hover {
+  border-color: var(--border-default);
+  background: var(--bg-hover);
+}
+
+.task-card-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-card-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+}
+
+.task-card-status.pending {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+}
+
+.task-card-status.planning {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.task-card-status.planned {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.task-card-status.executing {
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--accent-hover);
+}
+
+.task-card-status.done {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.task-card-status.failed {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.task-progress {
+  margin-top: 6px;
+  height: 3px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.task-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+}
+
+/* ---------- Task Workflow Modal ---------- */
+.task-workflow-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.task-workflow-overlay.show {
+  display: flex;
+}
+
+.task-workflow-dialog {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  max-width: 560px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+.task-workflow-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.task-workflow-header h3 {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.task-plan-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.task-plan-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.task-plan-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.task-plan-step-text {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.task-workflow-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
