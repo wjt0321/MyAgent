@@ -446,6 +446,16 @@ class MyAgentWebApp {
     // ========== WebSocket ==========
 
     connectWebSocket(sessionId) {
+        // Don't connect if no session is selected
+        if (!sessionId) {
+            if (this.ws) {
+                this.ws.close();
+                this.ws = null;
+            }
+            this.setStatus('disconnected');
+            return;
+        }
+
         if (this.ws) {
             this.ws.close();
         }
@@ -467,18 +477,24 @@ class MyAgentWebApp {
 
         this.ws.onclose = (event) => {
             this.setStatus('disconnected');
-            // Only reconnect if it was not a clean close due to server-side error
-            // (code 1000 = normal, 1001 = going away, 1005 = no status)
-            // Code 1006 = abnormal closure (server error, network issue)
+            // Don't reconnect if this was an intentional close (code 1000 or 1005)
+            if (event.code === 1000 || event.code === 1005) {
+                return;
+            }
+            // Server-side error (code 1006 = abnormal, 1011 = server error)
             if (event.code === 1006 || event.code === 1011) {
-                // Server error - show error once and stop reconnecting
+                // Show error once and stop reconnecting
                 if (this.reconnectAttempts === 0) {
                     this.addMessage('error', '连接失败：服务器配置错误，请检查 LLM API Key 设置。', false);
                 }
-                this.reconnectAttempts = this.maxReconnectAttempts; // Prevent further reconnects
+                this.reconnectAttempts = this.maxReconnectAttempts;
                 return;
             }
-            this.attemptReconnect(sessionId);
+            // Session not found or other errors - show once and stop
+            if (this.reconnectAttempts === 0) {
+                this.addMessage('error', '会话不存在或已过期，请创建新会话。', false);
+            }
+            this.reconnectAttempts = this.maxReconnectAttempts;
         };
 
         this.ws.onerror = (error) => {
