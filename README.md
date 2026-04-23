@@ -1,4 +1,13 @@
-# MyAgent — Autonomous AI Agent Platform
+<p align="center">
+<pre>
+    __  ___      ____  ___       __           __
+   /  |/  /_  __/ / /_/   | ____/ /___ ______/ /_____  _______  __
+  / /|_/ / / / / / __/ /| |/ __  / __ `/ ___/ //_/ _ \/ ___/ / / /
+ / /  / / /_/ / / /_/ ___ / /_/ / /_/ / /__/ ,< /  __/ /  / /_/ /
+/_/  /_/\__, /_/\__/_/  |_\__,_/\__,_/\___/_/|_|\___/_/   \__, /
+       /____/                                            /____/
+</pre>
+</p>
 
 <p align="center">
   <strong>Autonomous AI Agent with Multi-Channel Gateway</strong>
