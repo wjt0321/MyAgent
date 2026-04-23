@@ -64,8 +64,11 @@ class SessionStore:
         self._storage_dir.mkdir(parents=True, exist_ok=True)
         self._load_all()
 
-    def create(self, agent: str = "general", model: str = "glm-4.7") -> Session:
+    def create(self, agent: str = "general", model: str | None = None) -> Session:
         """Create a new session."""
+        if model is None:
+            model = "anthropic/claude-3.5-sonnet"
+            
         session = Session(
             id=str(uuid.uuid4())[:8],
             agent=agent,
@@ -80,6 +83,11 @@ class SessionStore:
     def get(self, session_id: str) -> Session | None:
         """Get a session by ID."""
         return self._sessions.get(session_id)
+
+    def update(self, session: Session) -> None:
+        """Update and persist an existing session."""
+        self._sessions[session.id] = session
+        self._save(session)
 
     def list_all(self) -> list[Session]:
         """List all sessions."""

@@ -828,7 +828,7 @@ class MyAgentWebApp {
 
     handlePermission(approved) {
         if (this._pendingPermission) {
-            this.sendPermissionResponse(this._pendingPermission.tool_name, approved);
+            this.sendPermissionResponse(this._pendingPermission.tool_use_id, approved);
             this._pendingPermission = null;
         }
         const modal = document.querySelector('.permission-modal');
@@ -1036,6 +1036,19 @@ class MyAgentWebApp {
                     if (window.hljs) {
                         contentEl.querySelectorAll('pre code').forEach((block) => {
                             window.hljs.highlightElement(block);
+                            const pre = block.parentElement;
+                            if (!pre.querySelector('.copy-btn')) {
+                                const btn = document.createElement('button');
+                                btn.className = 'copy-btn icon-btn';
+                                btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                                btn.title = 'Copy';
+                                btn.onclick = () => {
+                                    navigator.clipboard.writeText(block.innerText);
+                                    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                                    setTimeout(() => btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>', 2000);
+                                };
+                                pre.appendChild(btn);
+                            }
                         });
                     }
                 } else {
@@ -1060,6 +1073,9 @@ class MyAgentWebApp {
         let contentHtml;
         if (role === 'assistant') {
             contentHtml = this.renderMarkdown(content);
+        } else if (role === 'tool-call' || role === 'tool-result') {
+            const summaryLabel = role === 'tool-call' ? '🛠️ Tool Executing...' : '✅ Tool Result';
+            contentHtml = `<details><summary>${summaryLabel}</summary><pre><code>${this.escapeHtml(content)}</code></pre></details>`;
         } else {
             contentHtml = this.escapeHtml(content);
         }
@@ -1077,6 +1093,19 @@ class MyAgentWebApp {
         if (role === 'assistant' && window.hljs) {
             messageDiv.querySelectorAll('pre code').forEach((block) => {
                 window.hljs.highlightElement(block);
+                const pre = block.parentElement;
+                if (!pre.querySelector('.copy-btn')) {
+                    const btn = document.createElement('button');
+                    btn.className = 'copy-btn icon-btn';
+                    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                    btn.title = 'Copy';
+                    btn.onclick = () => {
+                        navigator.clipboard.writeText(block.innerText);
+                        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                        setTimeout(() => btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>', 2000);
+                    };
+                    pre.appendChild(btn);
+                }
             });
         }
 

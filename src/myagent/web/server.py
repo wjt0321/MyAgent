@@ -47,6 +47,12 @@ def create_app() -> FastAPI:
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+    # Mount images directory
+    project_root = Path(__file__).parent.parent.parent.parent
+    images_dir = project_root / "images"
+    if images_dir.exists():
+        app.mount("/images", StaticFiles(directory=images_dir), name="images")
+
     @app.get("/", response_class=HTMLResponse)
     async def root() -> str:
         """Serve the main HTML page."""
@@ -250,8 +256,28 @@ def create_app() -> FastAPI:
         """Create a new session."""
         store: SessionStore = app.state.session_store
         agent = request.get("agent", "general")
-        model = request.get("model", "glm-4.7")
+        # Fix hardcoded model
+        model = request.get("model") or "anthropic/claude-3.5-sonnet"
         session = store.create(agent=agent, model=model)
+        return session.to_dict()
+
+    @app.patch("/api/sessions/{session_id}")
+    async def update_session(session_id: str, request: dict[str, Any]) -> dict[str, Any]:
+        """Update session settings."""
+        store: SessionStore = app.state.session_store
+        session = store.get(session_id)
+        if session is None:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        # Update settings if provided
+        if "model" in request:
+            session.model = request["model"]
+        if "agent" in request:
+            session.agent_type = request["agent"]
+        if "system_prompt" in request:
+            session.system_prompt = request["system_prompt"]
+            
         return session.to_dict()
 
     @app.get("/api/sessions/{session_id}")
