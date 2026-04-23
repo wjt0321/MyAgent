@@ -1625,3 +1625,114 @@ body {
     padding: 3px 8px;
   }
 }
+
+/* ---------- Workspace Panel ---------- */
+.workspace-info {
+  padding: 0 10px 8px;
+  font-size: 0.8rem;
+}
+
+.workspace-empty {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.workspace-empty-title {
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.workspace-empty-desc {
+  font-size: 0.75rem;
+}
+
+.workspace-empty-desc code {
+  background: var(--bg-code);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-family: "JetBrains Mono", monospace;
+}
+
+.workspace-section {
+  margin-bottom: 10px;
+}
+
+.workspace-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  padding: 6px 6px 4px;
+}
+
+.workspace-user-preview {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  border: 1px solid var(--border-subtle);
+}
+
+.workspace-memory-list,
+.workspace-project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.workspace-memory-item {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.workspace-memory-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+}
+
+.memory-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+}
+
+.memory-desc {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  margin-top: 1px;
+}
+
+.workspace-project-item {
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.workspace-project-item::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+
+.workspace-empty-item {
+  padding: 6px 8px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-style: italic;
+}

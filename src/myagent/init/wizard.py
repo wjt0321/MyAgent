@@ -1,6 +1,6 @@
 """Interactive initialization wizard for MyAgent.
 
-Guides users through first-time setup: config, LLM provider, Gateway platforms.
+Guides users through first-time setup: workspace, config, LLM provider, Gateway platforms.
 Inspired by OpenClaw's `onboard` and Hermes Agent's setup flow.
 """
 
@@ -19,6 +19,8 @@ from rich.prompt import Confirm, IntPrompt, Prompt
 from myagent import __version__
 from myagent.gateway.base import Platform
 from myagent.tui.logo import get_logo
+from myagent.workspace.manager import WorkspaceManager, ensure_workspace
+from myagent.workspace.templates import initialize_workspace
 
 console = Console()
 
@@ -60,28 +62,134 @@ def _print_header() -> None:
 def _step_welcome() -> bool:
     console.print("\n[bold]Welcome![/bold] Let's get MyAgent ready to use.\n")
     console.print("The wizard will:")
-    console.print("  1. Create the MyAgent home directory")
-    console.print("  2. Configure your LLM provider (OpenAI, Anthropic, etc.)")
-    console.print("  3. Set up Gateway platforms (Feishu, Slack, Discord, etc.)")
-    console.print("  4. Generate config files and environment variables\n")
+    console.print("  1. Create your MyAgent Workspace (soul, memory, projects)")
+    console.print("  2. Set up your user profile for personalized responses")
+    console.print("  3. Configure your LLM provider (OpenAI, Anthropic, etc.)")
+    console.print("  4. Set up Gateway platforms (Feishu, Slack, Discord, etc.)")
+    console.print("  5. Generate config files and environment variables\n")
     return Confirm.ask("Continue with setup?", default=True)
 
 
-def _step_directories() -> None:
+def _step_workspace() -> Path:
     home = _myagent_home()
-    dirs = [
-        home,
-        home / "sessions",
-        home / "logs",
-        home / "workspace",
-    ]
-    for d in dirs:
-        d.mkdir(parents=True, exist_ok=True)
-    console.print(f"[green]Created[/green] {home}")
+    console.print("\n[bold]Step 1: Workspace Setup[/bold]")
+    console.print(
+        "MyAgent uses a Workspace to store memories, projects, and configuration.\n"
+        "This is inspired by Claude Code's memdir and OpenHarness's ohmo system.\n"
+    )
+
+    ws = ensure_workspace(home)
+    initialize_workspace(home)
+
+    console.print(f"[green]Created workspace[/green] {ws}")
+    console.print("  [dim]- soul.md (agent personality & principles)[/dim]")
+    console.print("  [dim]- user.md (your profile — editable anytime)[/dim]")
+    console.print("  [dim]- identity.md (agent identity & capabilities)[/dim]")
+    console.print("  [dim]- memory/ (persistent memory storage)[/dim]")
+    console.print("  [dim]- projects/ (project workspaces)[/dim]")
+    console.print("  [dim]- sessions/ (conversation history)[/dim]")
+    console.print("  [dim]- logs/ (operation logs)[/dim]")
+    return ws
+
+
+def _step_user_profile(ws: Path) -> dict[str, str]:
+    console.print("\n[bold]Step 2: User Profile[/bold]")
+    console.print(
+        "This helps me personalize responses. You can skip and edit ~/.myagent/user.md later.\n"
+    )
+
+    profile: dict[str, str] = {}
+
+    if not Confirm.ask("Set up your profile now?", default=True):
+        return profile
+
+    name = Prompt.ask("Your name (or nickname)", default="User")
+    role = Prompt.ask("Your role", default="Software Engineer")
+    tz = Prompt.ask("Timezone", default="UTC+8")
+    langs = Prompt.ask("Languages", default="Chinese, English")
+
+    console.print("\n[bold]Technical Background[/bold]")
+    primary_langs = Prompt.ask("Primary programming languages", default="Python, TypeScript")
+    frameworks = Prompt.ask("Frameworks & tools", default="FastAPI, React, Docker")
+    exp = Prompt.ask("Experience level", choices=["Junior", "Mid-level", "Senior", "Expert"], default="Senior")
+
+    console.print("\n[bold]Preferences[/bold]")
+    comm_style = Prompt.ask("Communication style", choices=["Concise", "Detailed", "Technical"], default="Concise")
+    decision = Prompt.ask("Decision style", choices=["Quick", "Thorough"], default="Thorough")
+
+    profile = {
+        "name": name,
+        "role": role,
+        "timezone": tz,
+        "languages": langs,
+        "primary_langs": primary_langs,
+        "frameworks": frameworks,
+        "experience": exp,
+        "comm_style": comm_style,
+        "decision": decision,
+    }
+
+    # Write user.md
+    user_md = f"""# user.md — About Your Human
+
+## Profile
+
+- **Name**: {name}
+- **Role**: {role}
+- **Timezone**: {tz}
+- **Languages**: {langs}
+
+## Technical Background
+
+- **Primary languages**: {primary_langs}
+- **Frameworks & tools**: {frameworks}
+- **Experience level**: {exp}
+
+## Preferences
+
+- **Communication style**: {comm_style}
+- **Decision style**: {decision}
+- **Code style**: (e.g., PEP 8, Google Style)
+
+## Ongoing Context
+
+- **Current projects**: (What you're working on)
+- **Goals**: (What you want to achieve)
+- **Challenges**: (Current blockers or difficulties)
+
+## What Works Well
+
+- (Things you like about how I help)
+
+## What to Avoid
+
+- (Things that annoy you or don't work)
+
+---
+
+*This file helps me understand you better. Update it anytime your preferences change.*
+"""
+    user_path = ws / "user.md"
+    user_path.write_text(user_md, encoding="utf-8")
+    console.print(f"[green]Wrote[/green] {user_path}")
+
+    # Also create a memory entry for user role
+    from myagent.memory.manager import MemoryManager, MemoryEntry, MemoryType
+    mm = MemoryManager(ws / "memory")
+    entry = MemoryEntry(
+        name="User Profile",
+        description=f"{name} — {role} ({exp})",
+        type=MemoryType.USER,
+        content=f"Name: {name}\nRole: {role}\nExperience: {exp}\nLanguages: {primary_langs}\nFrameworks: {frameworks}\nCommunication: {comm_style}\nDecision: {decision}",
+    )
+    mm.save_memory(entry)
+    console.print(f"[green]Saved memory[/green] User Profile")
+
+    return profile
 
 
 def _step_llm_provider() -> dict[str, Any]:
-    console.print("\n[bold]Step 1: LLM Provider Configuration[/bold]")
+    console.print("\n[bold]Step 3: LLM Provider Configuration[/bold]")
     console.print("MyAgent needs an LLM to power conversations.\n")
 
     providers = {
@@ -148,7 +256,7 @@ def _step_llm_provider() -> dict[str, Any]:
 
 
 def _step_gateway_platforms() -> dict[str, Any]:
-    console.print("\n[bold]Step 2: Gateway Platforms[/bold]")
+    console.print("\n[bold]Step 4: Gateway Platforms[/bold]")
     console.print(
         "MyAgent can receive messages from messaging platforms.\n"
         "Enable the ones you want to connect (you can add more later).\n"
@@ -207,7 +315,7 @@ def _step_gateway_platforms() -> dict[str, Any]:
 
 
 def _step_gateway_settings() -> dict[str, Any]:
-    console.print("\n[bold]Step 3: Gateway Settings[/bold]")
+    console.print("\n[bold]Step 5: Gateway Settings[/bold]")
 
     webhook_secret = secrets.token_urlsafe(32)
     console.print(f"Generated webhook secret: [dim]{webhook_secret[:8]}...[/dim]")
@@ -346,6 +454,8 @@ def _write_config(
 
 
 def _print_summary(
+    ws: Path,
+    profile: dict[str, str],
     llm_config: dict[str, Any],
     platforms: dict[str, Any],
     gateway_settings: dict[str, Any],
@@ -355,13 +465,20 @@ def _print_summary(
     console.print("=" * 60 + "\n")
 
     home = _myagent_home()
-    console.print(f"[bold]MyAgent Home:[/bold] {home}")
+    console.print(f"[bold]Workspace:[/bold]   {home}")
+    console.print(f"  [dim]- soul.md, user.md, identity.md[/dim]")
+    console.print(f"  [dim]- memory/ (persistent memory)[/dim]")
+    console.print(f"  [dim]- projects/ (project workspaces)[/dim]")
+    console.print(f"  [dim]- sessions/ (conversation history)[/dim]")
     console.print(f"[bold]Config:[/bold]      {home / 'config.yaml'}")
     console.print(f"[bold]Gateway:[/bold]     {home / 'gateway.yaml'}")
     console.print(f"[bold]Env:[/bold]         {home / '.env'}")
-    console.print(f"[bold]Sessions:[/bold]    {home / 'sessions'}")
-    console.print(f"[bold]Logs:[/bold]        {home / 'logs'}")
     console.print()
+
+    if profile.get("name"):
+        console.print(f"[bold]User:[/bold]        {profile['name']} ({profile.get('role', 'Unknown')})")
+    else:
+        console.print("[yellow]User:[/yellow]        Profile not set (edit user.md later)")
 
     if llm_config.get("provider"):
         console.print(f"[bold]LLM:[/bold]         {llm_config['provider']} / {llm_config.get('model', 'default')}")
@@ -383,6 +500,7 @@ def _print_summary(
         "3. Start the Web UI:    [cyan]myagent web[/cyan]\n"
         "4. Or use the TUI:      [cyan]myagent --tui[/cyan]\n"
         "\n"
+        "[dim]Edit ~/.myagent/user.md to update your profile.[/dim]\n"
         "[dim]Edit ~/.myagent/gateway.yaml to add more platforms.[/dim]\n"
         "[dim]Edit ~/.myagent/.env to change API keys.[/dim]",
         border_style="green",
@@ -397,9 +515,10 @@ def run_wizard() -> None:
         console.print("[yellow]Setup cancelled. Run `myagent init` anytime to restart.[/yellow]")
         return
 
-    _step_directories()
+    ws = _step_workspace()
+    profile = _step_user_profile(ws)
     llm_config = _step_llm_provider()
     platforms = _step_gateway_platforms()
     gateway_settings = _step_gateway_settings()
     _write_config(llm_config, platforms, gateway_settings)
-    _print_summary(llm_config, platforms, gateway_settings)
+    _print_summary(ws, profile, llm_config, platforms, gateway_settings)

@@ -19,6 +19,7 @@ class MyAgentWebApp {
         this.bindEvents();
         this.loadSessions();
         this.loadFileTree('.');
+        this.loadWorkspace();
     }
 
     // ========== Theme ==========
@@ -92,6 +93,7 @@ class MyAgentWebApp {
         this.settingsThemeSelect = document.getElementById('settings-theme-select');
         this.settingsSessionCount = document.getElementById('settings-session-count');
         this.settingsMessageCount = document.getElementById('settings-message-count');
+        this.workspaceInfo = document.getElementById('workspace-info');
 
         // Reset modal
         this.resetModal = document.getElementById('reset-modal');
@@ -259,6 +261,105 @@ class MyAgentWebApp {
     clearSearchHighlights() {
         this.messagesContainer.querySelectorAll('.message.highlighted')
             .forEach(msg => msg.classList.remove('highlighted'));
+    }
+
+    // ========== Workspace ==========
+
+    async loadWorkspace() {
+        try {
+            const response = await fetch('/api/workspace');
+            const data = await response.json();
+            this.renderWorkspace(data);
+        } catch (error) {
+            console.error('Failed to load workspace:', error);
+            if (this.workspaceInfo) {
+                this.workspaceInfo.innerHTML = '<div class="workspace-empty">Workspace 未初始化</div>';
+            }
+        }
+    }
+
+    renderWorkspace(data) {
+        if (!this.workspaceInfo) return;
+
+        if (!data.initialized) {
+            this.workspaceInfo.innerHTML = `
+                <div class="workspace-empty">
+                    <div class="workspace-empty-title">Workspace 未初始化</div>
+                    <div class="workspace-empty-desc">运行 <code>myagent init</code> 创建 Workspace</div>
+                </div>
+            `;
+            return;
+        }
+
+        const memoryItems = (data.memories || []).map(mem => `
+            <div class="workspace-memory-item" data-filename="${mem.filename}">
+                <div class="memory-name">${mem.name}</div>
+                <div class="memory-desc">${mem.description || mem.type}</div>
+            </div>
+        `).join('');
+
+        const projectItems = (data.projects || []).map(proj => `
+            <div class="workspace-project-item">${proj}</div>
+        `).join('');
+
+        this.workspaceInfo.innerHTML = `
+            <div class="workspace-section">
+                <div class="workspace-section-title">用户</div>
+                <div class="workspace-user-preview">${data.user ? this.escapeHtml(data.user.split('\n').slice(0, 3).join('\n')) : '未设置用户资料'}</div>
+            </div>
+            <div class="workspace-section">
+                <div class="workspace-section-title">记忆 (${data.memories?.length || 0})</div>
+                <div class="workspace-memory-list">
+                    ${memoryItems || '<div class="workspace-empty-item">暂无记忆</div>'}
+                </div>
+            </div>
+            <div class="workspace-section">
+                <div class="workspace-section-title">项目 (${data.projects?.length || 0})</div>
+                <div class="workspace-project-list">
+                    ${projectItems || '<div class="workspace-empty-item">暂无项目</div>'}
+                </div>
+            </div>
+        `;
+
+        // Add click handlers for memory items to preview
+        this.workspaceInfo.querySelectorAll('.workspace-memory-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const filename = item.dataset.filename;
+                if (filename) {
+                    // Memory files are in ~/.myagent/memory/
+                    // We'll use a dedicated endpoint or construct path
+                    this.showMemoryPreview(filename);
+                }
+            });
+        });
+    }
+
+    async showMemoryPreview(filename) {
+        try {
+            // Try to read from workspace memory directory via files API
+            const wsPath = await this._getWorkspacePath();
+            if (!wsPath) return;
+            const memPath = `${wsPath}/memory/${filename}`;
+            const response = await fetch(`/api/files/read?path=${encodeURIComponent(memPath)}`);
+            if (!response.ok) throw new Error('Failed to load memory');
+            const data = await response.json();
+            this.previewFilename.textContent = filename;
+            this.previewContent.innerHTML = window.marked ? window.marked.parse(data.content) : this.escapeHtml(data.content);
+            this.previewContent.className = 'markdown-preview';
+            this.filePreviewPanel.classList.add('show');
+        } catch (error) {
+            console.error('Failed to load memory preview:', error);
+        }
+    }
+
+    async _getWorkspacePath() {
+        try {
+            const response = await fetch('/api/workspace');
+            const data = await response.json();
+            return data.path;
+        } catch (error) {
+            return null;
+        }
     }
 
     // ========== File Browser ==========

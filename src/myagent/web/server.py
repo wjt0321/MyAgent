@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from myagent.web.engine_manager import WebEngineManager
 from myagent.web.health import router as health_router
 from myagent.web.session import SessionStore
+from myagent.workspace.manager import WorkspaceManager, get_workspace_dir
 
 
 @asynccontextmanager
@@ -50,6 +51,67 @@ def create_app() -> FastAPI:
     async def health() -> dict[str, str]:
         """Health check endpoint."""
         return {"status": "ok", "version": "0.1.0"}
+
+    @app.get("/api/workspace")
+    async def get_workspace() -> dict[str, Any]:
+        """Get workspace information."""
+        ws_dir = get_workspace_dir()
+        wm = WorkspaceManager(ws_dir)
+
+        workspace_info: dict[str, Any] = {
+            "path": str(ws_dir),
+            "initialized": wm.exists(),
+            "soul": None,
+            "user": None,
+            "identity": None,
+            "memories": [],
+            "projects": wm.list_projects(),
+        }
+
+        if wm.exists():
+            soul = wm.read_soul()
+            if soul:
+                workspace_info["soul"] = soul[:500]
+            user = wm.read_user_profile()
+            if user:
+                workspace_info["user"] = user[:500]
+            identity = wm.read_identity()
+            if identity:
+                workspace_info["identity"] = identity[:500]
+
+            for mem_path in wm.get_memory_files():
+                try:
+                    text = mem_path.read_text(encoding="utf-8")
+                    # Parse frontmatter
+                    import re
+                    frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n+(.*)$', text, re.DOTALL)
+                    if frontmatter_match:
+                        frontmatter = frontmatter_match.group(1)
+                        content = frontmatter_match.group(2).strip()
+                        fields = {}
+                        for line in frontmatter.strip().split('\n'):
+                            if ':' in line:
+                                key, value = line.split(':', 1)
+                                fields[key.strip()] = value.strip()
+                        workspace_info["memories"].append({
+                            "name": fields.get("name", mem_path.stem),
+                            "description": fields.get("description", ""),
+                            "type": fields.get("type", "user"),
+                            "filename": mem_path.name,
+                            "content_preview": content[:200],
+                        })
+                    else:
+                        workspace_info["memories"].append({
+                            "name": mem_path.stem,
+                            "description": "",
+                            "type": "unknown",
+                            "filename": mem_path.name,
+                            "content_preview": text[:200],
+                        })
+                except Exception:
+                    continue
+
+        return workspace_info
 
     @app.get("/api/sessions")
     async def list_sessions() -> list[dict[str, Any]]:

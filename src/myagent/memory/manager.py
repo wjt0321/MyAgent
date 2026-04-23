@@ -1,74 +1,180 @@
-"""Memory management for MyAgent."""
+"""Memory management system.
+
+Handles persistent memory storage, retrieval, and indexing.
+Inspired by Claude Code's memdir system.
+"""
 
 from __future__ import annotations
 
-import threading
+import re
 from dataclasses import dataclass
-from datetime import datetime
+from enum import Enum
 from pathlib import Path
+from typing import Any
+
+
+class MemoryType(Enum):
+    """Types of persistent memory."""
+    USER = "user"
+    FEEDBACK = "feedback"
+    PROJECT = "project"
+    REFERENCE = "reference"
 
 
 @dataclass
 class MemoryEntry:
     """A single memory entry."""
+    name: str
+    description: str
+    type: MemoryType
+    content: str
+    path: Path | None = None
 
-    title: str
-    path: Path
+    def to_markdown(self) -> str:
+        """Convert to markdown with frontmatter."""
+        return f"""---
+name: {self.name}
+description: {self.description}
+type: {self.type.value}
+---
+
+{self.content}
+"""
 
     @classmethod
-    def from_file(cls, path: Path) -> MemoryEntry:
-        """Load a memory entry from a file."""
-        content = path.read_text(encoding="utf-8")
-        lines = content.splitlines()
-        title = path.stem
-        if lines and lines[0].startswith("# "):
-            title = lines[0][2:].strip()
-        return cls(title=title, path=path)
+    def from_markdown(cls, text: str, path: Path | None = None) -> MemoryEntry:
+        """Parse memory from markdown with frontmatter."""
+        # Extract frontmatter
+        frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n+(.*)$', text, re.DOTALL)
+        if not frontmatter_match:
+            return cls(
+                name="Unknown",
+                description="",
+                type=MemoryType.USER,
+                content=text.strip(),
+                path=path,
+            )
+
+        frontmatter = frontmatter_match.group(1)
+        content = frontmatter_match.group(2).strip()
+
+        # Parse frontmatter fields
+        fields: dict[str, str] = {}
+        for line in frontmatter.strip().split('\n'):
+            if ':' in line:
+                key, value = line.split(':', 1)
+                fields[key.strip()] = value.strip()
+
+        return cls(
+            name=fields.get('name', 'Unknown'),
+            description=fields.get('description', ''),
+            type=MemoryType(fields.get('type', 'user')),
+            content=content,
+            path=path,
+        )
 
 
 class MemoryManager:
-    """Manages persistent memory entries as Markdown files."""
+    """Manages persistent memories."""
 
     def __init__(self, memory_dir: Path) -> None:
-        self.memory_dir = memory_dir
+        self.memory_dir = Path(memory_dir)
+        self.index_path = self.memory_dir / "MEMORY.md"
+
+    def ensure(self) -> None:
+        """Ensure memory directory exists."""
         self.memory_dir.mkdir(parents=True, exist_ok=True)
-        self._lock = threading.Lock()
 
-    def add_entry(self, title: str, content: str) -> MemoryEntry:
-        """Add a new memory entry."""
-        safe_title = "".join(c if c.isalnum() or c in "-_ " else "_" for c in title)
-        safe_title = safe_title.replace(" ", "-").lower()
-
-        entry_path = self.memory_dir / f"{safe_title}.md"
-
-        entry_content = f"# {title}\n\n{content}\n"
-        entry_path.write_text(entry_content, encoding="utf-8")
-
-        self._update_index()
-
-        return MemoryEntry(title=title, path=entry_path)
-
-    def list_entries(self) -> list[MemoryEntry]:
+    def list_memories(self) -> list[MemoryEntry]:
         """List all memory entries."""
+        if not self.memory_dir.exists():
+            return []
+
         entries = []
         for path in sorted(self.memory_dir.glob("*.md")):
             if path.name == "MEMORY.md":
                 continue
             try:
-                entries.append(MemoryEntry.from_file(path))
+                text = path.read_text(encoding="utf-8")
+                entry = MemoryEntry.from_markdown(text, path)
+                entries.append(entry)
             except Exception:
                 continue
         return entries
 
-    def _update_index(self) -> None:
-        """Update the MEMORY.md index file."""
-        with self._lock:
-            entries = self.list_entries()
-            lines = ["# Memory Index\n", f"\nUpdated: {datetime.now().isoformat()}\n\n"]
+    def get_memory(self, name: str) -> MemoryEntry | None:
+        """Get a memory by name."""
+        for entry in self.list_memories():
+            if entry.name == name:
+                return entry
+        return None
 
-            for entry in entries:
-                rel_path = entry.path.name
-                lines.append(f"- [{entry.title}]({rel_path})\n")
+    def save_memory(self, entry: MemoryEntry) -> Path:
+        """Save a memory entry."""
+        self.ensure()
 
-            index_path = self.memory_dir / "MEMORY.md"
-            index_path.write_text("".join(lines), encoding="utf-8")
+        # Generate filename from name
+        slug = re.sub(r'[^a-zA-Z0-9]+', '_', entry.name.strip().lower()).strip('_') or "memory"
+        path = self.memory_dir / f"{slug}.md"
+
+        # Write memory file
+        path.write_text(entry.to_markdown(), encoding="utf-8")
+
+        # Update index
+        self._update_index(entry, path.name)
+
+        return path
+
+    def delete_memory(self, name: str) -> bool:
+        """Delete a memory by name."""
+        entry = self.get_memory(name)
+        if not entry or not entry.path:
+            return False
+
+        entry.path.unlink(missing_ok=True)
+        self._rebuild_index()
+        return True
+
+    def load_memory_prompt(self, max_entries: int = 5) -> str | None:
+        """Generate a prompt section with memories."""
+        entries = self.list_memories()[:max_entries]
+        if not entries:
+            return None
+
+        lines = ["# Memory System", ""]
+        for entry in entries:
+            lines.extend([
+                f"## {entry.name}",
+                f"*{entry.description}*",
+                "",
+                entry.content[:2000],
+                "",
+            ])
+
+        return "\n".join(lines)
+
+    def _update_index(self, entry: MemoryEntry, filename: str) -> None:
+        """Update MEMORY.md index with a new entry."""
+        if not self.index_path.exists():
+            return
+
+        content = self.index_path.read_text(encoding="utf-8")
+        link = f"- [{entry.name}]({filename}) — {entry.description}"
+
+        if filename not in content:
+            content = content.rstrip() + f"\n{link}\n"
+            self.index_path.write_text(content, encoding="utf-8")
+
+    def _rebuild_index(self) -> None:
+        """Rebuild MEMORY.md index from all memory files."""
+        if not self.index_path.exists():
+            return
+
+        entries = self.list_memories()
+        lines = ["# Memory Index", ""]
+
+        for entry in entries:
+            if entry.path:
+                lines.append(f"- [{entry.name}]({entry.path.name}) — {entry.description}")
+
+        self.index_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
