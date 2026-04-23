@@ -17,6 +17,8 @@ from myagent.memory.manager import MemoryEntry, MemoryManager, MemoryType
 from myagent.tasks.engine import TaskEngine
 from myagent.tasks.models import Task, TaskStatus
 from myagent.teams.orchestrator import TeamOrchestrator
+from myagent.codebase.indexer import CodebaseIndexer
+from myagent.codebase.search import CodebaseSearch
 from myagent.workspace.manager import WorkspaceManager, get_workspace_dir
 
 
@@ -132,6 +134,28 @@ def create_app() -> FastAPI:
         """Get current team status."""
         orchestrator: TeamOrchestrator = app.state.team_orchestrator
         return orchestrator.get_team_status()
+
+    @app.get("/api/codebase/index")
+    async def get_codebase_index() -> dict[str, Any]:
+        """Get codebase index."""
+        indexer = CodebaseIndexer(Path.cwd())
+        index = indexer.scan()
+        return index.to_dict()
+
+    @app.post("/api/codebase/index/rebuild")
+    async def rebuild_codebase_index() -> dict[str, str]:
+        """Rebuild codebase index."""
+        indexer = CodebaseIndexer(Path.cwd())
+        indexer.scan()
+        indexer.save_index()
+        return {"status": "rebuilt"}
+
+    @app.get("/api/codebase/search")
+    async def search_codebase(q: str, limit: int = 10) -> list[dict[str, Any]]:
+        """Search codebase."""
+        searcher = CodebaseSearch(Path.cwd())
+        results = searcher.search(q, limit=limit)
+        return [r.to_dict() for r in results]
 
     @app.get("/api/memories")
     async def list_memories() -> list[dict[str, Any]]:

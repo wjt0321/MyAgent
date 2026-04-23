@@ -120,6 +120,13 @@ class MyAgentWebApp {
         // Team panel
         this.teamPanel = document.getElementById('team-panel');
 
+        // Codebase panel
+        this.rebuildIndexBtn = document.getElementById('rebuild-index-btn');
+        this.codebaseSearchInput = document.getElementById('codebase-search-input');
+        this.codebaseSearchBtn = document.getElementById('codebase-search-btn');
+        this.codebaseStats = document.getElementById('codebase-stats');
+        this.codebaseResults = document.getElementById('codebase-results');
+
         // Reset modal
         this.resetModal = document.getElementById('reset-modal');
         this.resetMessage = document.getElementById('reset-message');
@@ -204,6 +211,13 @@ class MyAgentWebApp {
         this.taskApproveBtn.addEventListener('click', () => this.approveTask());
         this.taskWorkflowModal.addEventListener('click', (e) => {
             if (e.target === this.taskWorkflowModal) this.hideTaskWorkflow();
+        });
+
+        // Codebase panel
+        this.rebuildIndexBtn.addEventListener('click', () => this.rebuildCodebaseIndex());
+        this.codebaseSearchBtn.addEventListener('click', () => this.searchCodebase());
+        this.codebaseSearchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') this.searchCodebase();
         });
 
         // Reset buttons
@@ -1256,6 +1270,109 @@ class MyAgentWebApp {
         }
     }
 
+    // ========== Codebase Panel ==========
+
+    async loadCodebaseIndex() {
+        try {
+            const response = await fetch('/api/codebase/index');
+            if (response.ok) {
+                const data = await response.json();
+                this.renderCodebaseStats(data);
+            }
+        } catch (error) {
+            console.error('Failed to load codebase index:', error);
+        }
+    }
+
+    renderCodebaseStats(data) {
+        if (!this.codebaseStats) return;
+
+        const totalFiles = data.total_files || 0;
+        const totalLines = data.total_lines || 0;
+        const languages = data.languages || {};
+        const topLang = Object.entries(languages).sort((a, b) => b[1] - a[1])[0];
+
+        this.codebaseStats.innerHTML = `
+            <div class="codebase-stat">
+                <div class="codebase-stat-value">${totalFiles}</div>
+                <div class="codebase-stat-label">文件</div>
+            </div>
+            <div class="codebase-stat">
+                <div class="codebase-stat-value">${totalLines.toLocaleString()}</div>
+                <div class="codebase-stat-label">行数</div>
+            </div>
+            <div class="codebase-stat">
+                <div class="codebase-stat-value">${topLang ? topLang[0] : '-'}</div>
+                <div class="codebase-stat-label">主要语言</div>
+            </div>
+        `;
+    }
+
+    async searchCodebase() {
+        const query = this.codebaseSearchInput.value.trim();
+        if (!query) return;
+
+        try {
+            this.codebaseResults.innerHTML = '<div class="codebase-empty">搜索中...</div>';
+            const response = await fetch(`/api/codebase/search?q=${encodeURIComponent(query)}&limit=20`);
+            if (response.ok) {
+                const results = await response.json();
+                this.renderCodebaseResults(results);
+            }
+        } catch (error) {
+            console.error('Failed to search codebase:', error);
+            this.codebaseResults.innerHTML = '<div class="codebase-empty">搜索失败</div>';
+        }
+    }
+
+    renderCodebaseResults(results) {
+        if (!this.codebaseResults) return;
+
+        if (!results || results.length === 0) {
+            this.codebaseResults.innerHTML = '<div class="codebase-empty">未找到结果</div>';
+            return;
+        }
+
+        const items = results.map(result => `
+            <div class="codebase-result-item" data-path="${result.path}" data-line="${result.line_number}">
+                <div class="codebase-result-path">${result.path}:${result.line_number}</div>
+                <div class="codebase-result-line">${this.escapeHtml(result.content)}</div>
+                <div class="codebase-result-meta">${result.language} | 相关度: ${(result.score * 100).toFixed(0)}%</div>
+            </div>
+        `).join('');
+
+        this.codebaseResults.innerHTML = items;
+
+        // Add click handlers
+        this.codebaseResults.querySelectorAll('.codebase-result-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const path = item.dataset.path;
+                if (path) {
+                    this.loadFileTree('.');
+                    this.previewFile(path);
+                }
+            });
+        });
+    }
+
+    async rebuildCodebaseIndex() {
+        try {
+            this.rebuildIndexBtn.disabled = true;
+            this.rebuildIndexBtn.textContent = '重建中...';
+            const response = await fetch('/api/codebase/index/rebuild', { method: 'POST' });
+            if (response.ok) {
+                await this.loadCodebaseIndex();
+                alert('索引重建完成');
+            }
+        } catch (error) {
+            console.error('Failed to rebuild index:', error);
+            alert('重建失败');
+        } finally {
+            this.rebuildIndexBtn.disabled = false;
+            this.rebuildIndexBtn.textContent = '重建索引';
+        }
+    }
+
     // ========== Settings ==========
 
     openSettings() {
@@ -1267,6 +1384,7 @@ class MyAgentWebApp {
 
         this.settingsSessionCount.textContent = this.sessions.length;
         this.loadMemories();
+        this.loadCodebaseIndex();
         const totalMessages = this.sessions.reduce((sum, s) => sum + (s.messages ? s.messages.length : 0), 0);
         this.settingsMessageCount.textContent = totalMessages;
 
