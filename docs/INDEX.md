@@ -1,7 +1,7 @@
 # MyAgent 文档索引
 
 > 本文档为 MyAgent 项目所有技术文档的统一入口和导航索引。
-> 最后更新: 2026-04-23
+> 最后更新: 2026-04-24
 
 ---
 
@@ -82,13 +82,13 @@ docs/
 | architecture/04-task-engine.md | ✅ | Task Engine 已完成 |
 | architecture/05-agent-teams.md | ✅ | Agent Teams 已完成 |
 | architecture/06-codebase.md | ✅ | 代码理解系统已完成 |
-| architecture/07-gateway.md | 🔄 | Gateway 框架完成，Telegram/GitHub 适配器已就绪 |
+| architecture/07-gateway.md | ✅ | Gateway 框架完成，Telegram/GitHub 适配器已就绪，Discord/Slack/Feishu 增强完成 |
 | design/01-tui-design.md | ✅ | TUI 设计规范 |
 | design/02-web-ui-design.md | ✅ | Web UI 已重构，JWT 认证、模型选择、主题切换、导出已添加 |
-| design/03-interaction-patterns.md | 🔄 | 基础交互模式 |
+| design/03-interaction-patterns.md | ✅ | 基础交互模式，TUI Ctrl+R 重生成、Token 统计已添加 |
 | reference/01-getting-started.md | ✅ | 快速入门指南 |
 | reference/02-configuration.md | ✅ | 配置参考 |
-| reference/03-production.md | ✅ | 生产部署指南 |
+| reference/03-production.md | ✅ | 生产部署指南，Helm Chart、Grafana Dashboard、Prometheus 告警已添加 |
 | reference/04-concept-references.md | ✅ | 概念引用与出处 |
 | plans/v0.11.0-redesign.md | ✅ | v0.11.0 整改方案 |
 

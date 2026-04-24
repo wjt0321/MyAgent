@@ -32,7 +32,7 @@ Supported platforms: **Feishu/Lark, Slack, Discord, Telegram, DingTalk, WeCom, W
 - **Tool Calling** — Bash, file edit, web search, image analysis, Git operations
 - **Permission System** — Inline approval requests in Telegram and Web UI
 - **GitHub Integration** — Webhook-based PR/Issue analysis and auto-comments
-- **Production Ready** — Docker, health checks, Prometheus metrics, structured JSON logging, config hot-reload, LLM exponential backoff retry
+- **Production Ready** — Docker, health checks, Prometheus metrics, structured JSON logging, config hot-reload, LLM exponential backoff retry, Grafana Dashboard, Helm Chart
 
 ## Screenshots
 
@@ -155,6 +155,16 @@ docker run -d \
 ```
 
 Or use `docker-compose up -d`.
+
+### Kubernetes (Helm)
+
+```bash
+helm install myagent ./deploy/helm/myagent \
+  --set myagent.apiKeys.anthropic="your-api-key" \
+  --set myagent.provider="anthropic"
+```
+
+See [deploy/helm/myagent/README.md](deploy/helm/myagent/README.md) for full Helm configuration.
 
 ## Development
 

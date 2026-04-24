@@ -32,7 +32,7 @@
 - **工具调用** — Bash、文件编辑、网页搜索、图像分析、Git 操作
 - **权限系统** — Telegram 内联键盘审批与 Web UI 权限请求
 - **GitHub 集成** — Webhook 驱动的 PR/Issue 分析与自动评论
-- **生产就绪** — Docker、健康检查、Prometheus 指标、结构化 JSON 日志、配置热重载、LLM 指数退避重试
+- **生产就绪** — Docker、健康检查、Prometheus 指标、结构化 JSON 日志、配置热重载、LLM 指数退避重试、Grafana Dashboard、Helm Chart
 
 ## 界面截图
 
@@ -155,6 +155,16 @@ docker run -d \
 ```
 
 或使用 `docker-compose up -d`。
+
+### Kubernetes (Helm)
+
+```bash
+helm install myagent ./deploy/helm/myagent \
+  --set myagent.apiKeys.anthropic="your-api-key" \
+  --set myagent.provider="anthropic"
+```
+
+详见 [deploy/helm/myagent/README.md](deploy/helm/myagent/README.md) 获取完整 Helm 配置。
 
 ## 开发
 

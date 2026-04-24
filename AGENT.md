@@ -19,6 +19,7 @@ Telegraph style. Root rules only. Read scoped `AGENT.md` before touching a subtr
 - Engine: `src/myagent/engine/` (QueryEngine, context compression)
 - LLM providers: `src/myagent/llm/providers/` (19 providers: Anthropic, OpenAI, DeepSeek, Gemini, xAI, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Ollama, OpenRouter)
 - Tools: `src/myagent/tools/` (Bash, Read, Write, Edit, Glob, Grep, Git, WebFetch, etc.)
+- Deploy: `deploy/` — Helm Chart, Grafana Dashboard, Prometheus alerts
 - Workspace: `src/myagent/workspace/` (manager, templates, project)
 - Memory: `src/myagent/memory/` (manager, collection)
 - Tasks: `src/myagent/tasks/` (models, engine)
@@ -66,7 +67,7 @@ Scoped guides:
 - Pre-commit: run `ruff check` and `mypy src/` before committing.
 - Do not land related failing format/lint/type/tests.
 - If failures are unrelated on latest `origin/main`, say so and give scoped proof.
-- Gateway adapters: Telegram/Discord/Slack/Feishu all support inline permission requests via `send_permission_request()`.
+- Gateway adapters: Telegram/Discord/Slack/Feishu all support inline permission requests via `send_permission_request()`. Discord supports slash commands (`/ask`, `/reset`, `/agent`), message editing, and thread creation. Slack supports Block Kit messages. Feishu supports WebSocket mode.
 - Web UI auth: JWT-based, optional password protection via `myagent.web.auth`.
 - Session isolation: Web UI sessions are scoped per-user via `user_id` field.
 

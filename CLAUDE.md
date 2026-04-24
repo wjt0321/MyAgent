@@ -93,15 +93,18 @@ Default team roles:
 - `src/myagent/web/auth.py` — JWT authentication module
 - `src/myagent/gateway/bot.py` — Gateway bot with session persistence
 - `src/myagent/gateway/adapters/telegram.py` — Telegram adapter with inline permissions
-- `src/myagent/gateway/adapters/discord.py` — Discord Gateway WebSocket adapter
-- `src/myagent/gateway/adapters/slack.py` — Slack Socket Mode adapter
-- `src/myagent/gateway/adapters/feishu.py` — Feishu Webhook adapter with signature verification
+- `src/myagent/gateway/adapters/discord.py` — Discord Gateway WebSocket adapter with slash commands, message editing, thread creation
+- `src/myagent/gateway/adapters/slack.py` — Slack Socket Mode adapter with Block Kit support
+- `src/myagent/gateway/adapters/feishu.py` — Feishu Webhook + WebSocket adapter with signature verification
 - `src/myagent/gateway/adapters/github.py` — GitHub webhook adapter
 - `src/myagent/workspace/manager.py` — Workspace management
 - `src/myagent/memory/manager.py` — Memory system
 - `src/myagent/tasks/engine.py` — Task engine
 - `src/myagent/teams/orchestrator.py` — Team orchestration
 - `src/myagent/codebase/indexer.py` — Codebase indexing
+- `deploy/helm/myagent/` — Kubernetes Helm Chart
+- `deploy/grafana/dashboard.json` — Grafana Dashboard
+- `deploy/prometheus/alerts.yaml` — Prometheus Alert Rules
 
 ### Reference Projects
 
