@@ -122,6 +122,7 @@ class MyAgentApp(App[None]):
     BINDINGS = [
         ("ctrl+l", "clear", "Clear"),
         ("ctrl+d", "quit", "Exit"),
+        ("ctrl+r", "regenerate", "Regenerate"),
         ("enter", "submit_message", "Send"),
     ]
 
@@ -141,6 +142,7 @@ class MyAgentApp(App[None]):
         self._cost_tracker = CostTracker()
         self._query_engine: QueryEngine | None = None
         self._turn_count = 0
+        self._last_user_message = ""
         self._current_agent_def = self._agents.get("general")
         self._memory_manager = MemoryManager(
             memory_dir=Path.home() / ".myagent" / "memory"
@@ -228,13 +230,47 @@ class MyAgentApp(App[None]):
         if not value:
             return
 
+        # Check if Shift+Enter was used (multiline mode)
+        # In TextArea, plain Enter submits, Shift+Enter creates newline
+        # The newline is already in the text, so we just check for non-empty
         composer.text = ""
 
         if value.startswith("/"):
             self._handle_command(value)
         else:
             self.add_user_message(value)
+            self._last_user_message = value
             self.run_worker(self._handle_user_message(value))
+
+    def action_regenerate(self) -> None:
+        """Regenerate the last assistant response."""
+        if not hasattr(self, '_last_user_message') or not self._last_user_message:
+            self.add_assistant_message("[yellow]No previous message to regenerate.[/yellow]")
+            return
+
+        if self._query_engine is None:
+            self.add_assistant_message("[red]Error: No LLM provider configured.[/red]")
+            return
+
+        # Remove the last assistant message from history
+        if self._query_engine.messages and len(self._query_engine.messages) >= 2:
+            # Find and remove the last user message and assistant response
+            # Keep system prompt and earlier messages
+            last_user_idx = None
+            for i in range(len(self._query_engine.messages) - 1, -1, -1):
+                if self._query_engine.messages[i].role == "user":
+                    last_user_idx = i
+                    break
+
+            if last_user_idx is not None:
+                # Remove messages from last user onwards
+                self._query_engine.messages = self._query_engine.messages[:last_user_idx]
+                self.add_assistant_message("[dim]Regenerating response...[/dim]")
+                self.run_worker(self._handle_user_message(self._last_user_message))
+            else:
+                self.add_assistant_message("[yellow]Could not find previous message to regenerate.[/yellow]")
+        else:
+            self.add_assistant_message("[yellow]Not enough conversation history to regenerate.[/yellow]")
 
     def _handle_command(self, command: str) -> None:
         """Handle slash commands."""
@@ -267,8 +303,27 @@ class MyAgentApp(App[None]):
                 self.add_assistant_message("Usage: /model <name> (e.g., glm-4.7, glm-5.1)")
         elif cmd == "/memory":
             self._show_memory()
+        elif cmd == "/tokens":
+            self._show_token_stats()
         else:
             self.add_assistant_message(f"Unknown command: {cmd}. Type /help for available commands.")
+
+    def _show_token_stats(self) -> None:
+        """Show token usage statistics."""
+        if self._query_engine is None or not self._query_engine.auto_compactor:
+            self.add_assistant_message("[yellow]Token stats not available.[/yellow]")
+            return
+
+        stats = self._query_engine.auto_compactor.get_stats()
+        lines = [
+            "[bold]Token Usage Statistics:[/bold]",
+            f"  Total tokens consumed: {stats.total_tokens}",
+            f"  Peak tokens: {stats.peak_tokens}",
+            f"  Avg tokens/turn: {stats.avg_tokens_per_turn:.1f}",
+            f"  Compression count: {stats.compression_count}",
+            f"  Current threshold: {self._query_engine.auto_compactor._dynamic_threshold:.2f}",
+        ]
+        self.add_assistant_message("\n".join(lines))
 
     async def _handle_user_message(self, message: str) -> None:
         """Process user message with QueryEngine event loop."""
@@ -553,10 +608,14 @@ class MyAgentApp(App[None]):
   /provider <n> - Switch LLM provider
   /model <name> - Switch LLM model (e.g., glm-4.7, glm-5.1)
   /memory       - Show memory entries
+  /tokens       - Show token usage statistics
 
 Keyboard shortcuts:
-  Ctrl+L - Clear transcript
-  Ctrl+D - Exit"""
+  Enter      - Send message
+  Shift+Enter - New line in message
+  Ctrl+L     - Clear transcript
+  Ctrl+R     - Regenerate last response
+  Ctrl+D     - Exit"""
 
 
 def run_tui() -> None:
