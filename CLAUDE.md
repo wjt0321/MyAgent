@@ -99,9 +99,12 @@ Default team roles:
 - `src/myagent/gateway/adapters/github.py` — GitHub webhook adapter
 - `src/myagent/workspace/manager.py` — Workspace management
 - `src/myagent/memory/manager.py` — Memory system
+- `src/myagent/memory/extractor.py` — Memory auto-extraction and RAG retrieval
 - `src/myagent/tasks/engine.py` — Task engine
 - `src/myagent/teams/orchestrator.py` — Team orchestration
 - `src/myagent/codebase/indexer.py` — Codebase indexing
+- `src/myagent/tools/git.py` — Git operations tool
+- `src/myagent/tools/code_interpreter.py` — Sandboxed Python code execution
 - `deploy/helm/myagent/` — Kubernetes Helm Chart
 - `deploy/grafana/dashboard.json` — Grafana Dashboard
 - `deploy/prometheus/alerts.yaml` — Prometheus Alert Rules
