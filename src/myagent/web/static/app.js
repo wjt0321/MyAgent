@@ -26,23 +26,46 @@ class MyAgentWebApp {
 
     // ========== Theme ==========
 
-    initTheme() {
-        document.body.className = `theme-${this.currentTheme}`;
-        this.updateHLJSTheme();
+    getEffectiveTheme() {
+        if (this.currentTheme === 'auto') {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        return this.currentTheme;
     }
 
-    toggleTheme() {
-        this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
-        document.body.className = `theme-${this.currentTheme}`;
-        localStorage.setItem('myagent-theme', this.currentTheme);
+    initTheme() {
+        const effective = this.getEffectiveTheme();
+        document.body.className = `theme-${effective}`;
         this.updateHLJSTheme();
         this.updateThemeIcon();
     }
 
+    toggleTheme() {
+        // Cycle: dark -> light -> auto -> dark
+        const themes = ['dark', 'light', 'auto'];
+        const idx = themes.indexOf(this.currentTheme);
+        this.currentTheme = themes[(idx + 1) % themes.length];
+        this.applyTheme();
+    }
+
+    applyTheme() {
+        const effective = this.getEffectiveTheme();
+        document.body.className = `theme-${effective}`;
+        localStorage.setItem('myagent-theme', this.currentTheme);
+        this.updateHLJSTheme();
+        this.updateThemeIcon();
+
+        // Update settings panel buttons
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === this.currentTheme);
+        });
+    }
+
     updateHLJSTheme() {
+        const effective = this.getEffectiveTheme();
         const link = document.getElementById('hljs-theme');
         if (link) {
-            const theme = this.currentTheme === 'dark' ? 'atom-one-dark' : 'github';
+            const theme = effective === 'dark' ? 'atom-one-dark' : 'github';
             link.href = `https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/${theme}.min.css`;
         }
     }
@@ -50,11 +73,21 @@ class MyAgentWebApp {
     updateThemeIcon() {
         const icon = document.getElementById('theme-icon');
         if (!icon) return;
-        if (this.currentTheme === 'dark') {
+        const effective = this.getEffectiveTheme();
+        if (effective === 'dark') {
             icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
         } else {
             icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
         }
+    }
+
+    setupSystemThemeListener() {
+        const media = window.matchMedia('(prefers-color-scheme: dark)');
+        media.addEventListener('change', () => {
+            if (this.currentTheme === 'auto') {
+                this.applyTheme();
+            }
+        });
     }
 
     // ========== Elements ==========
@@ -70,6 +103,7 @@ class MyAgentWebApp {
         this.statusDot = document.getElementById('status-dot');
         this.currentAgent = document.getElementById('current-agent');
         this.currentModel = document.getElementById('current-model');
+        this.modelSelect = document.getElementById('model-select');
         this.fileTree = document.getElementById('file-tree');
         this.filePreviewPanel = document.getElementById('file-preview-panel');
         this.previewFilename = document.getElementById('preview-filename');
@@ -141,6 +175,7 @@ class MyAgentWebApp {
         this.tabContents = document.querySelectorAll('.tab-content');
 
         this.updateThemeIcon();
+        this.setupSystemThemeListener();
     }
 
     // ========== Events ==========
@@ -180,6 +215,11 @@ class MyAgentWebApp {
         // Agent select
         this.agentSelect.addEventListener('change', (e) => this.switchAgent(e.target.value));
 
+        // Model select
+        if (this.modelSelect) {
+            this.modelSelect.addEventListener('change', (e) => this.switchModel(e.target.value));
+        }
+
         // Search
         this.searchToggle.addEventListener('click', () => this.toggleSearch());
         this.searchClose.addEventListener('click', () => this.toggleSearch());
@@ -210,13 +250,11 @@ class MyAgentWebApp {
         });
 
         // Theme in settings
-        this.settingsThemeSelect.addEventListener('change', (e) => {
-            const val = e.target.value;
-            this.currentTheme = val === 'auto' ? 'dark' : val;
-            document.body.className = `theme-${this.currentTheme}`;
-            localStorage.setItem('myagent-theme', this.currentTheme);
-            this.updateHLJSTheme();
-            this.updateThemeIcon();
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.currentTheme = btn.dataset.theme;
+                this.applyTheme();
+            });
         });
 
         // Memory management
@@ -297,6 +335,30 @@ class MyAgentWebApp {
             }
         } catch (error) {
             console.error('Failed to switch agent:', error);
+        }
+    }
+
+    // ========== Model Switch ==========
+
+    async switchModel(modelName) {
+        if (!this.currentSessionId) return;
+
+        try {
+            const response = await fetch(`/api/sessions/${this.currentSessionId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: modelName }),
+            });
+
+            if (response.ok) {
+                const session = this.sessions.find(s => s.id === this.currentSessionId);
+                if (session) {
+                    session.model = modelName;
+                    this.renderSessionList();
+                }
+            }
+        } catch (error) {
+            console.error('Failed to switch model:', error);
         }
     }
 
@@ -577,27 +639,57 @@ class MyAgentWebApp {
         this.sessions.forEach(session => {
             const item = document.createElement('div');
             item.className = `session-item ${session.id === this.currentSessionId ? 'active' : ''}`;
+            item.dataset.sessionId = session.id;
             item.innerHTML = `
                 <div class="session-item-header">
-                    <div class="session-title">${session.agent}</div>
-                    <button class="session-delete" title="删除会话" data-session-id="${session.id}">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                        </svg>
-                    </button>
+                    <div class="session-title">${this.escapeHtml(session.agent)}</div>
+                    <div class="session-actions">
+                        <button class="session-rename" title="重命名会话" data-session-id="${session.id}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <button class="session-export" title="导出会话" data-session-id="${session.id}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                        </button>
+                        <button class="session-delete" title="删除会话" data-session-id="${session.id}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-                <div class="session-meta">${this.formatDate(session.updated_at)}</div>
+                <div class="session-meta">${this.formatDate(session.updated_at)} · ${this.escapeHtml(session.model || 'default')}</div>
             `;
 
             // Click on item body selects session
             item.addEventListener('click', (e) => {
-                if (e.target.closest('.session-delete')) return;
+                if (e.target.closest('.session-actions')) return;
                 this.selectSession(session.id);
                 this.closeSidebar();
             });
 
-            // Click on delete button
+            // Rename button
+            const renameBtn = item.querySelector('.session-rename');
+            renameBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.startRenameSession(session.id);
+            });
+
+            // Export button
+            const exportBtn = item.querySelector('.session-export');
+            exportBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showExportMenu(session.id, exportBtn);
+            });
+
+            // Delete button
             const deleteBtn = item.querySelector('.session-delete');
             deleteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -606,6 +698,100 @@ class MyAgentWebApp {
 
             this.sessionList.appendChild(item);
         });
+    }
+
+    startRenameSession(sessionId) {
+        const session = this.sessions.find(s => s.id === sessionId);
+        if (!session) return;
+
+        const newName = prompt('输入新会话名称:', session.agent);
+        if (newName && newName.trim() && newName.trim() !== session.agent) {
+            const trimmed = newName.trim();
+            session.agent = trimmed;
+            this.renderSessionList();
+            if (this.currentSessionId === sessionId) {
+                this.currentAgent.textContent = trimmed;
+            }
+        }
+    }
+
+    showExportMenu(sessionId, anchorBtn) {
+        // Remove existing menu
+        const existing = document.querySelector('.export-menu');
+        if (existing) existing.remove();
+
+        const menu = document.createElement('div');
+        menu.className = 'export-menu';
+        menu.innerHTML = `
+            <div class="export-menu-item" data-format="markdown">导出 Markdown</div>
+            <div class="export-menu-item" data-format="json">导出 JSON</div>
+        `;
+
+        menu.querySelectorAll('.export-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                this.exportSession(sessionId, item.dataset.format);
+                menu.remove();
+            });
+        });
+
+        // Position near the button
+        const rect = anchorBtn.getBoundingClientRect();
+        menu.style.position = 'fixed';
+        menu.style.top = `${rect.bottom + 4}px`;
+        menu.style.left = `${rect.left}px`;
+        menu.style.zIndex = '1000';
+
+        document.body.appendChild(menu);
+
+        // Close on outside click
+        const closeMenu = (e) => {
+            if (!menu.contains(e.target) && e.target !== anchorBtn) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeMenu), 0);
+    }
+
+    exportSession(sessionId, format) {
+        const session = this.sessions.find(s => s.id === sessionId);
+        if (!session) return;
+
+        let content, filename, mimeType;
+
+        if (format === 'markdown') {
+            content = this.sessionToMarkdown(session);
+            filename = `session-${session.id}.md`;
+            mimeType = 'text/markdown';
+        } else {
+            content = JSON.stringify(session, null, 2);
+            filename = `session-${session.id}.json`;
+            mimeType = 'application/json';
+        }
+
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    sessionToMarkdown(session) {
+        let md = `# Session: ${session.agent}\n\n`;
+        md += `- **Model:** ${session.model || 'default'}\n`;
+        md += `- **Created:** ${session.created_at}\n`;
+        md += `- **Updated:** ${session.updated_at}\n\n`;
+        md += `---\n\n`;
+        (session.messages || []).forEach(msg => {
+            const role = msg.role === 'user' ? 'User' : 'Assistant';
+            const time = msg.timestamp ? ` (${msg.timestamp})` : '';
+            md += `## ${role}${time}\n\n${msg.content}\n\n`;
+        });
+        return md;
     }
 
     formatDate(isoString) {

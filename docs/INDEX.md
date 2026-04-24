@@ -84,7 +84,7 @@ docs/
 | architecture/06-codebase.md | ✅ | 代码理解系统已完成 |
 | architecture/07-gateway.md | 🔄 | Gateway 框架完成，Telegram/GitHub 适配器已就绪 |
 | design/01-tui-design.md | ✅ | TUI 设计规范 |
-| design/02-web-ui-design.md | 🔄 | Web UI 已重构，JWT 认证已添加 |
+| design/02-web-ui-design.md | ✅ | Web UI 已重构，JWT 认证、模型选择、主题切换、导出已添加 |
 | design/03-interaction-patterns.md | 🔄 | 基础交互模式 |
 | reference/01-getting-started.md | ✅ | 快速入门指南 |
 | reference/02-configuration.md | ✅ | 配置参考 |

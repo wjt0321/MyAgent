@@ -110,7 +110,19 @@
             <header class="chat-header">
                 <div class="header-info">
                     <div class="agent-badge" id="current-agent">general</div>
-                    <div class="model-badge" id="current-model">Claude-3.5</div>
+                    <div class="model-selector">
+                        <select id="model-select">
+                            <option value="glm-4">GLM-4</option>
+                            <option value="glm-4-flash">GLM-4-Flash</option>
+                            <option value="glm-4v">GLM-4V</option>
+                            <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                            <option value="gpt-4o">GPT-4o</option>
+                            <option value="gpt-4o-mini">GPT-4o Mini</option>
+                            <option value="deepseek-chat">DeepSeek Chat</option>
+                            <option value="deepseek-coder">DeepSeek Coder</option>
+                            <option value="qwen-max">Qwen Max</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="header-actions">
                     <div class="agent-selector">
@@ -322,11 +334,11 @@
                     <div class="tab-content" data-tab="appearance">
                         <div class="form-group">
                             <label>主题</label>
-                            <select id="settings-theme-select">
-                                <option value="dark">深色</option>
-                                <option value="light">浅色</option>
-                                <option value="auto">跟随系统</option>
-                            </select>
+                            <div class="theme-toggle">
+                                <button class="theme-btn active" data-theme="dark">🌙 暗色</button>
+                                <button class="theme-btn" data-theme="light">☀️ 亮色</button>
+                                <button class="theme-btn" data-theme="auto">💻 跟随系统</button>
+                            </div>
                         </div>
                     </div>
                     <div class="tab-content" data-tab="about">
