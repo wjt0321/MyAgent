@@ -95,19 +95,32 @@ MYAGENT_MODEL_DEFAULT=anthropic/claude-sonnet-4
 
 ## LLM Providers
 
-MyAgent supports multiple LLM providers out of the box:
+MyAgent supports 19 LLM providers out of the box:
+
+### International Providers
 
 | Provider | Env Var | Default Model |
 |----------|---------|---------------|
+| Anthropic | `ANTHROPIC_API_KEY` | `claude-sonnet-4` |
 | OpenAI | `OPENAI_API_KEY` | `gpt-4o` |
-| Anthropic | `ANTHROPIC_API_KEY` | `claude-sonnet-4-20250514` |
 | DeepSeek | `DEEPSEEK_API_KEY` | `deepseek-chat` |
-| Google Gemini | `GEMINI_API_KEY` | `gemini-1.5-pro` |
-| Alibaba Qwen | `QWEN_API_KEY` | `qwen-max` |
-| SiliconFlow | `SILICONFLOW_API_KEY` | `deepseek-ai/DeepSeek-V3` |
-| Ollama (local) | None | `llama3.2` |
-| Azure OpenAI | `AZURE_OPENAI_API_KEY` | `gpt-4o` |
-| OpenRouter | `OPENROUTER_API_KEY` | `anthropic/claude-sonnet-4` |
+| Google Gemini | `GEMINI_API_KEY` | `gemini-2.5-pro` |
+| xAI | `XAI_API_KEY` | `grok-3` |
+| OpenRouter | `OPENROUTER_API_KEY` | `openai/gpt-4o` |
+| HuggingFace | `HF_API_KEY` | `meta-llama/Llama-3.3-70B-Instruct` |
+| NVIDIA | `NVIDIA_API_KEY` | `nvidia/llama-3.3-nemotron-super-49b-v1` |
+| Arcee | `ARCEE_API_KEY` | `trinity-large-thinking` |
+| Xiaomi | `XIAOMI_API_KEY` | `mimo-v2-pro` |
+| Ollama (local) | None | `llama3.3` |
+
+### China Domestic Providers (API Key NOT interchangeable with international versions)
+
+| Provider | Env Var | Default Model |
+|----------|---------|---------------|
+| Zhipu (智谱) | `ZHIPU_API_KEY` / `ZHIPU_CN_API_KEY` | `glm-4` |
+| Moonshot (Kimi) | `MOONSHOT_API_KEY` / `MOONSHOT_CN_API_KEY` | `moonshot-v1-8k` |
+| MiniMax | `MINIMAX_API_KEY` / `MINIMAX_CN_API_KEY` | `abab6.5s-chat` |
+| Alibaba (DashScope) | `DASHSCOPE_API_KEY` / `DASHSCOPE_CN_API_KEY` | `qwen-max` |
 
 ### Ollama (Local Models)
 

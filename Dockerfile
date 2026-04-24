@@ -65,4 +65,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD myagent --version || exit 1
 
 # Default command
-CMD ["myagent", "web", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["myagent", "web", "--host", "0.0.0.0", "--port", "8000", "--json-log"]

@@ -17,7 +17,7 @@ Telegraph style. Root rules only. Read scoped `AGENT.md` before touching a subtr
 - TUI: `src/myagent/tui/` (Textual)
 - Gateway: `src/myagent/gateway/` (multi-platform adapters, session persistence)
 - Engine: `src/myagent/engine/` (QueryEngine, context compression)
-- LLM providers: `src/myagent/llm/providers/` (OpenAI, Anthropic, DeepSeek, Zhipu, etc.)
+- LLM providers: `src/myagent/llm/providers/` (19 providers: Anthropic, OpenAI, DeepSeek, Gemini, xAI, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Ollama, OpenRouter)
 - Tools: `src/myagent/tools/` (Bash, Read, Write, Edit, Glob, Grep, Git, WebFetch, etc.)
 - Workspace: `src/myagent/workspace/` (manager, templates, project)
 - Memory: `src/myagent/memory/` (manager, collection)
@@ -66,7 +66,7 @@ Scoped guides:
 - Pre-commit: run `ruff check` and `mypy src/` before committing.
 - Do not land related failing format/lint/type/tests.
 - If failures are unrelated on latest `origin/main`, say so and give scoped proof.
-- Gateway adapters: Telegram supports inline permission requests via `send_permission_request()`.
+- Gateway adapters: Telegram/Discord/Slack/Feishu all support inline permission requests via `send_permission_request()`.
 - Web UI auth: JWT-based, optional password protection via `myagent.web.auth`.
 - Session isolation: Web UI sessions are scoped per-user via `user_id` field.
 
