@@ -6,10 +6,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 
+from myagent.web.auth import verify_token, create_token, get_auth_config, JWT_AVAILABLE
 from myagent.web.engine_manager import WebEngineManager
 from myagent.web.health import router as health_router
 from myagent.web.session import SessionStore
@@ -23,6 +25,29 @@ from myagent.workspace.manager import WorkspaceManager, get_workspace_dir
 from myagent.config.settings import Settings
 from myagent.plugins.registry import PluginRegistry
 from myagent.plugins.discovery import discover_plugins
+
+
+security = HTTPBearer(auto_error=False)
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+) -> str:
+    """Get current user from JWT token or default to 'default'."""
+    if not JWT_AVAILABLE:
+        return "default"
+
+    auth_config = get_auth_config()
+    if not auth_config.enabled:
+        return "default"
+
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    user_id = verify_token(credentials.credentials)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return user_id
 
 
 @asynccontextmanager
@@ -68,6 +93,47 @@ def create_app() -> FastAPI:
     async def health() -> dict[str, str]:
         """Health check endpoint."""
         return {"status": "ok", "version": "0.1.0"}
+
+    @app.get("/api/auth/status")
+    async def auth_status() -> dict[str, Any]:
+        """Check if authentication is enabled."""
+        auth_config = get_auth_config()
+        return {
+            "enabled": auth_config.enabled,
+            "jwt_available": JWT_AVAILABLE,
+        }
+
+    @app.post("/api/auth/login")
+    async def login(request: dict[str, Any]) -> dict[str, Any]:
+        """Login and get JWT token."""
+        if not JWT_AVAILABLE:
+            return {"token": None, "message": "JWT not available"}
+
+        auth_config = get_auth_config()
+        password = request.get("password", "")
+
+        if auth_config.enabled:
+            if not auth_config.verify_password(password):
+                raise HTTPException(status_code=401, detail="Invalid password")
+
+        token = create_token(user_id="user")
+        return {"token": token, "message": "Login successful"}
+
+    @app.post("/api/auth/set-password")
+    async def set_password(request: dict[str, Any]) -> dict[str, str]:
+        """Set or update the password."""
+        auth_config = get_auth_config()
+        current = request.get("current_password", "")
+        new_password = request.get("new_password", "")
+
+        if auth_config.enabled and not auth_config.verify_password(current):
+            raise HTTPException(status_code=401, detail="Current password incorrect")
+
+        if len(new_password) < 4:
+            raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
+
+        auth_config.set_password(new_password)
+        return {"status": "password_set"}
 
     @app.get("/api/workspace")
     async def get_workspace() -> dict[str, Any]:
@@ -249,30 +315,37 @@ def create_app() -> FastAPI:
         return {"status": "approved", "task": task.to_dict()}
 
     @app.get("/api/sessions")
-    async def list_sessions() -> list[dict[str, Any]]:
-        """List all sessions."""
+    async def list_sessions(user_id: str = Depends(get_current_user)) -> list[dict[str, Any]]:
+        """List sessions for current user."""
         store: SessionStore = app.state.session_store
-        return [s.to_dict() for s in store.list_all()]
+        return [s.to_dict() for s in store.list_all(user_id=user_id)]
 
     @app.post("/api/sessions", status_code=201)
-    async def create_session(request: dict[str, Any]) -> dict[str, Any]:
+    async def create_session(
+        request: dict[str, Any],
+        user_id: str = Depends(get_current_user),
+    ) -> dict[str, Any]:
         """Create a new session."""
         store: SessionStore = app.state.session_store
         agent = request.get("agent", "general")
         settings = Settings.load()
         model = request.get("model") or settings.model.default
-        session = store.create(agent=agent, model=model)
+        session = store.create(agent=agent, model=model, user_id=user_id)
         return session.to_dict()
 
     @app.patch("/api/sessions/{session_id}")
-    async def update_session(session_id: str, request: dict[str, Any]) -> dict[str, Any]:
+    async def update_session(
+        session_id: str,
+        request: dict[str, Any],
+        user_id: str = Depends(get_current_user),
+    ) -> dict[str, Any]:
         """Update session settings."""
         store: SessionStore = app.state.session_store
-        session = store.get(session_id)
+        session = store.get(session_id, user_id=user_id)
         if session is None:
             from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="Session not found")
-        
+
         # Update settings if provided
         if "model" in request:
             session.model = request["model"]
@@ -280,24 +353,30 @@ def create_app() -> FastAPI:
             session.agent_type = request["agent"]
         if "system_prompt" in request:
             session.system_prompt = request["system_prompt"]
-            
+
         return session.to_dict()
 
     @app.get("/api/sessions/{session_id}")
-    async def get_session(session_id: str) -> dict[str, Any]:
+    async def get_session(
+        session_id: str,
+        user_id: str = Depends(get_current_user),
+    ) -> dict[str, Any]:
         """Get a session by ID."""
         store: SessionStore = app.state.session_store
-        session = store.get(session_id)
+        session = store.get(session_id, user_id=user_id)
         if session is None:
             from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="Session not found")
         return session.to_dict()
 
     @app.delete("/api/sessions/{session_id}")
-    async def delete_session(session_id: str) -> dict[str, str]:
+    async def delete_session(
+        session_id: str,
+        user_id: str = Depends(get_current_user),
+    ) -> dict[str, str]:
         """Delete a session."""
         store: SessionStore = app.state.session_store
-        if store.delete(session_id):
+        if store.delete(session_id, user_id=user_id):
             return {"status": "deleted"}
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Session not found")
@@ -508,6 +587,52 @@ def create_app() -> FastAPI:
                 "type": "error",
                 "message": f"{type(event.error).__name__}: {event.error}",
             })
+
+    # ------------------------------------------------------------------
+    # GitHub Webhook endpoint
+    # ------------------------------------------------------------------
+    @app.post("/webhook/github")
+    async def github_webhook(request: Request) -> JSONResponse:
+        """Receive GitHub webhook events."""
+        from myagent.gateway.adapters.github import GitHubAdapter
+        from myagent.gateway.config import PlatformConfig
+
+        event_type = request.headers.get("X-GitHub-Event", "")
+        signature = request.headers.get("X-Hub-Signature-256", "")
+
+        body = await request.body()
+
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(
+                {"status": "error", "message": "Invalid JSON payload"},
+                status_code=400,
+            )
+
+        # Create adapter with config from env
+        config = PlatformConfig()
+        config.extra["webhook_secret"] = payload.get("secret") or ""
+        config.token = Settings.load().github_token or ""
+
+        adapter = GitHubAdapter(config)
+
+        # Verify signature if secret is configured
+        if adapter.webhook_secret:
+            if not adapter.verify_signature(body, signature):
+                return JSONResponse(
+                    {"status": "error", "message": "Invalid signature"},
+                    status_code=401,
+                )
+
+        try:
+            result = await adapter.handle_event(event_type, payload)
+            return JSONResponse({"status": "ok", "result": result})
+        except Exception as e:
+            return JSONResponse(
+                {"status": "error", "message": str(e)},
+                status_code=500,
+            )
 
     return app
 

@@ -25,6 +25,7 @@ from myagent.gateway.base import (
 )
 from myagent.gateway.config import GatewayConfig, load_gateway_config
 from myagent.gateway.manager import GatewayManager
+from myagent.gateway.session_store import GatewaySessionStore
 from myagent.llm.base import BaseProvider
 from myagent.llm.registry import ProviderRegistry
 from myagent.security.checker import PermissionChecker
@@ -50,6 +51,9 @@ class GatewayBot:
         self._default_agent = "general"
         self._sessions: Dict[str, QueryEngine] = {}
         self._session_platforms: Dict[str, Platform] = {}
+
+        # Persistent session store for user-session bindings
+        self._session_store = GatewaySessionStore()
 
         # Initialize core components
         self.tool_registry = ToolRegistry.with_core_tools()
@@ -78,8 +82,20 @@ class GatewayBot:
             return None
         return provider_cls()
 
-    def _get_or_create_session(self, session_key: str, platform: Platform) -> QueryEngine:
-        """Get or create a QueryEngine session."""
+    def _get_or_create_session(
+        self, session_key: str, platform: Platform, user_id: str | None = None, chat_id: str | None = None
+    ) -> QueryEngine:
+        """Get or create a QueryEngine session.
+
+        If user_id and chat_id are provided, attempts to restore a persisted session.
+        """
+        # Check for persisted session if user info is available
+        if user_id and chat_id:
+            persisted_id = self._session_store.get_session_id(platform, user_id, chat_id)
+            if persisted_id and persisted_id in self._sessions:
+                logger.debug("Restored persisted session: %s", persisted_id)
+                return self._sessions[persisted_id]
+
         if session_key not in self._sessions:
             agent = self._agents.get(self._default_agent)
             system_prompt = agent.system_prompt if agent else "You are a helpful assistant."
@@ -92,6 +108,17 @@ class GatewayBot:
             )
             self._sessions[session_key] = engine
             self._session_platforms[session_key] = platform
+
+            # Persist the binding if user info is available
+            if user_id and chat_id:
+                self._session_store.bind_session(
+                    platform=platform,
+                    user_id=user_id,
+                    chat_id=chat_id,
+                    session_id=session_key,
+                    agent=self._default_agent,
+                )
+
             logger.debug("Created new session: %s", session_key)
         return self._sessions[session_key]
 
@@ -108,6 +135,13 @@ class GatewayBot:
         if cmd == "reset" or cmd == "new":
             if session_key in self._sessions:
                 del self._sessions[session_key]
+            # Unbind persisted session
+            if event.source and event.source.user_id:
+                self._session_store.unbind_session(
+                    platform=event.source.platform,
+                    user_id=event.source.user_id,
+                    chat_id=event.source.chat_id,
+                )
             return "🔄 Session reset. Starting fresh!"
 
         if cmd == "agent":
@@ -130,8 +164,10 @@ class GatewayBot:
                 "\nJust send a message to chat!"
             )
 
-        # Get or create session
-        engine = self._get_or_create_session(session_key, platform)
+        # Get or create session (with user info for persistence)
+        user_id = event.source.user_id if event.source else None
+        chat_id = event.source.chat_id if event.source else None
+        engine = self._get_or_create_session(session_key, platform, user_id=user_id, chat_id=chat_id)
 
         # Build prompt with media context
         prompt = event.text
@@ -147,6 +183,8 @@ class GatewayBot:
                     AssistantTextDelta,
                     AssistantTurnComplete,
                     ErrorEvent,
+                    PermissionRequestEvent,
+                    PermissionResultEvent,
                     ToolExecutionStarted,
                     ToolExecutionCompleted,
                 )
@@ -157,6 +195,31 @@ class GatewayBot:
                     break
                 elif isinstance(stream_event, ErrorEvent):
                     return f"❌ Error: {stream_event.error}"
+                elif isinstance(stream_event, PermissionRequestEvent):
+                    # Route permission request to the platform adapter
+                    approved = await self._handle_permission_request(event, stream_event)
+                    if approved:
+                        # Continue with the tool execution
+                        async for cont_event in engine.continue_with_permission(
+                            stream_event.arguments.get("tool_use_id", ""),
+                            approved=True,
+                        ):
+                            if isinstance(cont_event, AssistantTextDelta):
+                                response_parts.append(cont_event.text)
+                            elif isinstance(cont_event, AssistantTurnComplete):
+                                break
+                            elif isinstance(cont_event, ErrorEvent):
+                                return f"❌ Error: {cont_event.error}"
+                    else:
+                        # User denied permission
+                        async for cont_event in engine.continue_with_permission(
+                            stream_event.arguments.get("tool_use_id", ""),
+                            approved=False,
+                        ):
+                            if isinstance(cont_event, AssistantTextDelta):
+                                response_parts.append(cont_event.text)
+                            elif isinstance(cont_event, AssistantTurnComplete):
+                                break
                 elif isinstance(stream_event, ToolExecutionStarted):
                     # Could send typing indicator here
                     pass
@@ -165,6 +228,48 @@ class GatewayBot:
             return f"❌ Sorry, an error occurred: {e}"
 
         return "".join(response_parts) if response_parts else None
+
+    async def _handle_permission_request(
+        self,
+        event: MessageEvent,
+        permission_event: Any,
+    ) -> bool:
+        """Route a permission request to the appropriate platform adapter.
+
+        Returns True if approved, False otherwise.
+        """
+        from myagent.engine.stream_events import PermissionRequestEvent
+
+        if not isinstance(permission_event, PermissionRequestEvent):
+            return False
+
+        if not event.source:
+            return False
+
+        adapter = self.manager.get_adapter(event.source.platform)
+        if adapter is None:
+            logger.warning("No adapter found for platform %s", event.source.platform)
+            return False
+
+        # Check if adapter supports permission requests
+        if hasattr(adapter, "send_permission_request"):
+            try:
+                return await adapter.send_permission_request(
+                    chat_id=event.source.chat_id,
+                    tool_name=permission_event.tool_name,
+                    arguments=permission_event.arguments,
+                    reason=permission_event.reason,
+                )
+            except Exception as e:
+                logger.error("Permission request failed: %s", e)
+                return False
+        else:
+            # Fallback: auto-deny if adapter doesn't support permissions
+            logger.warning(
+                "[%s] Adapter does not support permission requests, auto-denying",
+                adapter.name,
+            )
+            return False
 
     async def _busy_handler(self, event: MessageEvent, session_key: str) -> bool:
         """Handle messages arriving during active sessions.

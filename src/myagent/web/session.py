@@ -23,6 +23,7 @@ class Session:
     created_at: datetime
     updated_at: datetime
     messages: list[dict[str, Any]] = field(default_factory=list)
+    user_id: str = "default"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -32,6 +33,7 @@ class Session:
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "messages": self.messages,
+            "user_id": self.user_id,
         }
 
     @classmethod
@@ -43,6 +45,7 @@ class Session:
             created_at=datetime.fromisoformat(data["created_at"]),
             updated_at=datetime.fromisoformat(data["updated_at"]),
             messages=data.get("messages", []),
+            user_id=data.get("user_id", "default"),
         )
 
     def add_message(self, role: str, content: str) -> None:
@@ -56,7 +59,7 @@ class Session:
 
 
 class SessionStore:
-    """In-memory session store with file persistence."""
+    """In-memory session store with file persistence and user isolation."""
 
     def __init__(self, storage_dir: Path | None = None) -> None:
         self._sessions: dict[str, Session] = {}
@@ -64,44 +67,56 @@ class SessionStore:
         self._storage_dir.mkdir(parents=True, exist_ok=True)
         self._load_all()
 
-    def create(self, agent: str = "general", model: str | None = None) -> Session:
+    def create(self, agent: str = "general", model: str | None = None, user_id: str = "default") -> Session:
         """Create a new session."""
         if model is None:
             model = "anthropic/claude-3.5-sonnet"
-            
+
         session = Session(
             id=str(uuid.uuid4())[:8],
             agent=agent,
             model=model,
             created_at=datetime.now(),
             updated_at=datetime.now(),
+            user_id=user_id,
         )
         self._sessions[session.id] = session
         self._save(session)
         return session
 
-    def get(self, session_id: str) -> Session | None:
-        """Get a session by ID."""
-        return self._sessions.get(session_id)
+    def get(self, session_id: str, user_id: str | None = None) -> Session | None:
+        """Get a session by ID, optionally filtering by user."""
+        session = self._sessions.get(session_id)
+        if session is None:
+            return None
+        if user_id is not None and session.user_id != user_id:
+            return None
+        return session
 
     def update(self, session: Session) -> None:
         """Update and persist an existing session."""
         self._sessions[session.id] = session
         self._save(session)
 
-    def list_all(self) -> list[Session]:
-        """List all sessions."""
-        return sorted(self._sessions.values(), key=lambda s: s.updated_at, reverse=True)
+    def list_all(self, user_id: str | None = None) -> list[Session]:
+        """List sessions, optionally filtered by user."""
+        sessions = list(self._sessions.values())
+        if user_id is not None:
+            sessions = [s for s in sessions if s.user_id == user_id]
+        return sorted(sessions, key=lambda s: s.updated_at, reverse=True)
 
-    def delete(self, session_id: str) -> bool:
-        """Delete a session."""
-        if session_id in self._sessions:
-            del self._sessions[session_id]
-            file_path = self._storage_dir / f"{session_id}.yaml"
-            if file_path.exists():
-                file_path.unlink()
-            return True
-        return False
+    def delete(self, session_id: str, user_id: str | None = None) -> bool:
+        """Delete a session, optionally checking user ownership."""
+        session = self._sessions.get(session_id)
+        if session is None:
+            return False
+        if user_id is not None and session.user_id != user_id:
+            return False
+        del self._sessions[session_id]
+        file_path = self._storage_dir / f"{session_id}.yaml"
+        if file_path.exists():
+            file_path.unlink()
+        return True
 
     def _save(self, session: Session) -> None:
         """Save a session to disk."""

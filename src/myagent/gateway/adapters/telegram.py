@@ -6,7 +6,9 @@ Uses HTTP long-polling or webhook for message handling.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import secrets
 from typing import Any, Dict, Optional
 
 from myagent.gateway.adapter_base import BasePlatformAdapter
@@ -43,6 +45,8 @@ class TelegramAdapter(BasePlatformAdapter):
         self._session: Any = None
         self._offset = 0
         self._dedup = MessageDeduplicator()
+        # Track pending permission requests: callback_id -> (future, tool_name)
+        self._pending_permissions: Dict[str, asyncio.Future[bool]] = {}
 
     @property
     def api_base(self) -> str:
@@ -73,6 +77,11 @@ class TelegramAdapter(BasePlatformAdapter):
 
     async def disconnect(self) -> None:
         self._running = False
+        # Cancel all pending permission futures
+        for future in self._pending_permissions.values():
+            if not future.done():
+                future.cancel()
+        self._pending_permissions.clear()
         if self._session:
             await self._session.close()
         logger.info("[%s] Disconnected", self.name)
@@ -121,6 +130,12 @@ class TelegramAdapter(BasePlatformAdapter):
 
     async def _process_update(self, update: Dict[str, Any]) -> None:
         """Process a single update."""
+        # Handle callback queries (inline keyboard button presses)
+        callback_query = update.get("callback_query")
+        if callback_query:
+            await self._process_callback_query(callback_query)
+            return
+
         msg = update.get("message") or update.get("edited_message")
         if not msg:
             return
@@ -169,6 +184,101 @@ class TelegramAdapter(BasePlatformAdapter):
         )
 
         await self.handle_message(event)
+
+    async def _process_callback_query(self, callback_query: Dict[str, Any]) -> None:
+        """Process an inline keyboard callback query."""
+        callback_id = callback_query.get("id", "")
+        data = callback_query.get("data", "")
+
+        # Answer the callback query to remove loading state
+        await self._api_request("POST", "/answerCallbackQuery", {
+            "callback_query_id": callback_id,
+        })
+
+        # Check if this is a permission response
+        if callback_id in self._pending_permissions:
+            future = self._pending_permissions.pop(callback_id)
+            if data == "approve":
+                if not future.done():
+                    future.set_result(True)
+            elif data == "deny":
+                if not future.done():
+                    future.set_result(False)
+            logger.debug("[%s] Permission callback resolved: %s", self.name, data)
+
+    async def send_permission_request(
+        self,
+        chat_id: str,
+        tool_name: str,
+        arguments: Dict[str, Any],
+        reason: str,
+        timeout: float = 300.0,
+    ) -> bool:
+        """Send a permission request with inline keyboard and wait for response.
+
+        Returns True if approved, False if denied or timed out.
+        """
+        args_text = json.dumps(arguments, ensure_ascii=False, indent=2)[:500]
+        text = (
+            f"🔐 **Permission Request**\n\n"
+            f"Tool: `{tool_name}`\n"
+            f"Reason: {reason}\n\n"
+            f"Arguments:\n```json\n{args_text}\n```"
+        )
+
+        callback_id = secrets.token_urlsafe(16)
+        future: asyncio.Future[bool] = asyncio.get_event_loop().create_future()
+        self._pending_permissions[callback_id] = future
+
+        keyboard = {
+            "inline_keyboard": [
+                [
+                    {"text": "✅ Allow", "callback_data": "approve"},
+                    {"text": "❌ Deny", "callback_data": "deny"},
+                ]
+            ]
+        }
+
+        payload: Dict[str, Any] = {
+            "chat_id": chat_id,
+            "text": text[:4096],
+            "parse_mode": "Markdown",
+            "reply_markup": keyboard,
+        }
+
+        data = await self._api_request("POST", "/sendMessage", payload)
+        if not data.get("ok"):
+            self._pending_permissions.pop(callback_id, None)
+            logger.error("[%s] Failed to send permission request: %s", self.name, data.get("description"))
+            return False
+
+        try:
+            result = await asyncio.wait_for(future, timeout=timeout)
+            # Edit the message to show the decision
+            decision_text = "✅ **Approved**" if result else "❌ **Denied**"
+            sent_msg = data.get("result", {})
+            await self._api_request("POST", "/editMessageText", {
+                "chat_id": chat_id,
+                "message_id": sent_msg.get("message_id"),
+                "text": f"{text}\n\n{decision_text}",
+                "parse_mode": "Markdown",
+            })
+            return result
+        except asyncio.TimeoutError:
+            self._pending_permissions.pop(callback_id, None)
+            # Edit message to show timeout
+            sent_msg = data.get("result", {})
+            await self._api_request("POST", "/editMessageText", {
+                "chat_id": chat_id,
+                "message_id": sent_msg.get("message_id"),
+                "text": f"{text}\n\n⏱️ **Timed out** (no response within {int(timeout)}s)",
+                "parse_mode": "Markdown",
+            })
+            logger.warning("[%s] Permission request timed out for %s", self.name, tool_name)
+            return False
+        except asyncio.CancelledError:
+            self._pending_permissions.pop(callback_id, None)
+            raise
 
     async def send(
         self,

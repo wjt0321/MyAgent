@@ -59,6 +59,7 @@ class Settings(BaseModel):
     mcp: MCPConfig = Field(default_factory=MCPConfig)
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    github_token: str | None = Field(default=None)
 
     @classmethod
     def from_yaml(cls, path: Path) -> Settings:
@@ -89,3 +90,5 @@ class Settings(BaseModel):
                 self.context.max_turns = int(env_turns)
             except ValueError:
                 pass
+        if env_github := os.environ.get("GITHUB_TOKEN"):
+            self.github_token = env_github
