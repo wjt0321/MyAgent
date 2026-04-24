@@ -21,6 +21,8 @@ from myagent.codebase.indexer import CodebaseIndexer
 from myagent.codebase.search import CodebaseSearch
 from myagent.workspace.manager import WorkspaceManager, get_workspace_dir
 from myagent.config.settings import Settings
+from myagent.plugins.registry import PluginRegistry
+from myagent.plugins.discovery import discover_plugins
 
 
 @asynccontextmanager
@@ -299,6 +301,31 @@ def create_app() -> FastAPI:
             return {"status": "deleted"}
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Session not found")
+
+    @app.get("/api/plugins")
+    async def list_plugins() -> list[dict[str, Any]]:
+        """List all installed plugins."""
+        ws_dir = get_workspace_dir()
+        plugins_dir = ws_dir / "plugins"
+        if not plugins_dir.exists():
+            return []
+
+        registry = PluginRegistry()
+        for manifest in discover_plugins(plugins_dir):
+            registry.register(manifest)
+
+        return [
+            {
+                "id": p.id,
+                "name": p.name,
+                "version": p.version,
+                "description": p.description,
+                "entry": p.entry,
+                "tools": p.tools,
+                "agents": p.agents,
+            }
+            for p in registry.list_plugins()
+        ]
 
     @app.get("/api/files")
     async def list_files(path: str = ".") -> dict[str, Any]:

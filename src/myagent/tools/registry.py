@@ -40,6 +40,7 @@ class ToolRegistry:
         from myagent.tools.grep import Grep
         from myagent.tools.web_search import WebSearch
         from myagent.tools.web_fetch import WebFetch
+        from myagent.tools.git import Git
 
         registry = cls()
         registry.register(Bash())
@@ -50,4 +51,5 @@ class ToolRegistry:
         registry.register(Grep())
         registry.register(WebSearch())
         registry.register(WebFetch())
+        registry.register(Git())
         return registry

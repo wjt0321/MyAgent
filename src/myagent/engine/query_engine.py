@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable
 
+from myagent.engine.context_compression import AutoCompactor, ContextCompressor
 from myagent.engine.messages import (
     ConversationMessage,
     TextBlock,
@@ -55,6 +56,15 @@ class QueryEngine:
         ]
         self._turn_count = 0
 
+        # Initialize auto-compactor if threshold is set
+        self.auto_compactor: AutoCompactor | None = None
+        if auto_compact_threshold:
+            compressor = ContextCompressor(max_tokens=8000)
+            self.auto_compactor = AutoCompactor(
+                compressor=compressor,
+                threshold_ratio=auto_compact_threshold,
+            )
+
     async def submit_message(
         self, prompt: str | ConversationMessage
     ) -> AsyncIterator[StreamEvent]:
@@ -69,10 +79,23 @@ class QueryEngine:
     async def _run_loop(self) -> AsyncIterator[StreamEvent]:
         """Run the tool-aware conversation loop."""
         while True:
+            # Check auto-compaction before each turn
+            if self.auto_compactor and self.auto_compactor.should_compact(self.messages):
+                result = self.auto_compactor.compact(self.messages)
+                if result.strategy_used != "none":
+                    self.messages = result.messages
+                    yield AssistantTextDelta(
+                        text=f"\n[Context auto-compacted: {result.tokens_before} -> {result.tokens_after} tokens ({result.strategy_used})]\n"
+                    )
+
             if self._turn_count >= self.max_turns:
-                raise MaxTurnsExceeded(
-                    f"Maximum number of turns ({self.max_turns}) exceeded."
+                yield ErrorEvent(
+                    error=MaxTurnsExceeded(
+                        f"Maximum number of turns ({self.max_turns}) exceeded."
+                    ),
+                    recoverable=False,
                 )
+                return
             self._turn_count += 1
 
             if self.llm_client is None:
