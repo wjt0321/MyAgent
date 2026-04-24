@@ -89,7 +89,11 @@ Default team roles:
 
 - `src/myagent/cli.py` — CLI entry point
 - `src/myagent/engine/query_engine.py` — Core query engine
-- `src/myagent/web/server.py` — Web UI server (FastAPI)
+- `src/myagent/web/server.py` — Web UI server (FastAPI + JWT auth)
+- `src/myagent/web/auth.py` — JWT authentication module
+- `src/myagent/gateway/bot.py` — Gateway bot with session persistence
+- `src/myagent/gateway/adapters/telegram.py` — Telegram adapter with inline permissions
+- `src/myagent/gateway/adapters/github.py` — GitHub webhook adapter
 - `src/myagent/workspace/manager.py` — Workspace management
 - `src/myagent/memory/manager.py` — Memory system
 - `src/myagent/tasks/engine.py` — Task engine

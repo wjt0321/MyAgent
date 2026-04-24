@@ -23,13 +23,15 @@ Supported platforms: **Feishu/Lark, Slack, Discord, Telegram, DingTalk, WeCom, W
 
 ## Features
 
-- **Multi-Channel Gateway** — Unified inbox for all messaging platforms
+- **Multi-Channel Gateway** — Unified inbox for all messaging platforms (Telegram, Discord, Slack, Feishu, etc.)
 - **TUI Interface** — Rich terminal UI with ASCII art logo
-- **Web UI** — Real-time WebSocket chat with settings and reset
-- **Multi-LLM Support** — OpenAI, Anthropic, DeepSeek, Gemini, Qwen, Ollama, Azure, OpenRouter
-- **Context Compression** — Automatic conversation compaction
-- **Session Management** — Per-user, per-group, per-thread sessions
-- **Tool Calling** — Bash, file edit, web search, image analysis
+- **Web UI** — Real-time WebSocket chat with JWT authentication and multi-user session isolation
+- **Multi-LLM Support** — OpenAI, Anthropic, DeepSeek, Gemini, Qwen, Ollama, Azure, OpenRouter, Zhipu
+- **Context Compression** — Automatic conversation compaction with AutoCompactor
+- **Session Management** — Per-user, per-group, per-thread sessions with persistent bindings
+- **Tool Calling** — Bash, file edit, web search, image analysis, Git operations
+- **Permission System** — Inline approval requests in Telegram and Web UI
+- **GitHub Integration** — Webhook-based PR/Issue analysis and auto-comments
 - **Production Ready** — Docker, health checks, metrics, structured logging
 
 ## Screenshots
@@ -106,12 +108,19 @@ All user configuration lives in `~/.myagent/`:
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
 DEEPSEEK_API_KEY=sk-...
+ZHIPU_API_KEY=...
 
 # Gateway
 FEISHU_APP_ID=cli_...
 FEISHU_APP_SECRET=...
 SLACK_BOT_TOKEN=xoxb-...
 TELEGRAM_BOT_TOKEN=...
+DISCORD_BOT_TOKEN=...
+
+# GitHub Integration
+GITHUB_TOKEN=ghp_...
+GITHUB_APP_ID=...
+GITHUB_WEBHOOK_SECRET=...
 
 # MyAgent
 MYAGENT_HOME=/custom/path

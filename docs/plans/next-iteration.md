@@ -15,9 +15,9 @@
 | Phase 4 | 高级特性 | 80% | LSP、TTS、图像、远程桥接、定时任务就绪 |
 | Phase 5 | TUI | 95% | 核心框架、对话、工具可视化、权限、配置完成 |
 | Phase 6 | Web UI | 70% | 基础界面可用，可继续增强 |
-| Phase 7 | Gateway | 20% | 抽象基类和 Manager 就绪，适配器待完善 |
-| Phase 8 | 生产优化 | 10% | 基础 CostTracker 就绪，日志/监控待完善 |
-| Phase 9 | 生态扩展 | 30% | 7 个 LLM 提供商、6 个核心工具 |
+| Phase 7 | Gateway | 80% | Telegram/GitHub 适配器完成，会话持久化，JWT 认证 |
+| Phase 8 | 生产优化 | 30% | 基础 CostTracker 就绪，Git 工具已添加 |
+| Phase 9 | 生态扩展 | 40% | 9 个 LLM 提供商、7 个核心工具 |
 
 ---
 
@@ -58,99 +58,100 @@
 
 **优先级**: ⭐⭐⭐
 
-Gateway 骨架已就绪，需完善具体平台适配器：
+Gateway 核心框架已完成，Telegram 和 GitHub 适配器已就绪：
 
-### 2.1 Discord 适配器
-- discord.py 集成
-- 斜杠命令注册（/ask /reset /status）
-- 线程对话支持
+### 2.1 已完成的适配器
+- **Telegram** — 长轮询接收消息，内联键盘权限审批，消息去重
+- **GitHub** — Webhook 事件处理，PR/Issue 自动分析评论，签名验证
 
-### 2.2 Slack 适配器
-- slack-sdk 集成
-- Block Kit 消息格式
-- 提及触发（@myagent）
+### 2.2 待完成的适配器
+- **Discord** — discord.py 集成，斜杠命令注册，线程对话支持
+- **Slack** — slack-sdk 集成，Block Kit 消息格式，提及触发（@myagent）
 
-### 2.3 Telegram 适配器
-- python-telegram-bot 集成
-- 命令菜单（/start /help /reset）
-- 内联查询支持
-
-### 2.4 会话池优化
-- LRU 缓存，最大 128 会话
-- 1 小时 TTL 自动驱逐
-- 每个会话独立 QueryEngine
+### 2.3 会话管理优化
+- ✅ 用户-会话绑定持久化（`~/.myagent/gateway_sessions.yaml`）
+- ✅ 服务重启后会话恢复
+- LRU 缓存，最大 128 会话（待实现）
+- 1 小时 TTL 自动驱逐（待实现）
 
 ---
 
-## 迭代方向三：工具扩展
+## 迭代方向三：生产级优化
 
-**优先级**: ⭐⭐
+**优先级**: ⭐⭐⭐
 
-当前工具集：Read、Write、Edit、Bash、Glob、Grep、WebSearch、WebFetch
+### 3.1 日志和监控
+- 结构化日志（JSON 格式）
+- 关键指标：请求延迟、工具成功率、Token 消耗
+- Prometheus /metrics 端点
 
-### 3.1 Git 操作工具
-- `git_diff` — 查看变更
-- `git_log` — 查看提交历史
-- `git_blame` — 查看代码归属
+### 3.2 配置热重载
+- 监听配置文件变化
+- 无需重启即可更新模型、系统提示
 
-### 3.2 数据库查询工具
-- `sql_query` — 执行 SQL 并返回结果
-- `db_schema` — 查看表结构
+### 3.3 错误恢复
+- LLM 调用重试（指数退避）
+- 工具失败优雅降级
+- ✅ 会话状态自动保存（Web UI + Gateway）
 
-### 3.3 浏览器自动化
-- `browser_open` — 打开网页
-- `browser_screenshot` — 页面截图
-- `browser_click` — 模拟点击
-
-### 3.4 文件分析工具
-- `csv_read` — 读取并分析 CSV
-- `json_query` — 使用 jq 语法查询 JSON
-
----
-
-## 迭代方向四：上下文压缩
-
-**优先级**: ⭐⭐
-
-已有 `context_compression.py` 模块，可深化集成：
-
-### 4.1 Token 监控
-- 实时监控对话 token 使用量
-- 接近阈值时预警
-
-### 4.2 自动摘要
-- 达到阈值时自动摘要早期对话
-- 保留系统提示词和最近 N 轮对话
-- 摘要内容注入上下文
-
-### 4.3 智能截断
-- 优先截断工具执行详情
-- 保留用户核心意图
+### 3.4 部署优化
+- ✅ Docker Compose 多服务编排
+- ✅ 环境变量配置
+- ✅ 健康检查端点
+- GitHub Webhook 路由配置文档
 
 ---
 
-## 迭代方向五：生产级优化
+## 迭代方向四：Web UI 增强
 
 **优先级**: ⭐⭐
 
-### 5.1 结构化日志
-- JSON 格式日志输出
-- 按模块分类（engine、tools、llm、security）
-- 日志轮转与清理
+### 4.1 已完成的增强
+- ✅ 代码块复制按钮
+- ✅ 消息时间戳
+- ✅ 工具面板可折叠
+- ✅ 欢迎页快捷操作卡片
+- ✅ JWT 认证系统（登录/密码设置）
+- ✅ 多用户会话隔离
+- ✅ Esc 快捷键关闭设置面板
 
-### 5.2 指标收集
-- Prometheus 指标暴露
-- 请求延迟、token 消耗、错误率
-- Grafana 仪表盘模板
+### 4.2 待完成的增强
+- 会话历史列表（侧边栏）
+- 会话重命名和删除
+- 会话导出（Markdown / JSON）
+- 消息编辑和重新发送
+- 模型选择下拉框
+- 系统提示编辑
+- 主题切换（暗色/亮色）
+- 移动端响应式布局
 
-### 5.3 配置热重载
-- 监听 `~/.myagent/config.yaml` 变更
-- 无需重启生效
+---
 
-### 5.4 健康检查
-- `/health` 端点
-- LLM 连接状态检测
-- 磁盘空间检查
+## 迭代方向五：Agent 能力增强
+
+**优先级**: ⭐⭐
+
+### 5.1 工具扩展
+- ✅ Git 操作工具（status、diff、log、add、commit、push、branch、checkout）
+- ✅ SSRF 保护（WebFetch）
+- 更多工具类型（数据库、浏览器）
+- 工具组合（链式调用）
+- 工具权限分级
+
+### 5.2 记忆系统
+- 自动记忆提取（对话中识别关键信息）
+- 记忆检索增强（RAG）
+- 跨会话记忆共享
+
+### 5.3 多模态支持
+- 图片理解（已有基础）
+- 语音输入/输出
+- 文档解析（PDF、Word）
+
+### 5.4 代码能力
+- 代码解释器（Python 沙箱）
+- 代码重构建议
+- 测试用例生成
 
 ---
 
@@ -197,38 +198,32 @@ Gateway 骨架已就绪，需完善具体平台适配器：
 
 ---
 
-## 推荐迭代顺序
+## 推荐优先级
 
-### 第一优先级（近期 1-2 周）
-1. **Web UI 增强** — 会话管理、代码高亮、设置面板
-2. **TUI 多行输入** — 替换 Input 为 TextArea
-
-### 第二优先级（中期 2-4 周）
-3. **Gateway 适配器** — Discord / Slack / Telegram
-4. **工具扩展** — Git 操作、数据库查询
-
-### 第三优先级（长期 1-2 月）
-5. **上下文压缩** — 自动摘要、智能截断
-6. **生产优化** — 结构化日志、指标收集
-7. **更多 LLM** — 国内模型接入
+1. ✅ **Phase 1**（Web UI 修复）— 已完成
+2. ✅ **Phase 2**（OpenClaw Core）— 已完成
+3. ✅ **Phase 3**（Gateway 完善）— 已完成
+4. **Phase 4**（上下文压缩深化）— 提升长对话体验
+5. **Phase 5**（生产优化）— 部署稳定性
 
 ---
 
-## 决策建议
+## 总结
 
-| 场景 | 推荐方向 |
-|------|----------|
-| 想快速看到效果 | Web UI 增强 |
-| 需要多平台接入 | Gateway 适配器 |
-| 处理长对话频繁 | 上下文压缩 |
-| 准备生产部署 | 生产优化 |
-| 团队协作场景 | Agent Teams 完善 |
+MyAgent 已经具备了**生产可用的核心功能**：
+- ✅ 多 LLM 支持（9 个提供商）
+- ✅ 核心工具集（9 个工具，含 Git）
+- ✅ TUI 和 Web UI 双界面
+- ✅ Gateway 多平台（Telegram + GitHub Webhook）
+- ✅ 会话持久化（Web UI + Gateway）
+- ✅ JWT 认证与多用户隔离
+- ✅ 基础安全（权限检查、SSRF 防护、沙箱）
 
----
+**下一步重点**：
+1. 上下文压缩自动触发与 Token 监控
+2. Discord / Slack 适配器
+3. 生产级日志和监控（Prometheus / Grafana）
+4. 移动端 Web UI 响应式适配
+5. 配置热重载
 
-## 相关文档
-
-- [v0.11.0 整改方案](v0.11.0-redesign.md) — 架构整改详细方案
-- [Web UI 设计规范](../design/02-web-ui-design.md) — Web UI 设计细节
-- [Gateway 架构](../architecture/07-gateway.md) — Gateway 技术架构
-- [概念引用](../reference/04-concept-references.md) — 参考项目概念映射
+预计 **1-2 个迭代周期** 可完成全部优化，达到完全生产可用状态。

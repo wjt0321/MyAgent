@@ -82,9 +82,9 @@ docs/
 | architecture/04-task-engine.md | ✅ | Task Engine 已完成 |
 | architecture/05-agent-teams.md | ✅ | Agent Teams 已完成 |
 | architecture/06-codebase.md | ✅ | 代码理解系统已完成 |
-| architecture/07-gateway.md | 📋 | Gateway 基础框架，待完善适配器 |
+| architecture/07-gateway.md | 🔄 | Gateway 框架完成，Telegram/GitHub 适配器已就绪 |
 | design/01-tui-design.md | ✅ | TUI 设计规范 |
-| design/02-web-ui-design.md | 🔄 | Web UI 已重构，待补充设计规范 |
+| design/02-web-ui-design.md | 🔄 | Web UI 已重构，JWT 认证已添加 |
 | design/03-interaction-patterns.md | 🔄 | 基础交互模式 |
 | reference/01-getting-started.md | ✅ | 快速入门指南 |
 | reference/02-configuration.md | ✅ | 配置参考 |

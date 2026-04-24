@@ -23,13 +23,15 @@
 
 ## 功能特性
 
-- **多渠道网关** — 统一管理所有消息平台的收件箱
+- **多渠道网关** — 统一管理所有消息平台的收件箱（Telegram、Discord、Slack、飞书等）
 - **TUI 界面** — 带有 ASCII 艺术 Logo 的富终端界面
-- **Web UI** — 基于 WebSocket 的实时聊天，支持设置与重置
-- **多 LLM 支持** — OpenAI、Anthropic、DeepSeek、Gemini、通义千问、Ollama、Azure、OpenRouter
-- **上下文压缩** — 自动压缩对话历史
-- **会话管理** — 支持按用户、按群组、按话题的会话隔离
-- **工具调用** — Bash、文件编辑、网页搜索、图像分析
+- **Web UI** — 基于 WebSocket 的实时聊天，支持 JWT 认证与多用户会话隔离
+- **多 LLM 支持** — OpenAI、Anthropic、DeepSeek、Gemini、通义千问、Ollama、Azure、OpenRouter、智谱
+- **上下文压缩** — 自动压缩对话历史，支持 AutoCompactor
+- **会话管理** — 支持按用户、按群组、按话题的会话隔离，支持持久化绑定
+- **工具调用** — Bash、文件编辑、网页搜索、图像分析、Git 操作
+- **权限系统** — Telegram 内联键盘审批与 Web UI 权限请求
+- **GitHub 集成** — Webhook 驱动的 PR/Issue 分析与自动评论
 - **生产就绪** — Docker、健康检查、指标监控、结构化日志
 
 ## 界面截图
@@ -106,12 +108,19 @@ myagent --version         # 显示版本
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
 DEEPSEEK_API_KEY=sk-...
+ZHIPU_API_KEY=...
 
 # 网关
 FEISHU_APP_ID=cli_...
 FEISHU_APP_SECRET=...
 SLACK_BOT_TOKEN=xoxb-...
 TELEGRAM_BOT_TOKEN=...
+DISCORD_BOT_TOKEN=...
+
+# GitHub 集成
+GITHUB_TOKEN=ghp_...
+GITHUB_APP_ID=...
+GITHUB_WEBHOOK_SECRET=...
 
 # MyAgent
 MYAGENT_HOME=/custom/path

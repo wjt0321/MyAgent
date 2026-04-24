@@ -15,10 +15,10 @@ Telegraph style. Root rules only. Read scoped `AGENT.md` before touching a subtr
 - CLI entry: `src/myagent/cli.py`
 - Web UI: `src/myagent/web/` (FastAPI + static files)
 - TUI: `src/myagent/tui/` (Textual)
-- Gateway: `src/myagent/gateway/` (multi-platform adapters)
+- Gateway: `src/myagent/gateway/` (multi-platform adapters, session persistence)
 - Engine: `src/myagent/engine/` (QueryEngine, context compression)
-- LLM providers: `src/myagent/llm/providers/` (OpenAI, Anthropic, DeepSeek, etc.)
-- Tools: `src/myagent/tools/` (Bash, Read, Write, Edit, Glob, Grep, etc.)
+- LLM providers: `src/myagent/llm/providers/` (OpenAI, Anthropic, DeepSeek, Zhipu, etc.)
+- Tools: `src/myagent/tools/` (Bash, Read, Write, Edit, Glob, Grep, Git, WebFetch, etc.)
 - Workspace: `src/myagent/workspace/` (manager, templates, project)
 - Memory: `src/myagent/memory/` (manager, collection)
 - Tasks: `src/myagent/tasks/` (models, engine)
@@ -28,6 +28,7 @@ Telegraph style. Root rules only. Read scoped `AGENT.md` before touching a subtr
 - Plugins: `src/myagent/plugins/` (loader, manifest, registry, discovery, api)
 - MCP: `src/myagent/mcp/` (client, config, types)
 - Config: `src/myagent/config/` (settings, hot_reload)
+- Web Auth: `src/myagent/web/auth.py` (JWT authentication)
 - Docs: `docs/` (structured documentation)
 - Tests: `tests/`
 
@@ -65,6 +66,9 @@ Scoped guides:
 - Pre-commit: run `ruff check` and `mypy src/` before committing.
 - Do not land related failing format/lint/type/tests.
 - If failures are unrelated on latest `origin/main`, say so and give scoped proof.
+- Gateway adapters: Telegram supports inline permission requests via `send_permission_request()`.
+- Web UI auth: JWT-based, optional password protection via `myagent.web.auth`.
+- Session isolation: Web UI sessions are scoped per-user via `user_id` field.
 
 ## Code Style
 
