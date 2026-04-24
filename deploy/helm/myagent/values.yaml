@@ -1,0 +1,118 @@
+replicaCount: 1
+
+image:
+  repository: myagent
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: myagent.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# MyAgent specific configuration
+myagent:
+  # LLM Provider settings
+  provider: "anthropic"
+  model: "claude-sonnet-4"
+  
+  # API Keys (use secrets in production)
+  apiKeys:
+    anthropic: ""
+    openai: ""
+    deepseek: ""
+    zhipu: ""
+    moonshot: ""
+    minimax: ""
+    xai: ""
+    gemini: ""
+    dashscope: ""
+  
+  # Gateway settings
+  gateway:
+    enabled: true
+    telegram:
+      enabled: false
+      token: ""
+    discord:
+      enabled: false
+      token: ""
+    slack:
+      enabled: false
+      token: ""
+    feishu:
+      enabled: false
+      appId: ""
+      appSecret: ""
+  
+  # Web UI settings
+  web:
+    enabled: true
+    host: "0.0.0.0"
+    port: 8080
+    jwtSecret: ""
+  
+  # Monitoring
+  monitoring:
+    enabled: true
+    metricsPort: 9090
+  
+  # Persistence
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 1Gi
+    accessMode: ReadWriteOnce

@@ -1,0 +1,17 @@
+{{- if .Values.myagent.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "myagent.fullname" . }}-metrics
+  labels:
+    {{- include "myagent.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "myagent.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+{{- end }}

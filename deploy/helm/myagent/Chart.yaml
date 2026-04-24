@@ -1,0 +1,17 @@
+apiVersion: v2
+name: myagent
+description: A Helm chart for MyAgent - Autonomous AI Agent Platform
+type: application
+version: 0.1.0
+appVersion: "0.12.0"
+keywords:
+  - ai
+  - agent
+  - llm
+  - chatbot
+home: https://github.com/wjt0321/MyAgent
+sources:
+  - https://github.com/wjt0321/MyAgent
+maintainers:
+  - name: wjt0321
+    email: email@wxbfnnas.asia

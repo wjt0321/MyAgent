@@ -1,0 +1,48 @@
+{{- if .Values.myagent.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "myagent.fullname" . }}-alerts
+  labels:
+    {{- include "myagent.labels" . | nindent 4 }}
+spec:
+  groups:
+    - name: myagent
+      interval: 30s
+      rules:
+        - alert: MyAgentHighErrorRate
+          expr: rate(query_errors_total[5m]) / rate(query_requests_total[5m]) > 0.1
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "MyAgent high error rate"
+            description: "Error rate is {{ $value | humanizePercentage }}"
+
+        - alert: MyAgentHighLatency
+          expr: histogram_quantile(0.95, rate(query_duration_seconds_bucket[5m])) > 10
+          for: 3m
+          labels:
+            severity: warning
+          annotations:
+            summary: "MyAgent high latency"
+            description: "95th percentile latency is {{ $value }}s"
+
+        - alert: MyAgentLLMProviderErrors
+          expr: rate(query_errors_total[5m]) > 0.5
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "MyAgent LLM provider errors"
+            description: "LLM error rate is {{ $value }}/sec"
+
+        - alert: MyAgentToolFailures
+          expr: rate(tool_failure_total[5m]) / (rate(tool_success_total[5m]) + rate(tool_failure_total[5m])) > 0.3
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "MyAgent tool failures"
+            description: "Tool failure rate is {{ $value | humanizePercentage }}"
+{{- end }}

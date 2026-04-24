@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: myagent-metrics
+  labels:
+    app: myagent
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: myagent
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s

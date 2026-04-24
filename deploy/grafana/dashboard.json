@@ -1,0 +1,136 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "MyAgent Overview",
+    "tags": ["myagent", "ai", "agent"],
+    "timezone": "utc",
+    "schemaVersion": 36,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Requests / Second",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(query_requests_total[5m])",
+            "legendFormat": "{{agent}}"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Error Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(query_errors_total[5m]) / rate(query_requests_total[5m])",
+            "legendFormat": "error rate"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Avg Response Time",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(query_duration_seconds_sum[5m]) / rate(query_duration_seconds_count[5m])",
+            "legendFormat": "avg latency"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Active Sessions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "gateway_active_sessions",
+            "legendFormat": "{{platform}}"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Request Latency Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "rate(query_duration_seconds_bucket[5m])",
+            "legendFormat": "{{le}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "id": 6,
+        "title": "Tool Success Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(tool_success_total[5m]) / (rate(tool_success_total[5m]) + rate(tool_failure_total[5m]))",
+            "legendFormat": "{{tool_name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      },
+      {
+        "id": 7,
+        "title": "Token Usage",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "query_context_tokens",
+            "legendFormat": "context tokens"
+          },
+          {
+            "expr": "rate(query_tokens_total[5m])",
+            "legendFormat": "tokens/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+      },
+      {
+        "id": 8,
+        "title": "Context Compactions",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(query_compactions_total[5m])",
+            "legendFormat": "compactions/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+      },
+      {
+        "id": 9,
+        "title": "Gateway Messages by Platform",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(gateway_messages_received_total[5m])",
+            "legendFormat": "{{platform}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20}
+      },
+      {
+        "id": 10,
+        "title": "Cost Tracking",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "cost_tracker_total_cost",
+            "legendFormat": "total cost USD"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20}
+      }
+    ]
+  }
+}
