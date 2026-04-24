@@ -17,7 +17,7 @@ Telegraph style. Root rules only. Read scoped `AGENT.md` before touching a subtr
 - TUI: `src/myagent/tui/` (Textual)
 - Gateway: `src/myagent/gateway/` (multi-platform adapters, session persistence)
 - Engine: `src/myagent/engine/` (QueryEngine, context compression)
-- LLM providers: `src/myagent/llm/providers/` (23 providers: Anthropic, OpenAI, DeepSeek, Gemini, xAI, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Ollama, OpenRouter, Baidu, Spark, Doubao, Hunyuan)
+- LLM providers: `src/myagent/llm/providers/` (35+ providers: Anthropic, OpenAI, DeepSeek, Gemini, xAI, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Ollama, OpenRouter, Baidu, Spark, Doubao, Hunyuan)
 - Tools: `src/myagent/tools/` (Bash, CodeInterpreter, Read, Write, Edit, Glob, Grep, Git, WebFetch, etc.)
 - Memory: `src/myagent/memory/extractor.py` — MemoryExtractor, MemoryRAG
 - Deploy: `deploy/` — Helm Chart, Grafana Dashboard, Prometheus alerts

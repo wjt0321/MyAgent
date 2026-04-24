@@ -26,7 +26,7 @@ Supported platforms: **Feishu/Lark, Slack, Discord, Telegram, DingTalk, WeCom, W
 - **Multi-Channel Gateway** — Unified inbox for all messaging platforms (Telegram, Discord, Slack, Feishu, etc.)
 - **TUI Interface** — Rich terminal UI with ASCII art logo
 - **Web UI** — Real-time WebSocket chat with JWT authentication and multi-user session isolation
-- **Multi-LLM Support** — 23 Providers (Intl + China): Anthropic, OpenAI, DeepSeek, Gemini, xAI, Qwen, Ollama, OpenRouter, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Baidu, Spark, Doubao, Hunyuan
+- **Multi-LLM Support** — 35+ Providers (Intl + China): Anthropic (Claude 4.6/4.5), OpenAI (GPT-5.5/5/4.5), DeepSeek (V4 Pro/V4 Flash/V3/R1), Gemini (3.1 Pro/3 Flash/2.5 Pro), xAI (Grok 4/3), Qwen 3.6, Ollama, OpenRouter, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Baidu ERNIE, iFlytek Spark, ByteDance Doubao, Tencent Hunyuan
 - **Context Compression** — Automatic conversation compaction with AutoCompactor
 - **Session Management** — Per-user, per-group, per-thread sessions with persistent bindings
 - **Tool Calling** — Bash, Code Interpreter (Python sandbox), file edit, web search, image analysis, Git operations

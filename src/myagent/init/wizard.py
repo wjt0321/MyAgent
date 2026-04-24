@@ -53,69 +53,69 @@ def _print_header() -> None:
     logo = get_logo(term_width)
     console.print(f"[dim]{logo}[/dim]")
     console.print(Panel.fit(
-        f"[bold cyan]MyAgent v{__version__}[/bold cyan] — Initialization Wizard\n"
-        "[dim]This wizard will guide you through the first-time setup.[/dim]",
+        f"[bold cyan]MyAgent v{__version__}[/bold cyan] — 初始化向导\n"
+        "[dim]本向导将引导您完成首次配置。[/dim]",
         border_style="cyan",
     ))
 
 
 def _step_welcome() -> bool:
-    console.print("\n[bold]Welcome![/bold] Let's get MyAgent ready to use.\n")
-    console.print("The wizard will:")
-    console.print("  1. Create your MyAgent Workspace (soul, memory, projects)")
-    console.print("  2. Set up your user profile for personalized responses")
-    console.print("  3. Configure your LLM provider (OpenAI, Anthropic, etc.)")
-    console.print("  4. Set up Gateway platforms (Feishu, Slack, Discord, etc.)")
-    console.print("  5. Generate config files and environment variables\n")
-    return Confirm.ask("Continue with setup?", default=True)
+    console.print("\n[bold]欢迎使用！[/bold] 让我们开始配置 MyAgent。\n")
+    console.print("本向导将帮助您完成以下设置：")
+    console.print("  1. 创建工作区（soul、memory、projects）")
+    console.print("  2. 设置用户画像，获得个性化回复")
+    console.print("  3. 配置大语言模型（OpenAI、Anthropic、DeepSeek 等）")
+    console.print("  4. 配置消息网关（飞书、Slack、Discord 等）")
+    console.print("  5. 生成配置文件和环境变量\n")
+    return Confirm.ask("是否继续配置？", default=True)
 
 
 def _step_workspace() -> Path:
     home = _myagent_home()
-    console.print("\n[bold]Step 1: Workspace Setup[/bold]")
+    console.print("\n[bold]步骤 1：工作区设置[/bold]")
     console.print(
-        "MyAgent uses a Workspace to store memories, projects, and configuration.\n"
-        "This is inspired by Claude Code's memdir and OpenHarness's ohmo system.\n"
+        "MyAgent 使用工作区来存储记忆、项目和配置。\n"
+        "灵感来源于 Claude Code 的 memdir 和 OpenHarness 的 ohmo 系统。\n"
     )
 
     ws = ensure_workspace(home)
     initialize_workspace(home)
 
-    console.print(f"[green]Created workspace[/green] {ws}")
-    console.print("  [dim]- soul.md (agent personality & principles)[/dim]")
-    console.print("  [dim]- user.md (your profile — editable anytime)[/dim]")
-    console.print("  [dim]- identity.md (agent identity & capabilities)[/dim]")
-    console.print("  [dim]- memory/ (persistent memory storage)[/dim]")
-    console.print("  [dim]- projects/ (project workspaces)[/dim]")
-    console.print("  [dim]- sessions/ (conversation history)[/dim]")
-    console.print("  [dim]- logs/ (operation logs)[/dim]")
+    console.print(f"[green]已创建工作区[/green] {ws}")
+    console.print("  [dim]- soul.md（Agent 人格与原则）[/dim]")
+    console.print("  [dim]- user.md（您的画像 — 可随时编辑）[/dim]")
+    console.print("  [dim]- identity.md（Agent 身份与能力）[/dim]")
+    console.print("  [dim]- memory/（持久化记忆存储）[/dim]")
+    console.print("  [dim]- projects/（项目工作区）[/dim]")
+    console.print("  [dim]- sessions/（对话历史）[/dim]")
+    console.print("  [dim]- logs/（操作日志）[/dim]")
     return ws
 
 
 def _step_user_profile(ws: Path) -> dict[str, str]:
-    console.print("\n[bold]Step 2: User Profile[/bold]")
+    console.print("\n[bold]步骤 2：用户画像[/bold]")
     console.print(
-        "This helps me personalize responses. You can skip and edit ~/.myagent/user.md later.\n"
+        "这将帮助我为您提供更个性化的回复。您可以跳过此步骤，稍后编辑 ~/.myagent/user.md。\n"
     )
 
     profile: dict[str, str] = {}
 
-    if not Confirm.ask("Set up your profile now?", default=True):
+    if not Confirm.ask("是否立即设置用户画像？", default=True):
         return profile
 
-    name = Prompt.ask("Your name (or nickname)", default="User")
-    role = Prompt.ask("Your role", default="Software Engineer")
-    tz = Prompt.ask("Timezone", default="UTC+8")
-    langs = Prompt.ask("Languages", default="Chinese, English")
+    name = Prompt.ask("您的姓名（或昵称）", default="用户")
+    role = Prompt.ask("您的职位", default="软件工程师")
+    tz = Prompt.ask("时区", default="UTC+8")
+    langs = Prompt.ask("常用语言", default="中文、英文")
 
-    console.print("\n[bold]Technical Background[/bold]")
-    primary_langs = Prompt.ask("Primary programming languages", default="Python, TypeScript")
-    frameworks = Prompt.ask("Frameworks & tools", default="FastAPI, React, Docker")
-    exp = Prompt.ask("Experience level", choices=["Junior", "Mid-level", "Senior", "Expert"], default="Senior")
+    console.print("\n[bold]技术背景[/bold]")
+    primary_langs = Prompt.ask("主要编程语言", default="Python、TypeScript")
+    frameworks = Prompt.ask("常用框架和工具", default="FastAPI、React、Docker")
+    exp = Prompt.ask("经验水平", choices=["初级", "中级", "高级", "专家"], default="高级")
 
-    console.print("\n[bold]Preferences[/bold]")
-    comm_style = Prompt.ask("Communication style", choices=["Concise", "Detailed", "Technical"], default="Concise")
-    decision = Prompt.ask("Decision style", choices=["Quick", "Thorough"], default="Thorough")
+    console.print("\n[bold]偏好设置[/bold]")
+    comm_style = Prompt.ask("沟通风格", choices=["简洁", "详细", "技术"], default="简洁")
+    decision = Prompt.ask("决策风格", choices=["快速", " thorough"], default="thorough")
 
     profile = {
         "name": name,
@@ -130,86 +130,86 @@ def _step_user_profile(ws: Path) -> dict[str, str]:
     }
 
     # Write user.md
-    user_md = f"""# user.md — About Your Human
+    user_md = f"""# user.md — 关于您
 
-## Profile
+## 基本信息
 
-- **Name**: {name}
-- **Role**: {role}
-- **Timezone**: {tz}
-- **Languages**: {langs}
+- **姓名**: {name}
+- **职位**: {role}
+- **时区**: {tz}
+- **语言**: {langs}
 
-## Technical Background
+## 技术背景
 
-- **Primary languages**: {primary_langs}
-- **Frameworks & tools**: {frameworks}
-- **Experience level**: {exp}
+- **主要语言**: {primary_langs}
+- **框架与工具**: {frameworks}
+- **经验水平**: {exp}
 
-## Preferences
+## 偏好设置
 
-- **Communication style**: {comm_style}
-- **Decision style**: {decision}
-- **Code style**: (e.g., PEP 8, Google Style)
+- **沟通风格**: {comm_style}
+- **决策风格**: {decision}
+- **代码风格**: (例如：PEP 8、Google Style)
 
-## Ongoing Context
+## 当前上下文
 
-- **Current projects**: (What you're working on)
-- **Goals**: (What you want to achieve)
-- **Challenges**: (Current blockers or difficulties)
+- **进行中的项目**: (您正在做什么)
+- **目标**: (您想要达成什么)
+- **挑战**: (当前的阻碍或困难)
 
-## What Works Well
+## 有效做法
 
-- (Things you like about how I help)
+- (您喜欢我帮助您的方式)
 
-## What to Avoid
+## 需要避免
 
-- (Things that annoy you or don't work)
+- (让您感到困扰或无效的做法)
 
 ---
 
-*This file helps me understand you better. Update it anytime your preferences change.*
+*本文件帮助我更好地了解您。当您的偏好发生变化时，请随时更新。*
 """
     user_path = ws / "user.md"
     user_path.write_text(user_md, encoding="utf-8")
-    console.print(f"[green]Wrote[/green] {user_path}")
+    console.print(f"[green]已写入[/green] {user_path}")
 
     # Also create a memory entry for user role
     from myagent.memory.manager import MemoryManager, MemoryEntry, MemoryType
     mm = MemoryManager(ws / "memory")
     entry = MemoryEntry(
-        name="User Profile",
+        name="用户画像",
         description=f"{name} — {role} ({exp})",
         type=MemoryType.USER,
-        content=f"Name: {name}\nRole: {role}\nExperience: {exp}\nLanguages: {primary_langs}\nFrameworks: {frameworks}\nCommunication: {comm_style}\nDecision: {decision}",
+        content=f"姓名: {name}\n职位: {role}\n经验: {exp}\n语言: {primary_langs}\n框架: {frameworks}\n沟通风格: {comm_style}\n决策风格: {decision}",
     )
     mm.save_memory(entry)
-    console.print(f"[green]Saved memory[/green] User Profile")
+    console.print(f"[green]已保存记忆[/green] 用户画像")
 
     return profile
 
 
 def _step_llm_provider() -> dict[str, Any]:
-    console.print("\n[bold]Step 3: LLM Provider Configuration[/bold]")
-    console.print("MyAgent needs an LLM to power conversations.\n")
+    console.print("\n[bold]步骤 3：大语言模型配置[/bold]")
+    console.print("MyAgent 需要一个大语言模型来驱动对话。\n")
 
     providers = {
-        "1": ("openai", "OpenAI (GPT-4o, GPT-4o-mini)"),
-        "2": ("anthropic", "Anthropic (Claude 3.5/4 Sonnet, Opus)"),
-        "3": ("deepseek", "DeepSeek (V3, R1)"),
-        "4": ("gemini", "Google Gemini (1.5 Pro, Flash)"),
-        "5": ("qwen", "Alibaba Qwen (Qwen-Max, Plus)"),
-        "6": ("siliconflow", "SiliconFlow (aggregated Chinese models)"),
-        "7": ("ollama", "Ollama (local models — llama3, mistral, etc.)"),
-        "8": ("azure", "Azure OpenAI Service"),
-        "9": ("openrouter", "OpenRouter (unified API for many models)"),
-        "0": ("skip", "Skip for now — configure later"),
+        "1": ("openai", "OpenAI（GPT-4o、GPT-4o-mini）"),
+        "2": ("anthropic", "Anthropic（Claude 3.5/4 Sonnet、Opus）"),
+        "3": ("deepseek", "DeepSeek（V3、R1）"),
+        "4": ("gemini", "Google Gemini（1.5 Pro、Flash）"),
+        "5": ("qwen", "阿里云通义千问（Qwen-Max、Plus）"),
+        "6": ("siliconflow", "SiliconFlow（聚合国内模型）"),
+        "7": ("ollama", "Ollama（本地模型 — llama3、mistral 等）"),
+        "8": ("azure", "Azure OpenAI 服务"),
+        "9": ("openrouter", "OpenRouter（统一 API，支持多模型）"),
+        "0": ("skip", "跳过 — 稍后配置"),
     }
 
     for key, (_, label) in providers.items():
         console.print(f"  [{key}] {label}")
 
     choice = Prompt.ask(
-        "\nSelect provider",
+        "\n请选择提供商",
         choices=list(providers.keys()),
         default="2",
     )
@@ -217,10 +217,10 @@ def _step_llm_provider() -> dict[str, Any]:
     provider_id, _ = providers[choice]
 
     if provider_id == "skip":
-        console.print("[yellow]Skipped LLM config. Set MYAGENT_* env vars later.[/yellow]")
+        console.print("[yellow]已跳过 LLM 配置。稍后请设置 MYAGENT_* 环境变量。[/yellow]")
         return {}
 
-    api_key = Prompt.ask(f"Enter your {provider_id.upper()} API key", password=True)
+    api_key = Prompt.ask(f"请输入您的 {provider_id.upper()} API 密钥", password=True)
 
     model_map = {
         "openai": "gpt-4o",
@@ -234,7 +234,7 @@ def _step_llm_provider() -> dict[str, Any]:
         "openrouter": "anthropic/claude-sonnet-4",
     }
     default_model = model_map.get(provider_id, "")
-    model = Prompt.ask("Default model", default=default_model)
+    model = Prompt.ask("默认模型", default=default_model)
 
     result: dict[str, Any] = {
         "provider": provider_id,
@@ -243,85 +243,85 @@ def _step_llm_provider() -> dict[str, Any]:
     }
 
     if provider_id == "ollama":
-        base_url = Prompt.ask("Ollama base URL", default="http://localhost:11434")
+        base_url = Prompt.ask("Ollama 服务地址", default="http://localhost:11434")
         result["base_url"] = base_url
 
     if provider_id == "azure":
-        azure_endpoint = Prompt.ask("Azure endpoint URL")
+        azure_endpoint = Prompt.ask("Azure 终结点 URL")
         result["azure_endpoint"] = azure_endpoint
-        result["api_version"] = Prompt.ask("API version", default="2024-08-01-preview")
+        result["api_version"] = Prompt.ask("API 版本", default="2024-08-01-preview")
 
-    console.print(f"[green]Configured[/green] {provider_id} -> {model}")
+    console.print(f"[green]已配置[/green] {provider_id} -> {model}")
     return result
 
 
 def _step_gateway_platforms() -> dict[str, Any]:
-    console.print("\n[bold]Step 4: Gateway Platforms[/bold]")
+    console.print("\n[bold]步骤 4：消息网关平台[/bold]")
     console.print(
-        "MyAgent can receive messages from messaging platforms.\n"
-        "Enable the ones you want to connect (you can add more later).\n"
+        "MyAgent 可以接收来自消息平台的指令。\n"
+        "启用您想要连接的平台（稍后可以继续添加）。\n"
     )
 
     platforms: dict[str, Any] = {}
 
-    if Confirm.ask("Enable [bold]Feishu/Lark[/bold] (飞书)?", default=False):
-        app_id = Prompt.ask("  Feishu App ID")
-        app_secret = Prompt.ask("  Feishu App Secret", password=True)
+    if Confirm.ask("是否启用 [bold]飞书/Lark[/bold]？", default=False):
+        app_id = Prompt.ask("  飞书 App ID")
+        app_secret = Prompt.ask("  飞书 App Secret", password=True)
         platforms["feishu"] = {
             "enabled": True,
             "app_id": app_id,
             "app_secret": app_secret,
         }
-        console.print("  [green]Feishu configured[/green]")
+        console.print("  [green]飞书已配置[/green]")
 
-    if Confirm.ask("Enable [bold]Slack[/bold]?", default=False):
-        token = Prompt.ask("  Slack Bot Token (xoxb-...)", password=True)
+    if Confirm.ask("是否启用 [bold]Slack[/bold]？", default=False):
+        token = Prompt.ask("  Slack Bot Token（xoxb-...）", password=True)
         platforms["slack"] = {
             "enabled": True,
             "token": token,
         }
-        console.print("  [green]Slack configured[/green]")
+        console.print("  [green]Slack 已配置[/green]")
 
-    if Confirm.ask("Enable [bold]Discord[/bold]?", default=False):
+    if Confirm.ask("是否启用 [bold]Discord[/bold]？", default=False):
         token = Prompt.ask("  Discord Bot Token", password=True)
         platforms["discord"] = {
             "enabled": True,
             "token": token,
         }
-        console.print("  [green]Discord configured[/green]")
+        console.print("  [green]Discord 已配置[/green]")
 
-    if Confirm.ask("Enable [bold]Telegram[/bold]?", default=False):
+    if Confirm.ask("是否启用 [bold]Telegram[/bold]？", default=False):
         token = Prompt.ask("  Telegram Bot Token", password=True)
         platforms["telegram"] = {
             "enabled": True,
             "token": token,
         }
-        console.print("  [green]Telegram configured[/green]")
+        console.print("  [green]Telegram 已配置[/green]")
 
-    if Confirm.ask("Enable [bold]DingTalk[/bold] (钉钉)?", default=False):
-        client_id = Prompt.ask("  DingTalk Client ID")
-        client_secret = Prompt.ask("  DingTalk Client Secret", password=True)
+    if Confirm.ask("是否启用 [bold]钉钉[/bold]？", default=False):
+        client_id = Prompt.ask("  钉钉 Client ID")
+        client_secret = Prompt.ask("  钉钉 Client Secret", password=True)
         platforms["dingtalk"] = {
             "enabled": True,
             "client_id": client_id,
             "client_secret": client_secret,
         }
-        console.print("  [green]DingTalk configured[/green]")
+        console.print("  [green]钉钉已配置[/green]")
 
     if not platforms:
-        console.print("[yellow]No platforms enabled. Gateway will start in Webhook-only mode.[/yellow]")
+        console.print("[yellow]未启用任何平台。网关将以仅 Webhook 模式启动。[/yellow]")
 
     return platforms
 
 
 def _step_gateway_settings() -> dict[str, Any]:
-    console.print("\n[bold]Step 5: Gateway Settings[/bold]")
+    console.print("\n[bold]步骤 5：网关设置[/bold]")
 
     webhook_secret = secrets.token_urlsafe(32)
-    console.print(f"Generated webhook secret: [dim]{webhook_secret[:8]}...[/dim]")
+    console.print(f"已生成 Webhook 密钥：[dim]{webhook_secret[:8]}...[/dim]")
 
     session_reset = Prompt.ask(
-        "Session reset mode",
+        "会话重置模式",
         choices=["daily", "idle", "both", "none"],
         default="both",
     )
@@ -340,7 +340,7 @@ def _write_config(
     home = _myagent_home()
 
     # Write .env file
-    env_lines = ["# MyAgent Environment Configuration", f"# Generated by myagent init v{__version__}"]
+    env_lines = ["# MyAgent 环境配置", f"# 由 myagent init v{__version__} 生成"]
 
     if llm_config.get("provider") and llm_config.get("api_key"):
         provider = llm_config["provider"]
@@ -375,12 +375,12 @@ def _write_config(
             env_lines.append(f"DINGTALK_CLIENT_ID={cfg['client_id']}")
             env_lines.append(f"DINGTALK_CLIENT_SECRET={cfg['client_secret']}")
 
-    env_lines.append(f"\n# Gateway Settings")
+    env_lines.append(f"\n# Gateway 设置")
     env_lines.append(f"WEBHOOK_SECRET={gateway_settings['webhook_secret']}")
 
     env_file = _env_path()
     env_file.write_text("\n".join(env_lines) + "\n", encoding="utf-8")
-    console.print(f"[green]Wrote[/green] {env_file}")
+    console.print(f"[green]已写入[/green] {env_file}")
 
     # Write gateway.yaml
     gateway_yaml: dict[str, Any] = {
@@ -426,7 +426,7 @@ def _write_config(
     gateway_file = _gateway_config_path()
     import yaml
     gateway_file.write_text(yaml.safe_dump(gateway_yaml, sort_keys=False, allow_unicode=True), encoding="utf-8")
-    console.print(f"[green]Wrote[/green] {gateway_file}")
+    console.print(f"[green]已写入[/green] {gateway_file}")
 
     # Write config.yaml (agent settings)
     agent_config = {
@@ -450,7 +450,7 @@ def _write_config(
 
     config_file = _config_path()
     config_file.write_text(yaml.safe_dump(agent_config, sort_keys=False, allow_unicode=True), encoding="utf-8")
-    console.print(f"[green]Wrote[/green] {config_file}")
+    console.print(f"[green]已写入[/green] {config_file}")
 
 
 def _print_summary(
@@ -461,48 +461,48 @@ def _print_summary(
     gateway_settings: dict[str, Any],
 ) -> None:
     console.print("\n" + "=" * 60)
-    console.print("[bold green]Setup Complete![/bold green]")
+    console.print("[bold green]配置完成！[/bold green]")
     console.print("=" * 60 + "\n")
 
     home = _myagent_home()
-    console.print(f"[bold]Workspace:[/bold]   {home}")
-    console.print(f"  [dim]- soul.md, user.md, identity.md[/dim]")
-    console.print(f"  [dim]- memory/ (persistent memory)[/dim]")
-    console.print(f"  [dim]- projects/ (project workspaces)[/dim]")
-    console.print(f"  [dim]- sessions/ (conversation history)[/dim]")
-    console.print(f"[bold]Config:[/bold]      {home / 'config.yaml'}")
-    console.print(f"[bold]Gateway:[/bold]     {home / 'gateway.yaml'}")
-    console.print(f"[bold]Env:[/bold]         {home / '.env'}")
+    console.print(f"[bold]工作区：[/bold]   {home}")
+    console.print(f"  [dim]- soul.md、user.md、identity.md[/dim]")
+    console.print(f"  [dim]- memory/（持久化记忆）[/dim]")
+    console.print(f"  [dim]- projects/（项目工作区）[/dim]")
+    console.print(f"  [dim]- sessions/（对话历史）[/dim]")
+    console.print(f"[bold]配置：[/bold]      {home / 'config.yaml'}")
+    console.print(f"[bold]网关：[/bold]     {home / 'gateway.yaml'}")
+    console.print(f"[bold]环境：[/bold]         {home / '.env'}")
     console.print()
 
     if profile.get("name"):
-        console.print(f"[bold]User:[/bold]        {profile['name']} ({profile.get('role', 'Unknown')})")
+        console.print(f"[bold]用户：[/bold]        {profile['name']}（{profile.get('role', '未知')}）")
     else:
-        console.print("[yellow]User:[/yellow]        Profile not set (edit user.md later)")
+        console.print("[yellow]用户：[/yellow]        未设置画像（稍后请编辑 user.md）")
 
     if llm_config.get("provider"):
-        console.print(f"[bold]LLM:[/bold]         {llm_config['provider']} / {llm_config.get('model', 'default')}")
+        console.print(f"[bold]LLM：[/bold]         {llm_config['provider']} / {llm_config.get('model', 'default')}")
     else:
-        console.print("[yellow]LLM:[/yellow]         Not configured")
+        console.print("[yellow]LLM：[/yellow]         未配置")
 
     if platforms:
-        console.print(f"[bold]Platforms:[/bold]   {', '.join(platforms.keys())}")
+        console.print(f"[bold]平台：[/bold]   {', '.join(platforms.keys())}")
     else:
-        console.print("[yellow]Platforms:[/yellow]   None (Webhook-only)")
+        console.print("[yellow]平台：[/yellow]   无（仅 Webhook）")
 
-    console.print(f"[bold]Reset mode:[/bold]  {gateway_settings['session_reset_mode']}")
+    console.print(f"[bold]重置模式：[/bold]  {gateway_settings['session_reset_mode']}")
     console.print()
 
     console.print(Panel(
-        "[bold]Next Steps:[/bold]\n"
-        "1. Source the env file: [cyan]source ~/.myagent/.env[/cyan]\n"
-        "2. Start the Gateway:   [cyan]myagent gateway[/cyan]\n"
-        "3. Start the Web UI:    [cyan]myagent web[/cyan]\n"
-        "4. Or use the TUI:      [cyan]myagent --tui[/cyan]\n"
+        "[bold]下一步：[/bold]\n"
+        "1. 加载环境变量：[cyan]source ~/.myagent/.env[/cyan]\n"
+        "2. 启动网关：   [cyan]myagent gateway[/cyan]\n"
+        "3. 启动 Web UI：[cyan]myagent web[/cyan]\n"
+        "4. 或使用 TUI： [cyan]myagent --tui[/cyan]\n"
         "\n"
-        "[dim]Edit ~/.myagent/user.md to update your profile.[/dim]\n"
-        "[dim]Edit ~/.myagent/gateway.yaml to add more platforms.[/dim]\n"
-        "[dim]Edit ~/.myagent/.env to change API keys.[/dim]",
+        "[dim]编辑 ~/.myagent/user.md 更新您的画像。[/dim]\n"
+        "[dim]编辑 ~/.myagent/gateway.yaml 添加更多平台。[/dim]\n"
+        "[dim]编辑 ~/.myagent/.env 修改 API 密钥。[/dim]",
         border_style="green",
     ))
 
@@ -512,7 +512,7 @@ def run_wizard() -> None:
     _print_header()
 
     if not _step_welcome():
-        console.print("[yellow]Setup cancelled. Run `myagent init` anytime to restart.[/yellow]")
+        console.print("[yellow]配置已取消。随时可运行 `myagent init` 重新启动。[/yellow]")
         return
 
     ws = _step_workspace()

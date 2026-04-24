@@ -42,3 +42,9 @@ class PluginDiscovery:
                     continue
 
         return manifests
+
+
+def discover_plugins(search_paths: list[Path]) -> list[PluginManifest]:
+    """Convenience function to discover plugins from search paths."""
+    discovery = PluginDiscovery(search_paths)
+    return discovery.discover()

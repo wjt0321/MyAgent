@@ -26,7 +26,7 @@
 - **多渠道网关** — 统一管理所有消息平台的收件箱（Telegram、Discord、Slack、飞书等）
 - **TUI 界面** — 带有 ASCII 艺术 Logo 的富终端界面
 - **Web UI** — 基于 WebSocket 的实时聊天，支持 JWT 认证与多用户会话隔离
-- **多 LLM 支持** — 23 个 Provider（含国内/国际版）：Anthropic、OpenAI、DeepSeek、Gemini、xAI、Qwen、Ollama、OpenRouter、智谱/智谱-CN、Moonshot/Moonshot-CN、MiniMax/MiniMax-CN、阿里云/阿里云-CN、HuggingFace、NVIDIA、Arcee、Xiaomi、百度/文心一言、讯飞/星火、字节/豆包、腾讯/混元
+- **多 LLM 支持** — 35+ Provider（含国内/国际版）：Anthropic（Claude 4.6/4.5）、OpenAI（GPT-5.5/5/4.5）、DeepSeek（V4 Pro/V4 Flash/V3/R1）、Gemini（3.1 Pro/3 Flash/2.5 Pro）、xAI（Grok 4/3）、Qwen 3.6、Ollama、OpenRouter、智谱/智谱-CN、Moonshot/Moonshot-CN、MiniMax/MiniMax-CN、阿里云/阿里云-CN、HuggingFace、NVIDIA、Arcee、Xiaomi、百度文心一言、讯飞星火、字节豆包、腾讯混元
 - **上下文压缩** — 自动压缩对话历史，支持 AutoCompactor
 - **会话管理** — 支持按用户、按群组、按话题的会话隔离，支持持久化绑定
 - **工具调用** — Bash、代码解释器（Python 沙箱）、文件编辑、网页搜索、图像分析、Git 操作

@@ -127,6 +127,8 @@ class MyAgentWebApp {
         this.settingsAgentSelect = document.getElementById('settings-agent-select');
         this.settingsSystemPrompt = document.getElementById('settings-system-prompt');
         this.settingsThemeSelect = document.getElementById('settings-theme-select');
+        // Theme buttons in settings panel (new theme selector)
+        this.settingsThemeBtns = document.querySelectorAll('.theme-btn');
         this.settingsSessionCount = document.getElementById('settings-session-count');
         this.settingsMessageCount = document.getElementById('settings-message-count');
         this.workspaceInfo = document.getElementById('workspace-info');
@@ -1832,7 +1834,11 @@ class MyAgentWebApp {
         if (session) {
             this.settingsAgentSelect.value = session.agent || 'general';
         }
-        this.settingsThemeSelect.value = this.currentTheme;
+
+        // Update theme buttons in settings panel
+        this.settingsThemeBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === this.currentTheme);
+        });
 
         this.settingsSessionCount.textContent = this.sessions.length;
         this.loadMemories();

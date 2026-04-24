@@ -1095,13 +1095,20 @@ body {
 
 /* ---------- Preview Panel ---------- */
 .preview-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
   width: var(--preview-width);
+  max-width: 90vw;
   background: var(--bg-primary);
   border-left: 1px solid var(--border-subtle);
   display: none;
   flex-direction: column;
   flex-shrink: 0;
   animation: slideInRight 0.25s ease;
+  z-index: 150;
+  box-shadow: -8px 0 30px rgba(0,0,0,0.4);
 }
 
 .preview-panel.show {
@@ -1120,6 +1127,7 @@ body {
   justify-content: space-between;
   align-items: center;
   background: var(--bg-secondary);
+  flex-shrink: 0;
 }
 
 .preview-filename {
@@ -1129,11 +1137,13 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: calc(var(--preview-width) - 60px);
 }
 
 .preview-body {
   flex: 1;
   overflow: auto;
+  padding: 0;
 }
 
 .preview-body pre {
@@ -1141,6 +1151,7 @@ body {
   padding: 16px;
   background: var(--bg-code);
   min-height: 100%;
+  overflow-x: auto;
 }
 
 .preview-body code {
@@ -1148,6 +1159,30 @@ body {
   font-size: 0.82rem;
   line-height: 1.7;
   color: var(--text-primary);
+}
+
+/* Markdown preview in file panel */
+.preview-body .markdown-preview {
+  padding: 20px;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.preview-body .markdown-preview pre {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.preview-body .markdown-preview img {
+  max-width: 100%;
+  height: auto;
+}
+
+.preview-body .markdown-preview table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 /* ---------- Markdown in Messages ---------- */
@@ -1353,6 +1388,7 @@ body {
   justify-content: center;
   padding: 20px;
   animation: fadeIn 0.2s ease;
+  overflow-y: auto;
 }
 
 .modal-overlay.show {
@@ -1372,8 +1408,9 @@ body {
   flex-direction: column;
   box-shadow: var(--shadow-lg);
   animation: modalIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  max-height: 90vh;
+  max-height: 85vh;
   overflow: hidden;
+  margin: auto;
 }
 
 @keyframes modalIn {
@@ -1381,8 +1418,8 @@ body {
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-.modal-lg { width: 100%; max-width: 560px; }
-.modal-sm { width: 100%; max-width: 400px; }
+.modal-lg { width: 90vw; max-width: 560px; }
+.modal-sm { width: 90vw; max-width: 400px; }
 
 .modal-header {
   display: flex;
@@ -1390,6 +1427,14 @@ body {
   align-items: center;
   padding: 18px 20px 14px;
   border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.modal-header .icon-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  z-index: 10;
 }
 
 .modal-header h2 {
@@ -1403,6 +1448,7 @@ body {
   padding: 16px 20px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 .modal-footer {
@@ -1411,6 +1457,7 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 /* Settings Tabs */

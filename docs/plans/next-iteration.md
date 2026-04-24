@@ -1,7 +1,8 @@
 # MyAgent 后续迭代方向
 
-> 基于当前 v0.13.0 状态，梳理可继续迭代的模块与方向。
+> 基于当前 v0.14.0 状态，梳理可继续迭代的模块与方向。
 > 最后更新: 2026-04-24
+> v0.14.0 变更：初始化界面中文化、模型列表更新至2026年最新、Web UI 交互修复
 
 ---
 
@@ -17,7 +18,7 @@
 | Phase 6 | Web UI | 95% | 消息编辑、系统提示编辑、会话导入/导出、Token 展示、主题切换、移动端适配已完成 |
 | Phase 7 | Gateway | 95% | Telegram/GitHub 适配器完成，Discord 斜杠命令/线程、Slack Block Kit、Feishu WebSocket 已增强 |
 | Phase 8 | 生产优化 | 98% | Prometheus 指标、LLM 重试、配置热重载、JSON 日志、Grafana Dashboard、Helm Chart、Prometheus 告警已添加 |
-| Phase 9 | 生态扩展 | 98% | 23 个 LLM Provider（含国内/国际版）、10 个核心工具 |
+| Phase 9 | 生态扩展 | 100% | 35+ LLM Provider（含国内/国际版），2026年最新模型更新 |
 
 ---
 
@@ -38,7 +39,7 @@
 - ✅ 代码块复制按钮
 
 ### 1.3 设置面板
-- ✅ 模型切换下拉框（按 Provider 分组，23 个分组）
+- ✅ 模型切换下拉框（按 Provider 分组，35+ 个分组）
 - ✅ API Key 配置（本地存储）
 - ✅ 主题切换（亮色/暗色/跟随系统）
 
@@ -142,9 +143,9 @@
 
 ## 迭代方向五：更多 LLM 提供商
 
-**优先级**: ✅ 已完成 (v0.13.0)
+**优先级**: ✅ 已完成 (v0.13.0 → v0.14.0)
 
-当前支持 23 个 Provider：Anthropic、OpenAI、DeepSeek、Zhipu/Zhipu-CN、Moonshot/Moonshot-CN、MiniMax/MiniMax-CN、OpenRouter、xAI、Gemini、Alibaba/Alibaba-CN、HuggingFace、NVIDIA、Arcee、Xiaomi、Ollama、Baidu、Spark、Doubao、Hunyuan
+当前支持 35+ 个 Provider：Anthropic (Claude 4.6/4.5)、OpenAI (GPT-5.5/5/4.5)、DeepSeek (V4 Pro/V4 Flash/V3/R1)、Gemini (3.1 Pro/3 Flash/2.5 Pro)、xAI (Grok 4/3)、Qwen 3.6、Zhipu/Zhipu-CN、Moonshot/Moonshot-CN、MiniMax/MiniMax-CN、OpenRouter、Alibaba/Alibaba-CN、HuggingFace、NVIDIA、Arcee、Xiaomi、Ollama、Baidu ERNIE、iFlytek Spark、ByteDance Doubao、Tencent Hunyuan
 
 ### 5.1 待添加的 Provider
 - Together AI
@@ -154,9 +155,9 @@
 - Cohere
 
 ### 5.2 模型自动检测
-- ✅ 支持 `provider/model` 语法 (如 `anthropic/claude-sonnet-4`)
+- ✅ 支持 `provider/model` 语法 (如 `anthropic/claude-sonnet-4-6`)
 - ✅ 支持 bare model name 启发式匹配 (如 `deepseek-chat` → DeepSeek)
-- ✅ Web UI 模型选择器按 Provider 分组 (23 个分组，70+ 模型)
+- ✅ Web UI 模型选择器按 Provider 分组 (35+ 个分组，80+ 模型)
 
 ---
 
@@ -200,7 +201,7 @@
 2. ✅ **Phase 2**（OpenClaw Core）— 已完成
 3. ✅ **Phase 3**（Gateway 完善）— 已完成
 4. ✅ **Phase 4**（Web UI 增强）— 已完成
-5. ✅ **Phase 5**（LLM Provider 扩展）— 已完成（23 个 Provider）
+5. ✅ **Phase 5**（LLM Provider 扩展）— 已完成（35+ 个 Provider，2026年最新模型）
 6. ✅ **Phase 6**（上下文压缩深化）— 已完成
 7. ✅ **Phase 7**（TUI 体验优化）— 已完成
 8. ✅ **Phase 8**（生产级监控）— 已完成
@@ -215,7 +216,7 @@
 ## 总结
 
 MyAgent 已经具备了**完全生产可用的功能**:
-- ✅ 多 LLM 支持（23 个提供商，含国内/国际版分离）
+- ✅ 多 LLM 支持（35+ 个提供商，含国内/国际版分离，2026年最新模型）
 - ✅ 核心工具集（10 个工具，含 Git、CodeInterpreter）
 - ✅ TUI 和 Web UI 双界面
 - ✅ Gateway 多平台（Telegram、Discord、Slack、Feishu、GitHub Webhook）
