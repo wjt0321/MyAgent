@@ -118,8 +118,91 @@ class FeishuAdapter(BasePlatformAdapter):
                 logger.warning("[%s] No user_access_token provided — some APIs may fail", self.name)
 
         self._running = True
-        logger.info("[%s] Connected (domain=%s, auth_mode=%s)", self.name, self.domain, self.auth_mode)
+
+        # Start WebSocket connection if configured
+        connection_mode = self.config.extra.get("connection_mode", "webhook")
+        if connection_mode == "websocket":
+            asyncio.create_task(self._ws_connect())
+
+        logger.info("[%s] Connected (domain=%s, auth_mode=%s, mode=%s)", self.name, self.domain, self.auth_mode, connection_mode)
         return True
+
+    async def _ws_connect(self) -> None:
+        """Connect to Feishu WebSocket for real-time events."""
+        # Get WebSocket endpoint
+        token = await self._get_tenant_access_token()
+        if not token:
+            logger.error("[%s] Cannot connect WebSocket without token", self.name)
+            return
+
+        headers = {"Authorization": f"Bearer {token}"}
+        ws_url = f"{self.api_base}/im/v1/websocket"
+
+        try:
+            async with self._session.ws_connect(ws_url, headers=headers) as ws:
+                logger.info("[%s] WebSocket connected", self.name)
+                async for msg in ws:
+                    if msg.type == aiohttp.WSMsgType.TEXT:
+                        data = msg.json()
+                        await self._handle_ws_message(data)
+                    elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                        logger.warning("[%s] WebSocket closed, reconnecting...", self.name)
+                        await asyncio.sleep(5)
+                        asyncio.create_task(self._ws_connect())
+                        break
+        except Exception as e:
+            logger.error("[%s] WebSocket error: %s", self.name, e)
+            await asyncio.sleep(5)
+            if self._running:
+                asyncio.create_task(self._ws_connect())
+
+    async def _handle_ws_message(self, data: Dict[str, Any]) -> None:
+        """Handle a WebSocket message from Feishu."""
+        event_type = data.get("type", "")
+        if event_type == "im.message.receive_v1":
+            event_data = data.get("event", {})
+            message = event_data.get("message", {})
+            sender = event_data.get("sender", {})
+
+            msg_id = message.get("message_id", "")
+            if self._dedup.is_duplicate(msg_id):
+                return
+
+            msg_type = message.get("message_type", "text")
+            content_str = message.get("content", "{}")
+            try:
+                content = json.loads(content_str)
+            except json.JSONDecodeError:
+                content = {}
+
+            text = content.get("text", "")
+            chat_id = message.get("chat_id", "")
+            open_id = sender.get("sender_id", {}).get("open_id", "")
+
+            chat_type = "group" if message.get("chat_type") == "group" else "dm"
+            source = self.build_source(
+                chat_id=chat_id,
+                user_id=open_id,
+                chat_type=chat_type,
+            )
+
+            mapped_type = MessageType.TEXT
+            if msg_type == "image":
+                mapped_type = MessageType.IMAGE
+            elif msg_type == "file":
+                mapped_type = MessageType.FILE
+            elif msg_type == "audio":
+                mapped_type = MessageType.AUDIO
+
+            event = MessageEvent(
+                text=text,
+                message_type=mapped_type,
+                source=source,
+                raw_message=data,
+                message_id=msg_id,
+            )
+
+            await self.handle_message(event)
 
     async def disconnect(self) -> None:
         self._running = False

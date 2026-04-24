@@ -245,8 +245,98 @@ class DiscordAdapter(BasePlatformAdapter):
                     "browser": "MyAgent",
                     "device": "MyAgent",
                 },
-            }
+            },
         })
+
+    async def _register_slash_commands(self) -> None:
+        """Register slash commands for the bot."""
+        commands = [
+            {
+                "name": "ask",
+                "description": "Ask MyAgent a question",
+                "type": 1,
+                "options": [
+                    {
+                        "name": "question",
+                        "description": "Your question",
+                        "type": 3,
+                        "required": True,
+                    }
+                ],
+            },
+            {
+                "name": "reset",
+                "description": "Reset your conversation session",
+                "type": 1,
+            },
+            {
+                "name": "agent",
+                "description": "Switch to a different agent",
+                "type": 1,
+                "options": [
+                    {
+                        "name": "name",
+                        "description": "Agent name",
+                        "type": 3,
+                        "required": True,
+                    }
+                ],
+            },
+        ]
+
+        for cmd in commands:
+            await self._api_request("POST", "/applications/@me/commands", cmd)
+            await asyncio.sleep(0.5)  # Rate limit protection
+
+    async def _handle_interaction(self, data: Dict[str, Any]) -> None:
+        """Handle a Discord slash command interaction."""
+        interaction_id = data.get("id", "")
+        interaction_token = data.get("token", "")
+        command_name = data.get("data", {}).get("name", "")
+        options = data.get("data", {}).get("options", [])
+
+        # Acknowledge the interaction immediately
+        await self._api_request(
+            "POST",
+            f"/interactions/{interaction_id}/{interaction_token}/callback",
+            {"type": 5},  # Deferred channel message with source
+        )
+
+        # Build the command text
+        if command_name == "ask":
+            question = options[0].get("value", "") if options else ""
+            text = question
+        elif command_name == "reset":
+            text = "/reset"
+        elif command_name == "agent":
+            agent_name = options[0].get("value", "") if options else ""
+            text = f"/agent {agent_name}"
+        else:
+            text = f"/{command_name}"
+
+        # Build source from interaction context
+        channel_id = data.get("channel_id", "")
+        guild_id = data.get("guild_id")
+        user = data.get("member", {}).get("user") or data.get("user", {})
+        user_id = user.get("id", "")
+        user_name = user.get("username", "")
+
+        source = self.build_source(
+            chat_id=channel_id,
+            user_id=user_id,
+            user_name=user_name,
+            chat_type="group" if guild_id else "dm",
+        )
+
+        event = MessageEvent(
+            text=text,
+            message_type=MessageType.COMMAND,
+            source=source,
+            raw_message=data,
+            message_id=interaction_id,
+        )
+
+        await self.handle_message(event)
 
     async def _handle_dispatch(self, event_type: Optional[str], data: Dict[str, Any]) -> None:
         """Handle Discord dispatch events."""
@@ -255,9 +345,14 @@ class DiscordAdapter(BasePlatformAdapter):
             self._resume_gateway_url = data.get("resume_gateway_url")
             self._reconnect_delay = 5.0  # Reset backoff
             logger.info("[%s] Gateway ready, session_id=%s", self.name, self._session_id)
+            # Register slash commands on ready
+            asyncio.create_task(self._register_slash_commands())
 
         elif event_type == "MESSAGE_CREATE":
             await self._process_message(data)
+
+        elif event_type == "INTERACTION_CREATE":
+            await self._handle_interaction(data)
 
     async def _process_message(self, data: Dict[str, Any]) -> None:
         """Process a Discord message."""
@@ -331,6 +426,50 @@ class DiscordAdapter(BasePlatformAdapter):
             error="Failed to send message",
             retryable=True,
         )
+
+    async def edit_message(
+        self,
+        chat_id: str,
+        message_id: str,
+        content: str,
+        *,
+        finalize: bool = False,
+    ) -> SendResult:
+        """Edit a previously sent message."""
+        payload: Dict[str, Any] = {
+            "content": content[:2000],
+        }
+        data = await self._api_request(
+            "PATCH", f"/channels/{chat_id}/messages/{message_id}", payload
+        )
+        if data:
+            return SendResult(
+                success=True,
+                message_id=data.get("id"),
+                raw_response=data,
+            )
+        return SendResult(success=False, error="Failed to edit message")
+
+    async def create_thread(
+        self,
+        channel_id: str,
+        message_id: str,
+        name: str,
+        auto_archive_duration: int = 1440,
+    ) -> Optional[str]:
+        """Create a thread from a message. Returns thread ID."""
+        payload: Dict[str, Any] = {
+            "name": name[:100],
+            "auto_archive_duration": auto_archive_duration,
+        }
+        data = await self._api_request(
+            "POST",
+            f"/channels/{channel_id}/messages/{message_id}/threads",
+            payload,
+        )
+        if data:
+            return data.get("id")
+        return None
 
     async def send_typing(self, chat_id: str, metadata: Any = None) -> None:
         await self._api_request("POST", f"/channels/{chat_id}/typing")

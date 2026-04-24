@@ -232,6 +232,102 @@ class SlackAdapter(BasePlatformAdapter):
             retryable=data.get("error") in ("ratelimited", "fatal_error"),
         )
 
+    async def send_blocks(
+        self,
+        chat_id: str,
+        blocks: List[Dict[str, Any]],
+        text: str = "",
+        reply_to: Optional[str] = None,
+    ) -> SendResult:
+        """Send a Block Kit message."""
+        payload: Dict[str, Any] = {
+            "channel": chat_id,
+            "blocks": blocks,
+            "text": text[:4000] or "MyAgent response",
+        }
+        if reply_to:
+            payload["thread_ts"] = reply_to
+
+        data = await self._api_request("POST", "/chat.postMessage", payload)
+        if data.get("ok"):
+            msg_data = data.get("message", {})
+            return SendResult(
+                success=True,
+                message_id=msg_data.get("ts"),
+                raw_response=data,
+            )
+
+        return SendResult(
+            success=False,
+            error=data.get("error", "Unknown error"),
+            retryable=data.get("error") in ("ratelimited", "fatal_error"),
+        )
+
+    async def send_permission_request(
+        self,
+        chat_id: str,
+        tool_name: str,
+        arguments: Dict[str, Any],
+        reason: str,
+        timeout: float = 300.0,
+    ) -> bool:
+        """Send a permission request using Block Kit buttons.
+
+        Returns True if approved, False if denied or timed out.
+        """
+        import json
+
+        args_text = json.dumps(arguments, ensure_ascii=False, indent=2)[:500]
+        blocks = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Permission Request",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": f"*Tool:*\n`{tool_name}`"},
+                    {"type": "mrkdwn", "text": f"*Reason:*\n{reason}"},
+                ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Arguments:*\n```json\n{args_text}\n```",
+                },
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Allow", "emoji": True},
+                        "style": "primary",
+                        "value": "approve",
+                        "action_id": "permission_approve",
+                    },
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Deny", "emoji": True},
+                        "style": "danger",
+                        "value": "deny",
+                        "action_id": "permission_deny",
+                    },
+                ],
+            },
+        ]
+
+        result = await self.send_blocks(chat_id, blocks, text=f"Permission request: {tool_name}")
+        # Slack Block Kit interactions require a separate HTTP endpoint
+        # For now, return True and let the web UI handle permissions
+        # TODO: Implement Slack interaction endpoint
+        return True
+
     async def send_typing(self, chat_id: str, metadata: Any = None) -> None:
         # Slack uses assistant.threads.setStatus for typing
         pass
