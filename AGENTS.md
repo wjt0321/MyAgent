@@ -17,7 +17,7 @@ Telegraph style. Root rules only. Read scoped `AGENTS.md` before touching a subt
 - TUI: `src/myagent/tui/` (Textual)
 - Gateway: `src/myagent/gateway/` (multi-platform adapters, session persistence)
 - Engine: `src/myagent/engine/` (QueryEngine, context compression)
-- LLM providers: `src/myagent/llm/providers/` (35+ providers: Anthropic, OpenAI, DeepSeek, Gemini, xAI, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Ollama, OpenRouter, Baidu, Spark, Doubao, Hunyuan)
+- LLM providers: `src/myagent/llm/providers/` (40+ providers: Anthropic, OpenAI, DeepSeek, Gemini, xAI, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Ollama, OpenRouter, Baidu, Spark, Doubao, Hunyuan, Cohere, SiliconFlow)
 - Tools: `src/myagent/tools/` (Bash, CodeInterpreter, Read, Write, Edit, Glob, Grep, Git, WebFetch, etc.)
 - Memory: `src/myagent/memory/extractor.py` — MemoryExtractor, MemoryRAG
 - Deploy: `deploy/` — Helm Chart, Grafana Dashboard, Prometheus alerts
@@ -71,6 +71,9 @@ Scoped guides:
 - Gateway adapters: Telegram/Discord/Slack/Feishu all support inline permission requests via `send_permission_request()`. Discord supports slash commands (`/ask`, `/reset`, `/agent`), message editing, and thread creation. Slack supports Block Kit messages. Feishu supports WebSocket mode.
 - Web UI auth: JWT-based, optional password protection via `myagent.web.auth`.
 - Session isolation: Web UI sessions are scoped per-user via `user_id` field.
+- File API: path-restricted access (cwd/workspace only), requires authentication.
+- WebSocket: token validation with session owner verification.
+- GitHub webhook: server-side secret validation, never trust request payload.
 
 ## Code Style
 

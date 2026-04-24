@@ -7,14 +7,15 @@ MyAgent project instructions for Claude Code / AI assistants.
 MyAgent is an autonomous AI agent platform with multi-channel gateway support. It provides:
 
 - **Gateway**: Multi-platform messaging (Feishu, Slack, Discord, Telegram, etc.)
-- **Web UI**: Real-time WebSocket chat interface (FastAPI + vanilla JS)
+- **Web UI**: Real-time WebSocket chat interface (FastAPI + vanilla JS, JWT auth, session isolation)
 - **TUI**: Rich terminal interface (Textual)
 - **Engine**: LLM query engine with tool calling
 - **Workspace**: Agent "home" with persistent memory and configuration
 - **Memory**: Auto-collection and manual editing of agent memory
-- **Task Engine**: Plan → Execute → Review workflow
+- **Task Engine**: Plan → Execute → Review workflow (with auto-execution on approval)
 - **Agent Teams**: Multi-agent collaboration with role-based assignment
 - **Codebase**: Automatic code scanning, indexing, and search
+- **Security**: File API path restriction, WebSocket token validation, GitHub webhook server-side secret validation
 
 ## Key Concepts
 
