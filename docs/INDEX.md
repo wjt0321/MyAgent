@@ -17,7 +17,8 @@ docs/
 │   ├── 04-task-engine.md            # Plan→Execute→Review 工作流
 │   ├── 05-agent-teams.md            # Agent Teams 多协作
 │   ├── 06-codebase.md               # 代码理解系统
-│   └── 07-gateway.md                # Gateway 网关架构
+│   ├── 07-gateway.md                # Gateway 网关架构
+│   └── security-boundary.md         # 安全边界文档
 ├── design/                           # 设计文档 — 交互设计与 UI 规范
 │   ├── 01-tui-design.md             # TUI 终端界面设计
 │   ├── 02-web-ui-design.md          # Web UI 设计规范
@@ -26,9 +27,13 @@ docs/
 │   ├── 01-getting-started.md        # 快速入门
 │   ├── 02-configuration.md          # 配置参考
 │   ├── 03-production.md             # 生产部署
-│   └── 04-concept-references.md     # 概念引用与出处
+│   ├── 04-concept-references.md     # 概念引用与出处
+│   └── web-api-contract.md          # Web API 接口契约
 └── plans/                            # 规划文档 — 迭代计划与路线图
-    └── v0.11.0-redesign.md          # v0.11.0 架构整改方案
+    ├── v0.11.0-redesign.md          # v0.11.0 架构整改方案
+    ├── 2026-04-24-iteration-review.md  # 迭代审查与建议
+    ├── 2026-04-24-production-optimization.md  # 生产优化建议
+    └── 2026-04-24-web-ui-enhancement.md  # Web UI 增强方案
 ```
 
 ---
@@ -56,8 +61,10 @@ docs/
 | Agent Teams | [05-agent-teams.md](architecture/05-agent-teams.md) |
 | 代码理解 | [06-codebase.md](architecture/06-codebase.md) |
 | Gateway | [07-gateway.md](architecture/07-gateway.md) |
+| 安全边界 | [security-boundary.md](architecture/security-boundary.md) |
 | TUI | [01-tui-design.md](design/01-tui-design.md) |
 | Web UI | [02-web-ui-design.md](design/02-web-ui-design.md) |
+| Web API 接口 | [web-api-contract.md](reference/web-api-contract.md) |
 | 配置 | [02-configuration.md](reference/02-configuration.md) |
 | 部署 | [03-production.md](reference/03-production.md) |
 | 概念出处 | [04-concept-references.md](reference/04-concept-references.md) |
@@ -83,6 +90,7 @@ docs/
 | architecture/05-agent-teams.md | ✅ | Agent Teams 已完成 |
 | architecture/06-codebase.md | ✅ | 代码理解系统已完成 |
 | architecture/07-gateway.md | ✅ | Gateway 框架完成，Telegram/GitHub 适配器已就绪，Discord/Slack/Feishu 增强完成 |
+| architecture/security-boundary.md | ✅ | 安全边界文档，Web UI/文件/GitHub Webhook 安全规则 |
 | design/01-tui-design.md | ✅ | TUI 设计规范 |
 | design/02-web-ui-design.md | ✅ | Web UI 已重构，JWT 认证、模型选择、主题切换、导出已添加 |
 | design/03-interaction-patterns.md | ✅ | 基础交互模式，TUI Ctrl+R 重生成、Token 统计已添加 |
@@ -90,7 +98,11 @@ docs/
 | reference/02-configuration.md | ✅ | 配置参考 |
 | reference/03-production.md | ✅ | 生产部署指南，Helm Chart、Grafana Dashboard、Prometheus 告警已添加 |
 | reference/04-concept-references.md | ✅ | 概念引用与出处 |
+| reference/web-api-contract.md | ✅ | Web API 接口契约文档 |
 | plans/v0.11.0-redesign.md | ✅ | v0.11.0 整改方案 |
+| plans/2026-04-24-iteration-review.md | ✅ | 迭代审查与安全加固建议 |
+| plans/2026-04-24-production-optimization.md | ✅ | 生产环境优化建议 |
+| plans/2026-04-24-web-ui-enhancement.md | ✅ | Web UI 增强方案 |
 
 ---
 
