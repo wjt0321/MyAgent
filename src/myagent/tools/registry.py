@@ -33,6 +33,7 @@ class ToolRegistry:
     def with_core_tools(cls) -> "ToolRegistry":
         """Create a registry with all core tools registered."""
         from myagent.tools.bash import Bash
+        from myagent.tools.code_interpreter import CodeInterpreter
         from myagent.tools.read import Read
         from myagent.tools.write import Write
         from myagent.tools.edit import Edit
@@ -44,6 +45,7 @@ class ToolRegistry:
 
         registry = cls()
         registry.register(Bash())
+        registry.register(CodeInterpreter())
         registry.register(Read())
         registry.register(Write())
         registry.register(Edit())
