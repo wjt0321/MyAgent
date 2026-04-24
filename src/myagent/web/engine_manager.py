@@ -20,13 +20,16 @@ from myagent.engine.stream_events import (
 )
 from myagent.llm.base import BaseProvider
 from myagent.llm.providers.alibaba import AlibabaProvider
+from myagent.llm.providers.alibaba_cn import AlibabaCNProvider
 from myagent.llm.providers.anthropic import AnthropicProvider
 from myagent.llm.providers.arcee import ArceeProvider
 from myagent.llm.providers.deepseek import DeepSeekProvider
 from myagent.llm.providers.gemini import GeminiProvider
 from myagent.llm.providers.huggingface import HuggingFaceProvider
 from myagent.llm.providers.minimax import MiniMaxProvider
+from myagent.llm.providers.minimax_cn import MiniMaxCNProvider
 from myagent.llm.providers.moonshot import MoonshotProvider
+from myagent.llm.providers.moonshot_cn import MoonshotCNProvider
 from myagent.llm.providers.nvidia import NvidiaProvider
 from myagent.llm.providers.ollama import OllamaProvider
 from myagent.llm.providers.openai import OpenAIProvider
@@ -34,6 +37,7 @@ from myagent.llm.providers.openrouter import OpenRouterProvider
 from myagent.llm.providers.xai import XAIProvider
 from myagent.llm.providers.xiaomi import XiaomiProvider
 from myagent.llm.providers.zhipu import ZhipuProvider
+from myagent.llm.providers.zhipu_cn import ZhipuCNProvider
 from myagent.memory.collection import MemoryCollector
 from myagent.memory.manager import MemoryManager
 from myagent.security.checker import PermissionChecker
@@ -57,12 +61,16 @@ _PROVIDER_ENV_MAP: list[tuple[str, type[BaseProvider], str, str, str]] = [
     ("OPENAI_API_KEY", OpenAIProvider, "gpt-4o", "", "openai"),
     ("DEEPSEEK_API_KEY", DeepSeekProvider, "deepseek-chat", "", "deepseek"),
     ("ZHIPU_API_KEY", ZhipuProvider, "glm-4", "", "zhipu"),
+    ("ZHIPU_CN_API_KEY", ZhipuCNProvider, "glm-4", "", "zhipu-cn"),
     ("MOONSHOT_API_KEY", MoonshotProvider, "moonshot-v1-8k", "", "moonshot"),
+    ("MOONSHOT_CN_API_KEY", MoonshotCNProvider, "moonshot-v1-8k", "", "moonshot-cn"),
     ("MINIMAX_API_KEY", MiniMaxProvider, "abab6.5s-chat", "", "minimax"),
+    ("MINIMAX_CN_API_KEY", MiniMaxCNProvider, "abab6.5s-chat", "", "minimax-cn"),
     ("OPENROUTER_API_KEY", OpenRouterProvider, "openai/gpt-4o", "", "openrouter"),
     ("XAI_API_KEY", XAIProvider, "grok-3", "", "xai"),
     ("GEMINI_API_KEY", GeminiProvider, "gemini-2.5-pro", "", "gemini"),
     ("DASHSCOPE_API_KEY", AlibabaProvider, "qwen-max", "", "alibaba"),
+    ("DASHSCOPE_CN_API_KEY", AlibabaCNProvider, "qwen-max", "", "alibaba-cn"),
     ("HF_API_KEY", HuggingFaceProvider, "meta-llama/Llama-3.3-70B-Instruct", "", "huggingface"),
     ("NVIDIA_API_KEY", NvidiaProvider, "nvidia/llama-3.3-nemotron-super-49b-v1", "", "nvidia"),
     ("ARCEE_API_KEY", ArceeProvider, "trinity-large-thinking", "", "arcee"),
@@ -99,10 +107,14 @@ def _detect_provider_from_model(model: str) -> tuple[type[BaseProvider] | None, 
             "gpt": OpenAIProvider,
             "deepseek": DeepSeekProvider,
             "zhipu": ZhipuProvider,
+            "zhipu-cn": ZhipuCNProvider,
             "glm": ZhipuProvider,
             "moonshot": MoonshotProvider,
+            "moonshot-cn": MoonshotCNProvider,
             "kimi": MoonshotProvider,
+            "kimi-cn": MoonshotCNProvider,
             "minimax": MiniMaxProvider,
+            "minimax-cn": MiniMaxCNProvider,
             "openrouter": OpenRouterProvider,
             "or": OpenRouterProvider,
             "xai": XAIProvider,
@@ -110,8 +122,11 @@ def _detect_provider_from_model(model: str) -> tuple[type[BaseProvider] | None, 
             "gemini": GeminiProvider,
             "google": GeminiProvider,
             "alibaba": AlibabaProvider,
+            "alibaba-cn": AlibabaCNProvider,
             "qwen": AlibabaProvider,
+            "qwen-cn": AlibabaCNProvider,
             "dashscope": AlibabaProvider,
+            "dashscope-cn": AlibabaCNProvider,
             "huggingface": HuggingFaceProvider,
             "hf": HuggingFaceProvider,
             "nvidia": NvidiaProvider,

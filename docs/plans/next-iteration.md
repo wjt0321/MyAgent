@@ -17,7 +17,7 @@
 | Phase 6 | Web UI | 70% | 基础界面可用，可继续增强 |
 | Phase 7 | Gateway | 80% | Telegram/GitHub 适配器完成，会话持久化，JWT 认证 |
 | Phase 8 | 生产优化 | 30% | 基础 CostTracker 就绪，Git 工具已添加 |
-| Phase 9 | 生态扩展 | 85% | 15 个 LLM 提供商、7 个核心工具 |
+| Phase 9 | 生态扩展 | 90% | 19 个 LLM 提供商（含国内/国际版）、7 个核心工具 |
 
 ---
 
@@ -224,7 +224,7 @@ Gateway 核心框架已完成，Telegram 和 GitHub 适配器已就绪：
 ## 总结
 
 MyAgent 已经具备了**生产可用的核心功能**:
-- ✅ 多 LLM 支持（15 个提供商）
+- ✅ 多 LLM 支持（19 个提供商，含国内/国际版分离）
 - ✅ 核心工具集（9 个工具，含 Git）
 - ✅ TUI 和 Web UI 双界面
 - ✅ Gateway 多平台（Telegram + GitHub Webhook）

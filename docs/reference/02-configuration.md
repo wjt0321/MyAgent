@@ -86,7 +86,7 @@ security:
 ## 4. .env
 
 ```bash
-# LLM Providers
+# LLM Providers (国际版)
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 DEEPSEEK_API_KEY=
@@ -104,6 +104,12 @@ HF_API_KEY=
 NVIDIA_API_KEY=
 ARCEE_API_KEY=
 XIAOMI_API_KEY=
+
+# LLM Providers (国内版 - API Key 不互通)
+ZHIPU_CN_API_KEY=
+MOONSHOT_CN_API_KEY=
+MINIMAX_CN_API_KEY=
+DASHSCOPE_CN_API_KEY=
 
 # Gateway
 FEISHU_APP_ID=
@@ -155,36 +161,58 @@ memory_scope: global
 
 ## 6. Provider 环境变量
 
-| Provider | API Key 环境变量 | 可选 Base URL 环境变量 | 默认模型 |
-|----------|-----------------|----------------------|---------|
-| Anthropic | `ANTHROPIC_API_KEY` | `ANTHROPIC_BASE_URL` | claude-sonnet-4 |
-| OpenAI | `OPENAI_API_KEY` | `OPENAI_BASE_URL` | gpt-4o |
-| DeepSeek | `DEEPSEEK_API_KEY` | `DEEPSEEK_BASE_URL` | deepseek-chat |
-| Zhipu | `ZHIPU_API_KEY` | `ZHIPU_BASE_URL` | glm-4 |
-| Moonshot | `MOONSHOT_API_KEY` | `MOONSHOT_BASE_URL` | moonshot-v1-8k |
-| MiniMax | `MINIMAX_API_KEY` | `MINIMAX_BASE_URL` | abab6.5s-chat |
-| OpenRouter | `OPENROUTER_API_KEY` | `OPENROUTER_BASE_URL` | openai/gpt-4o |
-| xAI | `XAI_API_KEY` | `XAI_BASE_URL` | grok-3 |
-| Gemini | `GEMINI_API_KEY` | `GEMINI_BASE_URL` | gemini-2.5-pro |
-| Alibaba | `DASHSCOPE_API_KEY` | `DASHSCOPE_BASE_URL` | qwen-max |
-| HuggingFace | `HF_API_KEY` | `HF_BASE_URL` | meta-llama/Llama-3.3-70B-Instruct |
-| NVIDIA | `NVIDIA_API_KEY` | `NVIDIA_BASE_URL` | nvidia/llama-3.3-nemotron-super-49b-v1 |
-| Arcee | `ARCEE_API_KEY` | `ARCEE_BASE_URL` | trinity-large-thinking |
-| Xiaomi | `XIAOMI_API_KEY` | `XIAOMI_BASE_URL` | mimo-v2-pro |
-| Ollama | 无需 Key | `OLLAMA_BASE_URL` | llama3.3 |
+### 国际版 Provider
+
+| Provider | API Key 环境变量 | 默认端点 | 默认模型 |
+|----------|-----------------|---------|---------|
+| Anthropic | `ANTHROPIC_API_KEY` | api.anthropic.com | claude-sonnet-4 |
+| OpenAI | `OPENAI_API_KEY` | api.openai.com | gpt-4o |
+| DeepSeek | `DEEPSEEK_API_KEY` | api.deepseek.com | deepseek-chat |
+| Zhipu (国际) | `ZHIPU_API_KEY` | api.z.ai | glm-4 |
+| Moonshot (国际) | `MOONSHOT_API_KEY` | api.moonshot.ai | moonshot-v1-8k |
+| MiniMax (国际) | `MINIMAX_API_KEY` | api.minimax.chat | abab6.5s-chat |
+| OpenRouter | `OPENROUTER_API_KEY` | openrouter.ai | openai/gpt-4o |
+| xAI | `XAI_API_KEY` | api.x.ai | grok-3 |
+| Gemini | `GEMINI_API_KEY` | generativelanguage.googleapis.com | gemini-2.5-pro |
+| Alibaba (国际) | `DASHSCOPE_API_KEY` | dashscope-intl.aliyuncs.com | qwen-max |
+| HuggingFace | `HF_API_KEY` | api-inference.huggingface.co | Llama-3.3-70B |
+| NVIDIA | `NVIDIA_API_KEY` | integrate.api.nvidia.com | Nemotron Super 49B |
+| Arcee | `ARCEE_API_KEY` | api.arcee.ai | trinity-large-thinking |
+| Xiaomi | `XIAOMI_API_KEY` | api.mimo.ai | mimo-v2-pro |
+| Ollama | 无需 Key | localhost:11434 | llama3.3 |
+
+### 国内版 Provider
+
+以下 Provider 提供独立的国内版端点，API Key **不互通**：
+
+| Provider | API Key 环境变量 | 默认端点 | 说明 |
+|----------|-----------------|---------|------|
+| 智谱 AI (国内) | `ZHIPU_CN_API_KEY` | open.bigmodel.cn | 大陆用户专用，Key 与国际版不互通 |
+| Kimi (国内) | `MOONSHOT_CN_API_KEY` | api.moonshot.cn | 大陆用户专用，Key 与国际版不互通 |
+| MiniMax (国内) | `MINIMAX_CN_API_KEY` | api.minimaxi.com | 大陆用户专用，Key 与国际版不互通 |
+| 阿里云 (国内) | `DASHSCOPE_CN_API_KEY` | dashscope.aliyuncs.com | 大陆用户专用，Key 与国际版不互通 |
 
 ### 模型自动检测
 
 MyAgent 支持 `provider/model` 语法自动路由到对应 Provider：
 
 ```bash
-# 自动使用 Anthropic Provider
+# 国际版
 MYAGENT_MODEL_DEFAULT=anthropic/claude-sonnet-4
+MYAGENT_MODEL_DEFAULT=zhipu/glm-4
+MYAGENT_MODEL_DEFAULT=minimax/abab6.5s-chat
+MYAGENT_MODEL_DEFAULT=alibaba/qwen-max
+
+# 国内版 (显式指定 -cn 后缀)
+MYAGENT_MODEL_DEFAULT=zhipu-cn/glm-4
+MYAGENT_MODEL_DEFAULT=minimax-cn/abab6.5s-chat
+MYAGENT_MODEL_DEFAULT=alibaba-cn/qwen-max
+MYAGENT_MODEL_DEFAULT=moonshot-cn/moonshot-v1-8k
 
 # 自动使用 OpenRouter Provider
 MYAGENT_MODEL_DEFAULT=openrouter/anthropic/claude-sonnet-4
 
-# 自动使用 DeepSeek Provider
+# bare model name 启发式匹配
 MYAGENT_MODEL_DEFAULT=deepseek-chat
 ```
 

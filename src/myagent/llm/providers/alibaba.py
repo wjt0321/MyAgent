@@ -1,4 +1,4 @@
-"""Alibaba Cloud (DashScope) provider for MyAgent."""
+"""Alibaba Cloud (DashScope) International provider for MyAgent."""
 
 from __future__ import annotations
 
@@ -8,7 +8,14 @@ from myagent.llm.providers.openai import OpenAIProvider
 
 
 class AlibabaProvider(OpenAIProvider):
-    """Provider for Alibaba Cloud DashScope API (OpenAI-compatible).
+    """Provider for Alibaba Cloud DashScope International API (OpenAI-compatible).
+
+    International endpoint for global users (Singapore region by default).
+    Console: https://www.alibabacloud.com/help/en/model-studio
+
+    Available endpoints:
+    - Singapore: https://dashscope-intl.aliyuncs.com/compatible-mode/v1
+    - US (Virginia): https://dashscope-us.aliyuncs.com/compatible-mode/v1
 
     Supports models:
     - qwen-max

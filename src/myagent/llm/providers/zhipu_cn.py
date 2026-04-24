@@ -1,4 +1,4 @@
-"""ZhipuAI (智谱AI) International provider for MyAgent."""
+"""ZhipuAI (智谱AI) China provider for MyAgent."""
 
 from __future__ import annotations
 
@@ -7,12 +7,13 @@ from typing import Any
 from myagent.llm.providers.openai import OpenAIProvider
 
 
-class ZhipuProvider(OpenAIProvider):
-    """Provider for ZhipuAI (智谱AI) International API (OpenAI-compatible).
+class ZhipuCNProvider(OpenAIProvider):
+    """Provider for ZhipuAI (智谱AI) China Domestic API (OpenAI-compatible).
 
-    International endpoint for global users.
-    Console: https://z.ai/model-api
-    API Endpoint: https://api.z.ai/api/paas/v4
+    China domestic endpoint for mainland China users.
+    Console: https://open.bigmodel.cn/
+    API Endpoint: https://open.bigmodel.cn/api/paas/v4
+    Note: API Key is NOT interchangeable with international version.
 
     Supports models:
     - glm-4 (GLM-4)
@@ -25,7 +26,7 @@ class ZhipuProvider(OpenAIProvider):
     - glm-4.7 (GLM-4.7)
     """
 
-    name = "zhipu"
+    name = "zhipu-cn"
 
     def __init__(
         self,
@@ -37,6 +38,6 @@ class ZhipuProvider(OpenAIProvider):
         super().__init__(
             api_key=api_key,
             model=model,
-            base_url=base_url or "https://api.z.ai/api/paas/v4",
+            base_url=base_url or "https://open.bigmodel.cn/api/paas/v4",
             **kwargs,
         )

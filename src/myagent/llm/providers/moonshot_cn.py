@@ -1,4 +1,4 @@
-"""Moonshot (Kimi) International provider for MyAgent."""
+"""Moonshot (Kimi) China provider for MyAgent."""
 
 from __future__ import annotations
 
@@ -7,11 +7,12 @@ from typing import Any
 from myagent.llm.providers.openai import OpenAIProvider
 
 
-class MoonshotProvider(OpenAIProvider):
-    """Provider for Moonshot (Kimi) International API (OpenAI-compatible).
+class MoonshotCNProvider(OpenAIProvider):
+    """Provider for Moonshot (Kimi) China Domestic API (OpenAI-compatible).
 
-    International endpoint for global users.
-    API Endpoint: https://api.moonshot.ai/v1
+    China domestic endpoint for mainland China users.
+    API Endpoint: https://api.moonshot.cn/v1
+    Note: API Key is NOT interchangeable with international version.
 
     Supports models:
     - moonshot-v1-8k
@@ -20,7 +21,7 @@ class MoonshotProvider(OpenAIProvider):
     - moonshot-v1-auto
     """
 
-    name = "moonshot"
+    name = "moonshot-cn"
 
     def __init__(
         self,
@@ -32,6 +33,6 @@ class MoonshotProvider(OpenAIProvider):
         super().__init__(
             api_key=api_key,
             model=model,
-            base_url=base_url or "https://api.moonshot.ai/v1",
+            base_url=base_url or "https://api.moonshot.cn/v1",
             **kwargs,
         )
