@@ -11,6 +11,9 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 
+import logging
+import uuid
+
 from myagent.web.auth import verify_token, create_token, get_auth_config, JWT_AVAILABLE
 from myagent.web.engine_manager import WebEngineManager
 from myagent.web.health import router as health_router
@@ -23,8 +26,11 @@ from myagent.codebase.indexer import CodebaseIndexer
 from myagent.codebase.search import CodebaseSearch
 from myagent.workspace.manager import WorkspaceManager, get_workspace_dir
 from myagent.config.settings import Settings
+from myagent.config.hot_reload import get_watcher
 from myagent.plugins.registry import PluginRegistry
 from myagent.plugins.discovery import discover_plugins
+
+logger = logging.getLogger(__name__)
 
 
 security = HTTPBearer(auto_error=False)
@@ -57,7 +63,29 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.engine_manager = WebEngineManager()
     app.state.task_engine = TaskEngine(app.state.engine_manager)
     app.state.team_orchestrator = TeamOrchestrator(app.state.task_engine)
+    app.state.settings = Settings.load()
+
+    # Start config hot-reload watcher
+    watcher = get_watcher()
+    config_path = Path.home() / ".myagent" / "config.yaml"
+    if config_path.exists():
+        def reload_config() -> None:
+            logger.info("Config hot-reload triggered for %s", config_path)
+            try:
+                new_settings = Settings.load()
+                app.state.settings = new_settings
+                logger.info("Config reloaded successfully")
+            except Exception as e:
+                logger.error("Config reload failed: %s", e)
+
+        watcher.watch(config_path, reload_config)
+        watcher.start()
+        logger.info("Config hot-reload watcher started for %s", config_path)
+
     yield
+
+    watcher.stop()
+    logger.info("Config hot-reload watcher stopped")
 
 
 def create_app() -> FastAPI:
@@ -70,6 +98,27 @@ def create_app() -> FastAPI:
 
     # Include health check router
     app.include_router(health_router)
+
+    # Request tracing middleware
+    @app.middleware("http")
+    async def add_request_id(request: Request, call_next: Any) -> Any:
+        request_id = str(uuid.uuid4())[:8]
+        request.state.request_id = request_id
+
+        logger.info(
+            "Request %s %s",
+            request.method,
+            request.url.path,
+            extra={
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+            },
+        )
+
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
 
     static_dir = Path(__file__).parent / "static"
     if static_dir.exists():
@@ -93,6 +142,15 @@ def create_app() -> FastAPI:
     async def health() -> dict[str, str]:
         """Health check endpoint."""
         return {"status": "ok", "version": "0.1.0"}
+
+    @app.get("/api/config/status")
+    async def config_status() -> dict[str, Any]:
+        """Get configuration hot-reload status."""
+        watcher = get_watcher()
+        return {
+            "hot_reload_enabled": watcher._running,
+            "watched_files": [str(p) for p in watcher._watched_files],
+        }
 
     @app.get("/api/auth/status")
     async def auth_status() -> dict[str, Any]:

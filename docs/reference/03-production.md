@@ -115,21 +115,102 @@ logging:
 
 ```bash
 curl http://localhost:8000/api/health
+curl http://localhost:8000/health/live
+curl http://localhost:8000/health/ready
+curl http://localhost:8000/health/metrics
 ```
 
-### 4.2 指标
+### 4.2 Prometheus 指标
 
-- 请求数
-- 响应时间
-- 错误率
-- Token 使用量
-- 成本
+MyAgent 内置 Prometheus 风格的指标采集，通过 `/health/metrics` 暴露：
+
+| 指标名 | 类型 | 说明 |
+|--------|------|------|
+| `llm_request_duration_seconds` | Histogram | LLM 请求延迟 |
+| `tool_execution_duration_seconds` | Histogram | 工具执行延迟 |
+| `query_turns_total` | Counter | 总对话轮数 |
+| `tool_executions_total` | Counter | 总工具执行次数 |
+| `tool_errors_total` | Counter | 工具执行错误次数 |
+| `query_errors_total` | Counter | 查询错误次数 |
+
+### 4.3 Grafana 配置示例
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: 'myagent'
+    static_configs:
+      - targets: ['localhost:8000']
+    metrics_path: '/health/metrics'
+```
 
 ---
 
-## 5. 备份
+## 5. 结构化日志
 
-### 5.1 备份内容
+### 5.1 启用 JSON 日志
+
+```bash
+myagent web --json-log --log-level INFO
+```
+
+日志输出示例：
+
+```json
+{"timestamp": "2026-04-24T10:30:00", "level": "INFO", "logger": "myagent.web", "message": "Request GET /api/sessions", "request_id": "a1b2c3d4", "method": "GET", "path": "/api/sessions"}
+```
+
+### 5.2 日志文件
+
+默认日志路径：`~/.myagent/logs/myagent.log`
+
+- 自动轮转：单文件 10MB，保留 5 个备份
+- 支持 JSON 格式（生产环境推荐）
+- 支持彩色控制台输出（开发环境）
+
+---
+
+## 6. 配置热重载
+
+### 6.1 启用热重载
+
+修改 `~/.myagent/config.yaml` 后，MyAgent 会自动检测并重新加载配置，无需重启服务。
+
+### 6.2 查看热重载状态
+
+```bash
+curl http://localhost:8000/api/config/status
+```
+
+响应：
+
+```json
+{"hot_reload_enabled": true, "watched_files": ["/home/user/.myagent/config.yaml"]}
+```
+
+---
+
+## 7. LLM 重试机制
+
+MyAgent 内置指数退避重试，自动处理以下网络异常：
+
+- `asyncio.TimeoutError` — 请求超时
+- `ConnectionError` — 连接失败
+- `httpx.HTTPStatusError` — HTTP 5xx 错误
+- `httpx.ConnectError` — 连接错误
+- `httpx.ReadTimeout` — 读取超时
+
+重试策略：
+- 最大重试次数：3 次
+- 初始延迟：1 秒
+- 退避倍数：2x（1s, 2s, 4s）
+- 最大延迟：60 秒
+
+---
+
+## 8. 备份
+
+### 8.1 备份内容
 
 ```bash
 # Workspace
@@ -141,7 +222,7 @@ cp ~/.myagent/gateway.yaml backup/
 cp ~/.myagent/.env backup/
 ```
 
-### 5.2 恢复
+### 8.2 恢复
 
 ```bash
 tar xzf myagent-backup.tar.gz -C ~/

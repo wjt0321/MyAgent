@@ -90,13 +90,26 @@ def doctor() -> None:
 def web(
     host: str = typer.Option("127.0.0.1", "--host", help="Host to bind to"),
     port: int = typer.Option(8000, "--port", "-p", help="Port to listen on"),
+    json_log: bool = typer.Option(False, "--json-log", help="Enable JSON structured logging"),
+    log_level: str = typer.Option("INFO", "--log-level", help="Log level (DEBUG/INFO/WARNING/ERROR)"),
 ) -> None:
     """Start the MyAgent Web UI server."""
     _load_env()
+    from myagent.logging_config import setup_logging
+
+    log_file = Path.home() / ".myagent" / "logs" / "myagent.log"
+    setup_logging(
+        level=log_level,
+        log_file=log_file,
+        json_format=json_log,
+    )
+
     import uvicorn
     from myagent.web.server import create_app
 
     console.print(f"[bold green]Starting MyAgent Web UI on http://{host}:{port}[/bold green]")
+    if json_log:
+        console.print("[dim]JSON structured logging enabled[/dim]")
     console.print("[dim]Press Ctrl+C to stop[/dim]")
 
     app = create_app()

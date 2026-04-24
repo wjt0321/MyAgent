@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any, AsyncIterator
 
@@ -14,6 +15,7 @@ from myagent.engine.messages import (
     ToolUseBlock,
 )
 from myagent.llm.base import BaseProvider
+from myagent.llm.retry import retry_with_backoff
 from myagent.llm.types import DoneChunk, StreamChunk, TextChunk, ToolUseChunk
 
 
@@ -128,6 +130,17 @@ class OpenAIProvider(BaseProvider):
 
         return None
 
+    @retry_with_backoff(
+        max_retries=3,
+        base_delay=1.0,
+        retryable_exceptions=(
+            asyncio.TimeoutError,
+            ConnectionError,
+            httpx.HTTPStatusError,
+            httpx.ConnectError,
+            httpx.ReadTimeout,
+        ),
+    )
     async def stream_messages(
         self,
         messages: list[ConversationMessage],
@@ -176,6 +189,17 @@ class OpenAIProvider(BaseProvider):
                     except json.JSONDecodeError:
                         continue
 
+    @retry_with_backoff(
+        max_retries=3,
+        base_delay=1.0,
+        retryable_exceptions=(
+            asyncio.TimeoutError,
+            ConnectionError,
+            httpx.HTTPStatusError,
+            httpx.ConnectError,
+            httpx.ReadTimeout,
+        ),
+    )
     async def complete(
         self,
         messages: list[ConversationMessage],

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+import time
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable
 
@@ -24,9 +26,12 @@ from myagent.engine.stream_events import (
 )
 from myagent.llm.base import BaseProvider
 from myagent.llm.types import DoneChunk, TextChunk, ToolUseChunk
+from myagent.monitoring.metrics import get_registry
 from myagent.security.checker import PermissionChecker, PermissionLevel
 from myagent.tools.base import ToolExecutionContext, ToolResult
 from myagent.tools.registry import ToolRegistry
+
+logger = logging.getLogger(__name__)
 
 
 class MaxTurnsExceeded(Exception):
@@ -65,6 +70,27 @@ class QueryEngine:
                 threshold_ratio=auto_compact_threshold,
             )
 
+        # Metrics
+        self._metrics = get_registry()
+        self._llm_latency_hist = self._metrics.histogram(
+            "llm_request_duration_seconds", "LLM request latency"
+        )
+        self._tool_latency_hist = self._metrics.histogram(
+            "tool_execution_duration_seconds", "Tool execution latency"
+        )
+        self._turn_counter = self._metrics.counter(
+            "query_turns_total", "Total query turns"
+        )
+        self._tool_counter = self._metrics.counter(
+            "tool_executions_total", "Total tool executions"
+        )
+        self._tool_error_counter = self._metrics.counter(
+            "tool_errors_total", "Total tool execution errors"
+        )
+        self._error_counter = self._metrics.counter(
+            "query_errors_total", "Total query errors"
+        )
+
     async def submit_message(
         self, prompt: str | ConversationMessage
     ) -> AsyncIterator[StreamEvent]:
@@ -97,8 +123,10 @@ class QueryEngine:
                 )
                 return
             self._turn_count += 1
+            self._turn_counter.inc()
 
             if self.llm_client is None:
+                self._error_counter.inc()
                 yield ErrorEvent(
                     error=RuntimeError("No LLM client configured."),
                     recoverable=False,
@@ -108,30 +136,40 @@ class QueryEngine:
             assistant_message = ConversationMessage(role="assistant", content=[])
             current_tool_use: ToolUseBlock | None = None
 
-            async for chunk in self.llm_client.stream_messages(
-                self.messages,
-                self.tool_registry.to_api_schema(),
-            ):
-                if isinstance(chunk, TextChunk):
-                    assistant_message.content.append(TextBlock(text=chunk.text))
-                    yield AssistantTextDelta(text=chunk.text)
+            # Measure LLM latency
+            llm_start = time.time()
+            try:
+                async for chunk in self.llm_client.stream_messages(
+                    self.messages,
+                    self.tool_registry.to_api_schema(),
+                ):
+                    if isinstance(chunk, TextChunk):
+                        assistant_message.content.append(TextBlock(text=chunk.text))
+                        yield AssistantTextDelta(text=chunk.text)
 
-                elif isinstance(chunk, ToolUseChunk):
-                    tool_use = ToolUseBlock(
-                        id=chunk.id,
-                        name=chunk.name,
-                        input=chunk.input,
-                    )
-                    assistant_message.content.append(tool_use)
-                    current_tool_use = tool_use
-                    yield ToolExecutionStarted(
-                        tool_name=tool_use.name,
-                        tool_use_id=tool_use.id,
-                        arguments=tool_use.input,
-                    )
+                    elif isinstance(chunk, ToolUseChunk):
+                        tool_use = ToolUseBlock(
+                            id=chunk.id,
+                            name=chunk.name,
+                            input=chunk.input,
+                        )
+                        assistant_message.content.append(tool_use)
+                        current_tool_use = tool_use
+                        yield ToolExecutionStarted(
+                            tool_name=tool_use.name,
+                            tool_use_id=tool_use.id,
+                            arguments=tool_use.input,
+                        )
 
-                elif isinstance(chunk, DoneChunk):
-                    break
+                    elif isinstance(chunk, DoneChunk):
+                        break
+            except Exception as e:
+                self._error_counter.inc()
+                logger.exception("LLM stream failed")
+                yield ErrorEvent(error=e, recoverable=False)
+                return
+            finally:
+                self._llm_latency_hist.observe(time.time() - llm_start)
 
             self.messages.append(assistant_message)
 
@@ -162,7 +200,13 @@ class QueryEngine:
                 )
                 return
             else:
+                # Measure tool execution latency
+                self._tool_counter.inc()
+                tool_start = time.time()
                 result = await self._execute_tool(current_tool_use)
+                self._tool_latency_hist.observe(time.time() - tool_start)
+                if result.is_error:
+                    self._tool_error_counter.inc()
 
             self.messages.append(
                 ConversationMessage(
