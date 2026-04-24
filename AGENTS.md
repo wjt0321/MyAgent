@@ -1,6 +1,6 @@
-# AGENT.md
+# AGENTS.md
 
-Telegraph style. Root rules only. Read scoped `AGENT.md` before touching a subtree.
+Telegraph style. Root rules only. Read scoped `AGENTS.md` before touching a subtree.
 
 ## Start
 
