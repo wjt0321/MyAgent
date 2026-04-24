@@ -60,6 +60,7 @@ class Settings(BaseModel):
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     github_token: str | None = Field(default=None)
+    github_webhook_secret: str | None = Field(default=None)
 
     @classmethod
     def from_yaml(cls, path: Path) -> Settings:
@@ -92,6 +93,8 @@ class Settings(BaseModel):
                 pass
         if env_github := os.environ.get("GITHUB_TOKEN"):
             self.github_token = env_github
+        if env_wh_secret := os.environ.get("GITHUB_WEBHOOK_SECRET"):
+            self.github_webhook_secret = env_wh_secret
 
     def get_provider_api_key(self, provider: str) -> str | None:
         """Get API key for a provider from config or environment."""

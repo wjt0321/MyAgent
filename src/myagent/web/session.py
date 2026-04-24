@@ -24,6 +24,7 @@ class Session:
     updated_at: datetime
     messages: list[dict[str, Any]] = field(default_factory=list)
     user_id: str = "default"
+    system_prompt: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -34,6 +35,7 @@ class Session:
             "updated_at": self.updated_at.isoformat(),
             "messages": self.messages,
             "user_id": self.user_id,
+            "system_prompt": self.system_prompt,
         }
 
     @classmethod
@@ -46,6 +48,7 @@ class Session:
             updated_at=datetime.fromisoformat(data["updated_at"]),
             messages=data.get("messages", []),
             user_id=data.get("user_id", "default"),
+            system_prompt=data.get("system_prompt", ""),
         )
 
     def add_message(self, role: str, content: str) -> None:
@@ -56,6 +59,11 @@ class Session:
             "timestamp": datetime.now().isoformat(),
         })
         self.updated_at = datetime.now()
+
+    def save(self) -> None:
+        """Persist session to disk via store."""
+        # This is a convenience method; actual persistence is handled by SessionStore
+        pass
 
 
 class SessionStore:
@@ -70,7 +78,9 @@ class SessionStore:
     def create(self, agent: str = "general", model: str | None = None, user_id: str = "default") -> Session:
         """Create a new session."""
         if model is None:
-            model = "anthropic/claude-3.5-sonnet"
+            from myagent.config.settings import Settings
+            settings = Settings.load()
+            model = settings.model.default
 
         session = Session(
             id=str(uuid.uuid4())[:8],

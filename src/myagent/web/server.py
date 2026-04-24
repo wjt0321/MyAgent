@@ -2,17 +2,19 @@
 
 from __future__ import annotations
 
+import logging
+import os
+import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
+from collections.abc import AsyncIterator
 
 from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
-
-import logging
-import uuid
 
 from myagent.web.auth import verify_token, create_token, get_auth_config, JWT_AVAILABLE
 from myagent.web.engine_manager import WebEngineManager
@@ -20,7 +22,7 @@ from myagent.web.health import router as health_router
 from myagent.web.session import SessionStore
 from myagent.memory.manager import MemoryEntry, MemoryManager, MemoryType
 from myagent.tasks.engine import TaskEngine
-from myagent.tasks.models import Task, TaskStatus
+from myagent.tasks.models import TaskStatus
 from myagent.teams.orchestrator import TeamOrchestrator
 from myagent.codebase.indexer import CodebaseIndexer
 from myagent.codebase.search import CodebaseSearch
@@ -370,7 +372,22 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=404, detail="Task not found")
 
         task.plan_approved = True
+
+        # Start execution in background and return immediately
+        import asyncio
+        asyncio.create_task(_run_task_execution(task_engine, task))
+
         return {"status": "approved", "task": task.to_dict()}
+
+    async def _run_task_execution(task_engine: TaskEngine, task: Any) -> None:
+        """Run task execution and review in background."""
+        try:
+            async for _ in task_engine.execute_task(task):
+                pass  # Progress could be streamed via WebSocket/SSE in future
+            await task_engine.review_task(task)
+        except Exception as e:
+            logger.error("Task execution failed: %s", e, exc_info=True)
+            task.update_status(TaskStatus.FAILED)
 
     @app.get("/api/sessions")
     async def list_sessions(user_id: str = Depends(get_current_user)) -> list[dict[str, Any]]:
@@ -408,9 +425,12 @@ def create_app() -> FastAPI:
         if "model" in request:
             session.model = request["model"]
         if "agent" in request:
-            session.agent_type = request["agent"]
+            session.agent = request["agent"]
         if "system_prompt" in request:
             session.system_prompt = request["system_prompt"]
+
+        session.updated_at = datetime.now()
+        store.update(session)
 
         return session.to_dict()
 
@@ -489,6 +509,43 @@ def create_app() -> FastAPI:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Session not found")
 
+    @app.delete("/api/sessions/{session_id}/messages")
+    async def clear_session_messages(
+        session_id: str,
+        user_id: str = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        """Clear all messages in a session."""
+        store: SessionStore = app.state.session_store
+        session = store.get(session_id, user_id=user_id)
+        if session is None:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        session.messages = []
+        session.updated_at = datetime.now()
+        store.update(session)
+        return {"status": "cleared", "session": session.to_dict()}
+
+    @app.delete("/api/sessions")
+    async def clear_all_sessions(
+        user_id: str = Depends(get_current_user),
+    ) -> dict[str, str]:
+        """Delete all sessions for current user."""
+        store: SessionStore = app.state.session_store
+        sessions = store.list_all(user_id=user_id)
+        for session in sessions:
+            store.delete(session.id, user_id=user_id)
+        return {"status": "deleted", "count": str(len(sessions))}
+
+    @app.delete("/api/config")
+    async def reset_config() -> dict[str, str]:
+        """Reset configuration to defaults."""
+        config_dir = Path.home() / ".myagent"
+        config_file = config_dir / "config.yaml"
+        if config_file.exists():
+            config_file.unlink()
+        return {"status": "reset"}
+
     @app.get("/api/plugins")
     async def list_plugins() -> list[dict[str, Any]]:
         """List all installed plugins."""
@@ -514,10 +571,45 @@ def create_app() -> FastAPI:
             for p in registry.list_plugins()
         ]
 
-    @app.get("/api/files")
-    async def list_files(path: str = ".") -> dict[str, Any]:
-        """List files in a directory."""
+    def _resolve_allowed_path(path: str) -> Path:
+        """Resolve and validate that path stays within allowed directories.
+
+        Allowed roots: current working directory and workspace directory.
+        """
         target = Path(path).resolve()
+        cwd = Path.cwd().resolve()
+        ws_dir = get_workspace_dir().resolve()
+
+        # Check if target is within allowed roots
+        allowed = False
+        try:
+            target.relative_to(cwd)
+            allowed = True
+        except ValueError:
+            pass
+
+        try:
+            target.relative_to(ws_dir)
+            allowed = True
+        except ValueError:
+            pass
+
+        if not allowed:
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: path outside allowed directories",
+            )
+
+        return target
+
+    @app.get("/api/files")
+    async def list_files(
+        path: str = ".",
+        user_id: str = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        """List files in a directory."""
+        target = _resolve_allowed_path(path)
         if not target.exists():
             from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="Path not found")
@@ -538,9 +630,12 @@ def create_app() -> FastAPI:
         return {"path": str(target), "entries": entries}
 
     @app.get("/api/files/read")
-    async def read_file(path: str) -> dict[str, Any]:
+    async def read_file(
+        path: str,
+        user_id: str = Depends(get_current_user),
+    ) -> dict[str, Any]:
         """Read a file's content."""
-        target = Path(path).resolve()
+        target = _resolve_allowed_path(path)
         if not target.exists() or not target.is_file():
             from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="File not found")
@@ -570,7 +665,24 @@ def create_app() -> FastAPI:
         await websocket.accept()
         store: SessionStore = app.state.session_store
         engine_manager: WebEngineManager = app.state.engine_manager
-        session = store.get(session_id)
+
+        # Validate token from query parameter or subprotocol
+        token = websocket.query_params.get("token", "")
+        user_id = "default"
+        if JWT_AVAILABLE and token:
+            verified = verify_token(token)
+            if verified:
+                user_id = verified
+
+        # Check auth requirements
+        auth_config = get_auth_config()
+        if auth_config.enabled and JWT_AVAILABLE:
+            if not token or not verify_token(token):
+                await websocket.send_json({"type": "error", "message": "Authentication required"})
+                await websocket.close()
+                return
+
+        session = store.get(session_id, user_id=user_id)
 
         if session is None:
             await websocket.send_json({"type": "error", "message": "Session not found"})
@@ -580,7 +692,10 @@ def create_app() -> FastAPI:
         if not engine_manager.is_configured():
             await websocket.send_json({
                 "type": "error",
-                "message": "LLM provider not configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or other provider environment variable.",
+                "message": (
+                    "LLM provider not configured. "
+                    "Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or other provider environment variable."
+                ),
             })
             await websocket.close()
             return
@@ -689,6 +804,7 @@ def create_app() -> FastAPI:
             await websocket.send_json({
                 "type": "permission_request",
                 "tool_name": event.tool_name,
+                "tool_use_id": event.tool_use_id,
                 "arguments": event.arguments,
                 "reason": event.reason,
             })
@@ -726,25 +842,41 @@ def create_app() -> FastAPI:
                 status_code=400,
             )
 
-        # Create adapter with config from env
+        # Webhook secret MUST come from server-side config/env, NEVER from request payload
+        settings = Settings.load()
+        webhook_secret = settings.github_webhook_secret or ""
+        if not webhook_secret:
+            webhook_secret = os.environ.get("GITHUB_WEBHOOK_SECRET", "")
+
+        # In production, require secret to be configured
+        if not webhook_secret:
+            logger.warning(
+                "GitHub webhook secret not configured. Rejecting webhook."
+            )
+            return JSONResponse(
+                {"status": "error", "message": "Webhook secret not configured"},
+                status_code=401,
+            )
+
         config = PlatformConfig()
-        config.extra["webhook_secret"] = payload.get("secret") or ""
-        config.token = Settings.load().github_token or ""
+        config.extra["webhook_secret"] = webhook_secret
+        config.token = settings.github_token or ""
 
         adapter = GitHubAdapter(config)
 
-        # Verify signature if secret is configured
-        if adapter.webhook_secret:
-            if not adapter.verify_signature(body, signature):
-                return JSONResponse(
-                    {"status": "error", "message": "Invalid signature"},
-                    status_code=401,
-                )
+        # Verify signature
+        if not adapter.verify_signature(body, signature):
+            logger.warning("GitHub webhook signature verification failed")
+            return JSONResponse(
+                {"status": "error", "message": "Invalid signature"},
+                status_code=401,
+            )
 
         try:
             result = await adapter.handle_event(event_type, payload)
             return JSONResponse({"status": "ok", "result": result})
         except Exception as e:
+            logger.error("GitHub webhook error: %s", e, exc_info=True)
             return JSONResponse(
                 {"status": "error", "message": str(e)},
                 status_code=500,

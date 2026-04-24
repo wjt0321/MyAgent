@@ -58,6 +58,7 @@ class PermissionRequestEvent(StreamEvent):
     """Event emitted when a tool execution needs user permission."""
 
     tool_name: str
+    tool_use_id: str
     arguments: dict[str, Any]
     reason: str
 

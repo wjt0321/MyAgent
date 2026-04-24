@@ -208,6 +208,7 @@ class QueryEngine:
             elif permission_result.level == PermissionLevel.ASK:
                 yield PermissionRequestEvent(
                     tool_name=current_tool_use.name,
+                    tool_use_id=current_tool_use.id,
                     arguments=current_tool_use.input,
                     reason=permission_result.reason,
                 )
