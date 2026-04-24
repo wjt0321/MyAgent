@@ -291,6 +291,18 @@ class FeishuAdapter(BasePlatformAdapter):
 
         Returns a challenge response for URL verification, or None.
         """
+        # Verify signature if encrypt_key is configured
+        if self.encrypt_key:
+            timestamp = headers.get("X-Lark-Request-Timestamp", "")
+            nonce = headers.get("X-Lark-Request-Nonce", "")
+            signature = headers.get("X-Lark-Signature", "")
+            body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode()
+
+            if not self.verify_signature(body, timestamp, nonce, signature):
+                logger.warning("[%s] Webhook signature verification failed", self.name)
+                return None
+            logger.debug("[%s] Webhook signature verified", self.name)
+
         # URL verification
         if payload.get("type") == "url_verification":
             challenge = payload.get("challenge", "")

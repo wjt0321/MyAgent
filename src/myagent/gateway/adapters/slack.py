@@ -44,6 +44,8 @@ class SlackAdapter(BasePlatformAdapter):
         self._ws: Any = None
         self._dedup = MessageDeduplicator()
         self._bot_id: Optional[str] = None
+        self._reconnect_delay = 5.0
+        self._max_reconnect_delay = 300.0
 
     async def connect(self) -> bool:
         if not AIOHTTP_AVAILABLE:
@@ -62,20 +64,28 @@ class SlackAdapter(BasePlatformAdapter):
             return False
 
         self._bot_id = bot_info.get("user_id")
-        logger.info("[%s] Connected as %s", self.name, bot_info.get("user"))
+        logger.info("[%s] Authenticated as %s", self.name, bot_info.get("user"))
 
-        # Open Socket Mode connection
+        return await self._connect_socket_mode()
+
+    async def _connect_socket_mode(self) -> bool:
+        """Connect to Slack Socket Mode."""
         apps_connect = await self._api_request("POST", "/apps.connections.open")
         if not apps_connect.get("ok"):
             logger.error("[%s] Socket mode open failed: %s", self.name, apps_connect.get("error"))
             return False
 
         ws_url = apps_connect.get("url")
-        self._ws = await self._session.ws_connect(ws_url)
-
-        self._running = True
-        asyncio.create_task(self._ws_loop())
-        return True
+        try:
+            self._ws = await self._session.ws_connect(ws_url)
+            self._running = True
+            self._reconnect_delay = 5.0  # Reset backoff on successful connect
+            asyncio.create_task(self._ws_loop())
+            logger.info("[%s] Socket Mode connected", self.name)
+            return True
+        except Exception as e:
+            logger.error("[%s] Socket Mode connection failed: %s", self.name, e)
+            return False
 
     async def disconnect(self) -> None:
         self._running = False
@@ -104,7 +114,7 @@ class SlackAdapter(BasePlatformAdapter):
             return {"ok": False, "error": str(e)}
 
     async def _ws_loop(self) -> None:
-        """Main WebSocket receive loop."""
+        """Main WebSocket receive loop with auto-reconnect."""
         while self._running:
             try:
                 msg = await self._ws.receive()
@@ -112,10 +122,30 @@ class SlackAdapter(BasePlatformAdapter):
                     data = msg.json()
                     await self._handle_ws_message(data)
                 elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                    logger.warning(
+                        "[%s] WebSocket closed, reconnecting in %.0fs...",
+                        self.name, self._reconnect_delay,
+                    )
+                    await asyncio.sleep(self._reconnect_delay)
+                    self._reconnect_delay = min(
+                        self._reconnect_delay * 2, self._max_reconnect_delay
+                    )
+                    await self._reconnect()
                     break
             except Exception as e:
                 logger.error("[%s] WebSocket error: %s", self.name, e)
-                await asyncio.sleep(5)
+                await asyncio.sleep(self._reconnect_delay)
+                self._reconnect_delay = min(
+                    self._reconnect_delay * 2, self._max_reconnect_delay
+                )
+                await self._reconnect()
+                break
+
+    async def _reconnect(self) -> None:
+        """Reconnect to Slack Socket Mode."""
+        if self._ws:
+            await self._ws.close()
+        await self._connect_socket_mode()
 
     async def _handle_ws_message(self, data: Dict[str, Any]) -> None:
         """Handle a Slack Socket Mode message."""

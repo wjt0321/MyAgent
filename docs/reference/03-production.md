@@ -208,9 +208,46 @@ MyAgent 内置指数退避重试，自动处理以下网络异常：
 
 ---
 
-## 8. 备份
+## 8. Gateway 会话管理
 
-### 8.1 备份内容
+### 8.1 会话持久化
+
+Gateway 自动将用户会话映射持久化到 `~/.myagent/gateway_sessions.yaml`，重启后自动恢复。
+
+### 8.2 LRU 缓存与 TTL 驱逐
+
+```python
+from myagent.gateway.session_store import GatewaySessionStore
+
+# 默认配置: 最大 1000 个会话, 7 天 TTL
+store = GatewaySessionStore()
+
+# 自定义配置
+store = GatewaySessionStore(
+    max_sessions=500,      # 最多保留 500 个会话
+    ttl_seconds=86400,     # 1 天 TTL
+)
+```
+
+- **LRU 驱逐**: 当会话数超过 `max_sessions` 时，自动移除最久未使用的会话
+- **TTL 驱逐**: 超过 `ttl_seconds` 未活跃的会话自动过期
+- **启动清理**: 每次启动时自动清理过期会话
+
+### 8.3 适配器状态
+
+| 适配器 | 状态 | 特性 |
+|--------|------|------|
+| Telegram | ✅ 完整 | 长轮询、权限内联、消息去重 |
+| Discord | ✅ 完整 | Gateway WebSocket、心跳、自动重连、Session Resume |
+| Slack | ✅ 完整 | Socket Mode、自动重连、指数退避 |
+| Feishu | ✅ 完整 | Webhook、签名验证、Token 刷新、多认证模式 |
+| GitHub | ✅ 完整 | Webhook、PR/Issue 分析 |
+
+---
+
+## 9. 备份
+
+### 9.1 备份内容
 
 ```bash
 # Workspace
@@ -222,7 +259,7 @@ cp ~/.myagent/gateway.yaml backup/
 cp ~/.myagent/.env backup/
 ```
 
-### 8.2 恢复
+### 9.2 恢复
 
 ```bash
 tar xzf myagent-backup.tar.gz -C ~/
