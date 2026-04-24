@@ -9,9 +9,12 @@ from myagent.llm.providers.alibaba import AlibabaProvider
 from myagent.llm.providers.alibaba_cn import AlibabaCNProvider
 from myagent.llm.providers.anthropic import AnthropicProvider
 from myagent.llm.providers.arcee import ArceeProvider
+from myagent.llm.providers.baidu import BaiduProvider
 from myagent.llm.providers.deepseek import DeepSeekProvider
+from myagent.llm.providers.doubao import DoubaoProvider
 from myagent.llm.providers.gemini import GeminiProvider
 from myagent.llm.providers.huggingface import HuggingFaceProvider
+from myagent.llm.providers.hunyuan import HunyuanProvider
 from myagent.llm.providers.minimax import MiniMaxProvider
 from myagent.llm.providers.minimax_cn import MiniMaxCNProvider
 from myagent.llm.providers.moonshot import MoonshotProvider
@@ -20,6 +23,7 @@ from myagent.llm.providers.nvidia import NvidiaProvider
 from myagent.llm.providers.ollama import OllamaProvider
 from myagent.llm.providers.openai import OpenAIProvider
 from myagent.llm.providers.openrouter import OpenRouterProvider
+from myagent.llm.providers.spark import SparkProvider
 from myagent.llm.providers.xai import XAIProvider
 from myagent.llm.providers.xiaomi import XiaomiProvider
 from myagent.llm.providers.zhipu import ZhipuProvider
@@ -64,9 +68,12 @@ class ProviderRegistry:
         registry.register("alibaba-cn", AlibabaCNProvider)
         registry.register("anthropic", AnthropicProvider)
         registry.register("arcee", ArceeProvider)
+        registry.register("baidu", BaiduProvider)
         registry.register("deepseek", DeepSeekProvider)
+        registry.register("doubao", DoubaoProvider)
         registry.register("gemini", GeminiProvider)
         registry.register("huggingface", HuggingFaceProvider)
+        registry.register("hunyuan", HunyuanProvider)
         registry.register("minimax", MiniMaxProvider)
         registry.register("minimax-cn", MiniMaxCNProvider)
         registry.register("moonshot", MoonshotProvider)
@@ -75,6 +82,7 @@ class ProviderRegistry:
         registry.register("ollama", OllamaProvider)
         registry.register("openai", OpenAIProvider)
         registry.register("openrouter", OpenRouterProvider)
+        registry.register("spark", SparkProvider)
         registry.register("xai", XAIProvider)
         registry.register("xiaomi", XiaomiProvider)
         registry.register("zhipu", ZhipuProvider)
