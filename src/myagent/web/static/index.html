@@ -45,6 +45,16 @@
             <div class="sidebar-nav">
                 <div class="nav-section">
                     <div class="nav-label">会话</div>
+                    <div class="session-toolbar">
+                        <button class="icon-btn session-import-btn" id="session-import-btn" title="导入会话">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </button>
+                        <input type="file" id="session-import-file" accept=".json" style="display: none;">
+                    </div>
                     <div class="session-list" id="session-list"></div>
                 </div>
                 <div class="nav-section">
@@ -217,6 +227,14 @@
                     </div>
                 </div>
                 <div class="header-actions">
+                    <div class="token-display" id="token-display" title="当前会话 Token 消耗" style="display: none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5"/>
+                            <path d="M2 12l10 5 10-5"/>
+                        </svg>
+                        <span id="token-count">0</span> tokens
+                    </div>
                     <div class="agent-selector">
                         <select id="agent-select">
                             <option value="general">general</option>
@@ -353,7 +371,11 @@
                         </div>
                         <div class="form-group">
                             <label>系统提示词</label>
-                            <textarea id="settings-system-prompt" rows="4" placeholder="输入系统提示词..."></textarea>
+                            <textarea id="settings-system-prompt" rows="6" placeholder="输入系统提示词..."></textarea>
+                            <div class="form-hint">修改系统提示词将重置当前对话上下文</div>
+                        </div>
+                        <div class="form-group">
+                            <button class="btn-primary btn-sm" id="save-system-prompt-btn">保存系统提示词</button>
                         </div>
                     </div>
                     <div class="tab-content" data-tab="memory">

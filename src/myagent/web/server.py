@@ -414,6 +414,56 @@ def create_app() -> FastAPI:
 
         return session.to_dict()
 
+    @app.patch("/api/sessions/{session_id}/system-prompt")
+    async def update_system_prompt(
+        session_id: str,
+        request: dict[str, Any],
+        user_id: str = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        """Update session system prompt and clear message history."""
+        store: SessionStore = app.state.session_store
+        session = store.get(session_id, user_id=user_id)
+        if session is None:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        system_prompt = request.get("system_prompt", "").strip()
+        if not system_prompt:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="system_prompt is required")
+
+        session.system_prompt = system_prompt
+        # Clear message history to apply new system prompt
+        session.messages = []
+        session.save()
+
+        return session.to_dict()
+
+    @app.post("/api/sessions/{session_id}/import")
+    async def import_session_messages(
+        session_id: str,
+        request: dict[str, Any],
+        user_id: str = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        """Import messages into a session."""
+        store: SessionStore = app.state.session_store
+        session = store.get(session_id, user_id=user_id)
+        if session is None:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        messages = request.get("messages", [])
+        if not isinstance(messages, list):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="messages must be a list")
+
+        for msg in messages:
+            if isinstance(msg, dict) and "role" in msg and "content" in msg:
+                session.messages.append(msg)
+
+        session.save()
+        return session.to_dict()
+
     @app.get("/api/sessions/{session_id}")
     async def get_session(
         session_id: str,
@@ -584,6 +634,14 @@ def create_app() -> FastAPI:
                     if response:
                         session.add_message("assistant", response)
                         store._save(session)
+
+                        # Estimate token usage (rough approximation)
+                        total_text = message + response
+                        estimated_tokens = len(total_text) // 4
+                        await websocket.send_json({
+                            "type": "token_usage",
+                            "tokens": estimated_tokens,
+                        })
 
                         # Trigger memory collection in background
                         import asyncio

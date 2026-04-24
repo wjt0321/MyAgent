@@ -131,6 +131,10 @@ class MyAgentWebApp {
         this.settingsMessageCount = document.getElementById('settings-message-count');
         this.workspaceInfo = document.getElementById('workspace-info');
 
+        // Session import
+        this.sessionImportBtn = document.getElementById('session-import-btn');
+        this.sessionImportFile = document.getElementById('session-import-file');
+
         // Memory management
         this.memoryList = document.getElementById('memory-list');
         this.memoryForm = document.getElementById('memory-form');
@@ -173,6 +177,13 @@ class MyAgentWebApp {
         // Settings tabs
         this.tabBtns = document.querySelectorAll('.tab-btn');
         this.tabContents = document.querySelectorAll('.tab-content');
+
+        // System prompt
+        this.saveSystemPromptBtn = document.getElementById('save-system-prompt-btn');
+
+        // Token display
+        this.tokenDisplay = document.getElementById('token-display');
+        this.tokenCount = document.getElementById('token-count');
 
         this.updateThemeIcon();
         this.setupSystemThemeListener();
@@ -286,6 +297,19 @@ class MyAgentWebApp {
         this.resetModal.addEventListener('click', (e) => {
             if (e.target === this.resetModal) this.hideResetModal();
         });
+
+        // System prompt save
+        if (this.saveSystemPromptBtn) {
+            this.saveSystemPromptBtn.addEventListener('click', () => this.saveSystemPrompt());
+        }
+
+        // Session import
+        if (this.sessionImportBtn) {
+            this.sessionImportBtn.addEventListener('click', () => this.sessionImportFile.click());
+        }
+        if (this.sessionImportFile) {
+            this.sessionImportFile.addEventListener('change', (e) => this.importSession(e));
+        }
     }
 
     // ========== Tabs ==========
@@ -957,6 +981,20 @@ class MyAgentWebApp {
                 const status = data.approved ? 'approved' : 'denied';
                 this.addMessage('tool-result', `Permission ${status}: ${data.reason}`, false);
                 break;
+
+            case 'token_usage':
+                this.updateTokenDisplay(data.tokens);
+                break;
+        }
+    }
+
+    updateTokenDisplay(tokens) {
+        if (!this.tokenDisplay || !this.tokenCount) return;
+        if (tokens > 0) {
+            this.tokenDisplay.style.display = 'flex';
+            this.tokenCount.textContent = tokens.toLocaleString();
+        } else {
+            this.tokenDisplay.style.display = 'none';
         }
     }
 
@@ -1289,12 +1327,32 @@ class MyAgentWebApp {
         messageDiv.innerHTML = `
             <div class="role-label">${roleLabels[role] || role}</div>
             <div class="content">${contentHtml}</div>
-            <div class="message-timestamp">${timestamp}</div>
+            <div class="message-meta">
+                <div class="message-timestamp">${timestamp}</div>
+                ${role === 'user' ? `
+                <div class="message-actions">
+                    <button class="msg-action-btn msg-edit-btn" title="编辑">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                </div>
+                ` : ''}
+            </div>
         `;
 
         // Store raw text for streaming append
         if (role === 'assistant') {
             messageDiv.dataset.rawText = content;
+        }
+
+        // Bind edit button for user messages
+        if (role === 'user') {
+            const editBtn = messageDiv.querySelector('.msg-edit-btn');
+            if (editBtn) {
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.startEditMessage(messageDiv, content);
+                });
+            }
         }
 
         if (role === 'assistant' && window.hljs) {
@@ -1398,6 +1456,122 @@ class MyAgentWebApp {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // ========== Message Edit ==========
+
+    startEditMessage(messageDiv, originalContent) {
+        const contentEl = messageDiv.querySelector('.content');
+        const metaEl = messageDiv.querySelector('.message-meta');
+
+        // Replace content with textarea
+        const textarea = document.createElement('textarea');
+        textarea.className = 'message-edit-input';
+        textarea.value = originalContent;
+        textarea.rows = 3;
+
+        contentEl.replaceWith(textarea);
+        if (metaEl) metaEl.style.display = 'none';
+
+        // Focus and auto-resize
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        this.autoResizeTextarea(textarea);
+
+        // Add action buttons
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'message-edit-actions';
+        actionsDiv.innerHTML = `
+            <button class="btn-cancel">取消</button>
+            <button class="btn-save">保存</button>
+            <button class="btn-resend">保存并重新发送</button>
+        `;
+        messageDiv.appendChild(actionsDiv);
+
+        const cancelBtn = actionsDiv.querySelector('.btn-cancel');
+        const saveBtn = actionsDiv.querySelector('.btn-save');
+        const resendBtn = actionsDiv.querySelector('.btn-resend');
+
+        cancelBtn.addEventListener('click', () => {
+            this.cancelEditMessage(messageDiv, originalContent);
+        });
+
+        saveBtn.addEventListener('click', () => {
+            this.saveEditMessage(messageDiv, textarea.value, false);
+        });
+
+        resendBtn.addEventListener('click', () => {
+            this.saveEditMessage(messageDiv, textarea.value, true);
+        });
+
+        // Enter to save, Escape to cancel
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.saveEditMessage(messageDiv, textarea.value, true);
+            } else if (e.key === 'Escape') {
+                this.cancelEditMessage(messageDiv, originalContent);
+            }
+        });
+    }
+
+    cancelEditMessage(messageDiv, originalContent) {
+        const textarea = messageDiv.querySelector('.message-edit-input');
+        const actionsDiv = messageDiv.querySelector('.message-edit-actions');
+
+        if (textarea) {
+            const contentEl = document.createElement('div');
+            contentEl.className = 'content';
+            contentEl.textContent = originalContent;
+            textarea.replaceWith(contentEl);
+        }
+        if (actionsDiv) actionsDiv.remove();
+
+        const metaEl = messageDiv.querySelector('.message-meta');
+        if (metaEl) metaEl.style.display = '';
+    }
+
+    saveEditMessage(messageDiv, newContent, resend) {
+        const trimmed = newContent.trim();
+        if (!trimmed) return;
+
+        const textarea = messageDiv.querySelector('.message-edit-input');
+        const actionsDiv = messageDiv.querySelector('.message-edit-actions');
+
+        if (textarea) {
+            const contentEl = document.createElement('div');
+            contentEl.className = 'content';
+            contentEl.textContent = trimmed;
+            textarea.replaceWith(contentEl);
+        }
+        if (actionsDiv) actionsDiv.remove();
+
+        const metaEl = messageDiv.querySelector('.message-meta');
+        if (metaEl) metaEl.style.display = '';
+
+        // Update stored content in dataset
+        messageDiv.dataset.rawText = trimmed;
+
+        if (resend) {
+            // Remove all messages after this one
+            let nextEl = messageDiv.nextElementSibling;
+            while (nextEl) {
+                const toRemove = nextEl;
+                nextEl = nextEl.nextElementSibling;
+                toRemove.remove();
+            }
+
+            // Send the edited message
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({ message: trimmed }));
+                this.setSending(true);
+            }
+        }
+    }
+
+    autoResizeTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
     }
 
     // ========== Memory Management ==========
@@ -1701,6 +1875,91 @@ class MyAgentWebApp {
 
         this.closeSettings();
         this.addMessage('assistant', '设置已保存', false);
+    }
+
+    async saveSystemPrompt() {
+        const prompt = this.settingsSystemPrompt.value.trim();
+        if (!prompt) {
+            alert('系统提示词不能为空');
+            return;
+        }
+
+        if (!this.currentSessionId) {
+            alert('请先选择一个会话');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/sessions/${this.currentSessionId}/system-prompt`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ system_prompt: prompt }),
+            });
+
+            if (response.ok) {
+                // Clear messages and reconnect to apply new system prompt
+                this.messagesContainer.innerHTML = '';
+                this.addMessage('assistant', '系统提示词已更新，对话上下文已重置', false);
+                this.connectWebSocket(this.currentSessionId);
+            } else {
+                alert('保存失败');
+            }
+        } catch (error) {
+            console.error('Failed to save system prompt:', error);
+            alert('保存失败: ' + error.message);
+        }
+    }
+
+    async importSession(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            // Validate imported data
+            if (!data.agent || !Array.isArray(data.messages)) {
+                alert('无效的会话文件格式');
+                return;
+            }
+
+            // Create new session with imported data
+            const response = await fetch('/api/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    agent: data.agent,
+                    model: data.model || 'glm-4',
+                }),
+            });
+
+            if (!response.ok) throw new Error('创建会话失败');
+
+            const session = await response.json();
+
+            // Import messages
+            if (data.messages.length > 0) {
+                const importResponse = await fetch(`/api/sessions/${session.id}/import`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: data.messages }),
+                });
+
+                if (!importResponse.ok) throw new Error('导入消息失败');
+            }
+
+            // Reload sessions and select the imported one
+            await this.loadSessions();
+            this.selectSession(session.id);
+            this.addMessage('assistant', `会话 "${data.agent}" 导入成功`, false);
+        } catch (error) {
+            console.error('Failed to import session:', error);
+            alert('导入失败: ' + error.message);
+        } finally {
+            // Reset file input
+            event.target.value = '';
+        }
     }
 
     // ========== Session Delete ==========
