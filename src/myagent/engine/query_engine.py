@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable
 
-from myagent.engine.context_compression import AutoCompactor, ContextCompressor
+from myagent.engine.context_compression import AutoCompactor, ContextCompressor, estimate_message_tokens
 from myagent.engine.messages import (
     ConversationMessage,
     TextBlock,
@@ -90,6 +90,12 @@ class QueryEngine:
         self._error_counter = self._metrics.counter(
             "query_errors_total", "Total query errors"
         )
+        self._token_gauge = self._metrics.gauge(
+            "query_context_tokens", "Current context token count"
+        )
+        self._compression_counter = self._metrics.counter(
+            "query_compactions_total", "Total context compactions"
+        )
 
     async def submit_message(
         self, prompt: str | ConversationMessage
@@ -113,6 +119,13 @@ class QueryEngine:
                     yield AssistantTextDelta(
                         text=f"\n[Context auto-compacted: {result.tokens_before} -> {result.tokens_after} tokens ({result.strategy_used})]\n"
                     )
+
+            # Record token usage stats
+            current_tokens = sum(estimate_message_tokens(m) for m in self.messages)
+            self._token_gauge.set(current_tokens)
+            if self.auto_compactor:
+                self.auto_compactor.stats.record_turn(current_tokens)
+                self._compression_counter.set(self.auto_compactor.stats.compression_count)
 
             if self._turn_count >= self.max_turns:
                 yield ErrorEvent(

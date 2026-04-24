@@ -10,6 +10,7 @@ Provides strategies to reduce token usage in long conversations:
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional
 
@@ -253,30 +254,194 @@ class ContextCompressor:
 # Auto-compaction integration
 # ---------------------------------------------------------------------------
 
+@dataclass
+class TokenUsageStats:
+    """Statistics for token usage monitoring."""
+
+    total_tokens: int = 0
+    tokens_per_turn: List[int] = None
+    compression_count: int = 0
+    last_compression_time: float = 0.0
+    peak_tokens: int = 0
+
+    def __post_init__(self):
+        if self.tokens_per_turn is None:
+            self.tokens_per_turn = []
+
+    def record_turn(self, tokens: int) -> None:
+        """Record token usage for a turn."""
+        self.tokens_per_turn.append(tokens)
+        self.total_tokens += tokens
+        if tokens > self.peak_tokens:
+            self.peak_tokens = tokens
+        # Keep only last 20 turns
+        if len(self.tokens_per_turn) > 20:
+            self.tokens_per_turn.pop(0)
+
+    @property
+    def avg_tokens_per_turn(self) -> float:
+        """Average tokens per turn over recent history."""
+        if not self.tokens_per_turn:
+            return 0.0
+        return sum(self.tokens_per_turn) / len(self.tokens_per_turn)
+
+    @property
+    def token_growth_rate(self) -> float:
+        """Rate of token growth (tokens per turn)."""
+        if len(self.tokens_per_turn) < 2:
+            return 0.0
+        # Simple linear growth rate
+        first = self.tokens_per_turn[0]
+        last = self.tokens_per_turn[-1]
+        return (last - first) / len(self.tokens_per_turn)
+
+
 class AutoCompactor:
-    """Automatically compact conversation when it grows too large."""
+    """Automatically compact conversation when it grows too large.
+
+    Features:
+    - Dynamic threshold adjustment based on token growth rate
+    - Preserves critical decision points (tool uses with errors)
+    - Token usage statistics tracking
+    """
 
     def __init__(
         self,
         compressor: ContextCompressor,
         threshold_ratio: float = 0.8,
+        min_threshold_ratio: float = 0.5,
+        max_threshold_ratio: float = 0.9,
     ) -> None:
         self.compressor = compressor
         self.threshold_ratio = threshold_ratio
+        self.min_threshold_ratio = min_threshold_ratio
+        self.max_threshold_ratio = max_threshold_ratio
+        self.stats = TokenUsageStats()
+        self._dynamic_threshold = threshold_ratio
+
+    def _update_dynamic_threshold(self) -> None:
+        """Adjust threshold based on token growth rate.
+
+        If tokens are growing fast, lower the threshold to compact earlier.
+        If tokens are stable, raise the threshold to compact less frequently.
+        """
+        growth_rate = self.stats.token_growth_rate
+        if growth_rate > 30:  # Fast growth
+            self._dynamic_threshold = max(
+                self.min_threshold_ratio,
+                self._dynamic_threshold - 0.05,
+            )
+        elif growth_rate < 5:  # Slow/stable growth
+            self._dynamic_threshold = min(
+                self.max_threshold_ratio,
+                self._dynamic_threshold + 0.02,
+            )
 
     def should_compact(self, messages: List[ConversationMessage]) -> bool:
         """Check if compaction is needed."""
         total_tokens = sum(estimate_message_tokens(m) for m in messages)
-        return total_tokens > self.compressor.max_tokens * self.threshold_ratio
+        self._update_dynamic_threshold()
+        threshold = self.compressor.max_tokens * self._dynamic_threshold
+        return total_tokens > threshold
 
     def compact(self, messages: List[ConversationMessage]) -> CompressionResult:
-        """Compact messages if needed."""
+        """Compact messages if needed, preserving critical decision points."""
+        tokens_before = sum(estimate_message_tokens(m) for m in messages)
+
         if not self.should_compact(messages):
-            tokens = sum(estimate_message_tokens(m) for m in messages)
             return CompressionResult(
                 messages=list(messages),
-                tokens_before=tokens,
-                tokens_after=tokens,
+                tokens_before=tokens_before,
+                tokens_after=tokens_before,
                 strategy_used="none",
             )
-        return self.compressor.compress(messages)
+
+        # Pre-processing: identify critical messages to preserve
+        critical_indices = self._identify_critical_messages(messages)
+
+        # Compress non-critical messages first
+        result = self._compress_with_preservation(messages, critical_indices)
+        tokens_after = sum(estimate_message_tokens(m) for m in result)
+
+        # Update stats
+        self.stats.compression_count += 1
+        self.stats.last_compression_time = time.time()
+
+        strategy = "preserve_critical"
+        if tokens_after > self.compressor.max_tokens * 0.9:
+            # Still too large, fall back to full compression
+            full_result = self.compressor.compress(result)
+            tokens_after = full_result.tokens_after
+            result = full_result.messages
+            strategy = f"preserve_critical+{full_result.strategy_used}"
+
+        return CompressionResult(
+            messages=result,
+            tokens_before=tokens_before,
+            tokens_after=tokens_after,
+            strategy_used=strategy,
+        )
+
+    def _identify_critical_messages(self, messages: List[ConversationMessage]) -> set:
+        """Identify messages that should be preserved during compression.
+
+        Critical messages include:
+        - System prompt
+        - Tool uses that resulted in errors
+        - User messages with explicit commands
+        """
+        critical = set()
+        for i, msg in enumerate(messages):
+            if msg.role == "system":
+                critical.add(i)
+                continue
+            # Check for tool results with errors
+            for block in msg.content:
+                if isinstance(block, ToolResultBlock) and block.is_error:
+                    # Mark this message and the previous tool use as critical
+                    critical.add(i)
+                    if i > 0:
+                        critical.add(i - 1)
+                    break
+            # Check for user commands
+            if msg.role == "user" and msg.text:
+                text = msg.text.strip().lower()
+                if text.startswith(("/", "!", "#")):
+                    critical.add(i)
+        return critical
+
+    def _compress_with_preservation(
+        self, messages: List[ConversationMessage], critical_indices: set
+    ) -> List[ConversationMessage]:
+        """Compress messages while preserving critical ones."""
+        # Separate critical and non-critical messages
+        critical_msgs = [(i, m) for i, m in enumerate(messages) if i in critical_indices]
+        non_critical = [(i, m) for i, m in enumerate(messages) if i not in critical_indices]
+
+        if not non_critical:
+            return list(messages)
+
+        # Compress only non-critical messages
+        _, non_critical_msgs = zip(*non_critical) if non_critical else ([], [])
+        compressed = self.compressor.compress(list(non_critical_msgs))
+
+        # Rebuild message list preserving order
+        result = []
+        critical_idx = 0
+        compressed_idx = 0
+
+        for i in range(len(messages)):
+            if i in critical_indices:
+                if critical_idx < len(critical_msgs):
+                    result.append(critical_msgs[critical_idx][1])
+                    critical_idx += 1
+            else:
+                if compressed_idx < len(compressed.messages):
+                    result.append(compressed.messages[compressed_idx])
+                    compressed_idx += 1
+
+        return result
+
+    def get_stats(self) -> TokenUsageStats:
+        """Get token usage statistics."""
+        return self.stats
