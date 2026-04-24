@@ -1,7 +1,4 @@
-"""Ollama provider for MyAgent.
-
-Local LLM inference via Ollama API.
-"""
+"""Ollama provider for MyAgent."""
 
 from __future__ import annotations
 
@@ -11,23 +8,24 @@ from myagent.llm.providers.openai import OpenAIProvider
 
 
 class OllamaProvider(OpenAIProvider):
-    """Provider for Ollama local inference (OpenAI-compatible).
+    """Provider for Ollama local API (OpenAI-compatible).
 
-    Supports any model available in Ollama:
+    Supports any model running locally via Ollama:
     - llama3.3
     - qwen2.5
-    - deepseek-r1
-    - phi4
-    - mistral
+    - deepseek-coder-v2
     - codellama
+    - mistral
+    - gemma2
+    - phi4
     """
 
     name = "ollama"
 
     def __init__(
         self,
-        api_key: str = "ollama",  # Ollama doesn't require API key
-        model: str = "llama3.2",
+        api_key: str = "ollama",
+        model: str = "llama3.3",
         base_url: str | None = None,
         **kwargs: Any,
     ) -> None:

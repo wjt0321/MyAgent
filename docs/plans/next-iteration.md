@@ -17,7 +17,7 @@
 | Phase 6 | Web UI | 70% | 基础界面可用，可继续增强 |
 | Phase 7 | Gateway | 80% | Telegram/GitHub 适配器完成，会话持久化，JWT 认证 |
 | Phase 8 | 生产优化 | 30% | 基础 CostTracker 就绪，Git 工具已添加 |
-| Phase 9 | 生态扩展 | 40% | 9 个 LLM 提供商、7 个核心工具 |
+| Phase 9 | 生态扩展 | 85% | 15 个 LLM 提供商、7 个核心工具 |
 
 ---
 
@@ -157,17 +157,30 @@ Gateway 核心框架已完成，Telegram 和 GitHub 适配器已就绪：
 
 ## 迭代方向六：更多 LLM 提供商
 
-**优先级**: ⭐
+**优先级**: ✅ 已完成 (v0.12.0)
 
-当前支持：OpenAI、Anthropic、DeepSeek、Gemini、Qwen、Ollama、Azure、OpenRouter、Zhipu
+当前支持 15 个 Provider：Anthropic、OpenAI、DeepSeek、Zhipu、Moonshot、MiniMax、OpenRouter、xAI、Gemini、Alibaba、HuggingFace、NVIDIA、Arcee、Xiaomi、Ollama
 
-### 6.1 国内模型
+### 6.1 已完成的 Provider
+- ✅ **xAI** — Grok 系列模型
+- ✅ **Gemini** — Google AI Studio (Gemini 2.5/2.0/1.5)
+- ✅ **Alibaba** — 阿里云 DashScope (Qwen 系列)
+- ✅ **HuggingFace** — HF Inference API
+- ✅ **NVIDIA** — NVIDIA NIM
+- ✅ **Arcee** — Trinity 系列
+- ✅ **Xiaomi** — MiMo V2 系列
+- ✅ **Ollama** — 本地模型 (自动检测 localhost:11434)
+
+### 6.2 模型自动检测
+- 支持 `provider/model` 语法 (如 `anthropic/claude-sonnet-4`)
+- 支持 bare model name 启发式匹配 (如 `deepseek-chat` → DeepSeek)
+- Web UI 模型选择器按 Provider 分组 (15 个分组，50+ 模型)
+
+### 6.3 待添加的 Provider
 - 百度文心一言
 - 讯飞星火
 - 字节豆包
 - 腾讯混元
-
-### 6.2 开源模型托管
 - Together AI
 - Replicate
 - Groq（高速推理）
@@ -210,20 +223,21 @@ Gateway 核心框架已完成，Telegram 和 GitHub 适配器已就绪：
 
 ## 总结
 
-MyAgent 已经具备了**生产可用的核心功能**：
-- ✅ 多 LLM 支持（9 个提供商）
+MyAgent 已经具备了**生产可用的核心功能**:
+- ✅ 多 LLM 支持（15 个提供商）
 - ✅ 核心工具集（9 个工具，含 Git）
 - ✅ TUI 和 Web UI 双界面
 - ✅ Gateway 多平台（Telegram + GitHub Webhook）
 - ✅ 会话持久化（Web UI + Gateway）
 - ✅ JWT 认证与多用户隔离
 - ✅ 基础安全（权限检查、SSRF 防护、沙箱）
+- ✅ 模型自动检测（provider/model 语法 + 启发式匹配）
 
 **下一步重点**：
 1. 上下文压缩自动触发与 Token 监控
 2. Discord / Slack 适配器
 3. 生产级日志和监控（Prometheus / Grafana）
-4. 移动端 Web UI 响应式适配
-5. 配置热重载
+4. 配置热重载
+5. 百度文心一言 / 讯飞星火 / 字节豆包 等国内 Provider
 
 预计 **1-2 个迭代周期** 可完成全部优化，达到完全生产可用状态。

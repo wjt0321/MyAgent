@@ -18,7 +18,22 @@ from myagent.engine.stream_events import (
     ToolExecutionCompleted,
     ToolExecutionStarted,
 )
+from myagent.llm.base import BaseProvider
+from myagent.llm.providers.alibaba import AlibabaProvider
 from myagent.llm.providers.anthropic import AnthropicProvider
+from myagent.llm.providers.arcee import ArceeProvider
+from myagent.llm.providers.deepseek import DeepSeekProvider
+from myagent.llm.providers.gemini import GeminiProvider
+from myagent.llm.providers.huggingface import HuggingFaceProvider
+from myagent.llm.providers.minimax import MiniMaxProvider
+from myagent.llm.providers.moonshot import MoonshotProvider
+from myagent.llm.providers.nvidia import NvidiaProvider
+from myagent.llm.providers.ollama import OllamaProvider
+from myagent.llm.providers.openai import OpenAIProvider
+from myagent.llm.providers.openrouter import OpenRouterProvider
+from myagent.llm.providers.xai import XAIProvider
+from myagent.llm.providers.xiaomi import XiaomiProvider
+from myagent.llm.providers.zhipu import ZhipuProvider
 from myagent.memory.collection import MemoryCollector
 from myagent.memory.manager import MemoryManager
 from myagent.security.checker import PermissionChecker
@@ -32,8 +47,163 @@ from myagent.tools.write import Write
 from myagent.workspace.manager import get_workspace_dir
 
 
+# ---------------------------------------------------------------------------
+# Provider auto-discovery
+# ---------------------------------------------------------------------------
+
+_PROVIDER_ENV_MAP: list[tuple[str, type[BaseProvider], str, str, str]] = [
+    # (env_var, provider_class, default_model, default_base_url, provider_name)
+    ("ANTHROPIC_API_KEY", AnthropicProvider, "claude-sonnet-4-20250514", "", "anthropic"),
+    ("OPENAI_API_KEY", OpenAIProvider, "gpt-4o", "", "openai"),
+    ("DEEPSEEK_API_KEY", DeepSeekProvider, "deepseek-chat", "", "deepseek"),
+    ("ZHIPU_API_KEY", ZhipuProvider, "glm-4", "", "zhipu"),
+    ("MOONSHOT_API_KEY", MoonshotProvider, "moonshot-v1-8k", "", "moonshot"),
+    ("MINIMAX_API_KEY", MiniMaxProvider, "abab6.5s-chat", "", "minimax"),
+    ("OPENROUTER_API_KEY", OpenRouterProvider, "openai/gpt-4o", "", "openrouter"),
+    ("XAI_API_KEY", XAIProvider, "grok-3", "", "xai"),
+    ("GEMINI_API_KEY", GeminiProvider, "gemini-2.5-pro", "", "gemini"),
+    ("DASHSCOPE_API_KEY", AlibabaProvider, "qwen-max", "", "alibaba"),
+    ("HF_API_KEY", HuggingFaceProvider, "meta-llama/Llama-3.3-70B-Instruct", "", "huggingface"),
+    ("NVIDIA_API_KEY", NvidiaProvider, "nvidia/llama-3.3-nemotron-super-49b-v1", "", "nvidia"),
+    ("ARCEE_API_KEY", ArceeProvider, "trinity-large-thinking", "", "arcee"),
+    ("XIAOMI_API_KEY", XiaomiProvider, "mimo-v2-pro", "", "xiaomi"),
+]
+
+
 def _get_env(key: str, default: str | None = None) -> str | None:
     return os.environ.get(key, default)
+
+
+def _detect_provider_from_model(model: str) -> tuple[type[BaseProvider] | None, str]:
+    """Auto-detect provider class and resolved model from a model string.
+
+    Supports:
+      - provider/model syntax: "anthropic/claude-sonnet-4" → (AnthropicProvider, "claude-sonnet-4")
+      - bare model names with heuristic matching
+    """
+    if not model:
+        return None, ""
+
+    model_lower = model.lower().strip()
+
+    # provider/model syntax
+    if "/" in model_lower and not model_lower.startswith("http"):
+        parts = model.split("/", 1)
+        provider_part = parts[0].lower().strip()
+        model_part = parts[1].strip()
+
+        provider_map: dict[str, type[BaseProvider]] = {
+            "anthropic": AnthropicProvider,
+            "claude": AnthropicProvider,
+            "openai": OpenAIProvider,
+            "gpt": OpenAIProvider,
+            "deepseek": DeepSeekProvider,
+            "zhipu": ZhipuProvider,
+            "glm": ZhipuProvider,
+            "moonshot": MoonshotProvider,
+            "kimi": MoonshotProvider,
+            "minimax": MiniMaxProvider,
+            "openrouter": OpenRouterProvider,
+            "or": OpenRouterProvider,
+            "xai": XAIProvider,
+            "grok": XAIProvider,
+            "gemini": GeminiProvider,
+            "google": GeminiProvider,
+            "alibaba": AlibabaProvider,
+            "qwen": AlibabaProvider,
+            "dashscope": AlibabaProvider,
+            "huggingface": HuggingFaceProvider,
+            "hf": HuggingFaceProvider,
+            "nvidia": NvidiaProvider,
+            "arcee": ArceeProvider,
+            "xiaomi": XiaomiProvider,
+            "mimo": XiaomiProvider,
+            "ollama": OllamaProvider,
+        }
+
+        if provider_part in provider_map:
+            return provider_map[provider_part], model_part
+
+    # Heuristic: bare model name → provider
+    heuristic_map: list[tuple[str, type[BaseProvider]]] = [
+        ("claude-", AnthropicProvider),
+        ("gpt-", OpenAIProvider),
+        ("o1", OpenAIProvider),
+        ("o3", OpenAIProvider),
+        ("o4", OpenAIProvider),
+        ("deepseek-", DeepSeekProvider),
+        ("glm-", ZhipuProvider),
+        ("moonshot-", MoonshotProvider),
+        ("abab", MiniMaxProvider),
+        ("grok-", XAIProvider),
+        ("gemini-", GeminiProvider),
+        ("qwen-", AlibabaProvider),
+        ("qwq-", AlibabaProvider),
+        ("trinity-", ArceeProvider),
+        ("mimo-", XiaomiProvider),
+        ("llama", OllamaProvider),
+        ("qwen2", OllamaProvider),
+    ]
+
+    for prefix, provider_cls in heuristic_map:
+        if model_lower.startswith(prefix):
+            return provider_cls, model
+
+    return None, model
+
+
+def _create_provider(model: str | None = None) -> BaseProvider | None:
+    """Create the best available LLM provider from environment variables.
+
+    If *model* is provided, tries to create a provider matching that model.
+    Otherwise picks the first provider with credentials in the env.
+    """
+    # If a model is specified, try to match it to a provider
+    if model:
+        provider_cls, resolved_model = _detect_provider_from_model(model)
+        if provider_cls:
+            # Find the env var for this provider
+            for env_var, cls, default_model, default_base, name in _PROVIDER_ENV_MAP:
+                if cls is provider_cls:
+                    api_key = _get_env(env_var, "")
+                    if api_key:
+                        base_url = _get_env(f"{name.upper()}_BASE_URL", default_base or None)
+                        kwargs: dict[str, Any] = {}
+                        if base_url:
+                            kwargs["base_url"] = base_url
+                        return provider_cls(api_key=api_key, model=resolved_model or default_model, **kwargs)
+            # Fallback: try common API keys
+            api_key = (
+                _get_env("OPENAI_API_KEY", "")
+                or _get_env("OPENROUTER_API_KEY", "")
+                or _get_env("ANTHROPIC_API_KEY", "")
+            )
+            if api_key and provider_cls is not OllamaProvider:
+                return provider_cls(api_key=api_key, model=resolved_model)
+            if provider_cls is OllamaProvider:
+                return OllamaProvider(model=resolved_model)
+
+    # No model specified — pick first available provider from env
+    for env_var, provider_cls, default_model, default_base, name in _PROVIDER_ENV_MAP:
+        api_key = _get_env(env_var, "")
+        if api_key:
+            base_url = _get_env(f"{name.upper()}_BASE_URL", default_base or None)
+            kwargs: dict[str, Any] = {}
+            if base_url:
+                kwargs["base_url"] = base_url
+            return provider_cls(api_key=api_key, model=default_model, **kwargs)
+
+    # Ollama doesn't need an API key
+    try:
+        import urllib.request
+        req = urllib.request.Request("http://localhost:11434/v1/models", method="GET")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            if resp.status == 200:
+                return OllamaProvider()
+    except Exception:
+        pass
+
+    return None
 
 
 def _create_tool_registry(tool_names: list[str] | None = None) -> ToolRegistry:
@@ -60,7 +230,7 @@ class WebEngineManager:
     """Manages QueryEngine instances for Web UI sessions."""
 
     def __init__(self) -> None:
-        self._provider: AnthropicProvider | None = None
+        self._provider: BaseProvider | None = None
         self._agent_loader = AgentLoader()
         self._agents = self._agent_loader.load_builtin_agents()
         self._memory_collector: MemoryCollector | None = None
@@ -78,22 +248,21 @@ class WebEngineManager:
         except Exception:
             pass  # Memory collection is optional
 
-    def _init_provider(self) -> None:
-        api_key = _get_env("ZHIPU_API_KEY") or _get_env("ANTHROPIC_API_KEY") or _get_env("MYAGENT_API_KEY")
-        model = _get_env("ZHIPU_MODEL", "glm-4.7")
-        base_url = _get_env("ZHIPU_BASE_URL", "https://open.bigmodel.cn/api/anthropic")
-
-        if api_key:
-            self._provider = AnthropicProvider(
-                api_key=api_key,
-                model=model,
-                base_url=base_url,
-            )
+    def _init_provider(self, model: str | None = None) -> None:
+        self._provider = _create_provider(model)
 
     def is_configured(self) -> bool:
         return self._provider is not None
 
-    def create_engine(self, agent_name: str = "general") -> QueryEngine | None:
+    def create_engine(self, agent_name: str = "general", model: str | None = None) -> QueryEngine | None:
+        """Create a QueryEngine for the given agent and optional model override."""
+        # If model is specified and different from current provider's model, re-init
+        if model and self._provider is not None:
+            if hasattr(self._provider, "model") and self._provider.model != model:
+                self._init_provider(model)
+        elif model and self._provider is None:
+            self._init_provider(model)
+
         if self._provider is None:
             return None
 

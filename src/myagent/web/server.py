@@ -477,7 +477,7 @@ def create_app() -> FastAPI:
             await websocket.close()
             return
 
-        engine = engine_manager.create_engine(session.agent)
+        engine = engine_manager.create_engine(session.agent, model=session.model)
         if engine is None:
             await websocket.send_json({"type": "error", "message": "Failed to create query engine"})
             await websocket.close()

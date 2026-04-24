@@ -1,7 +1,4 @@
-"""Google Gemini provider for MyAgent.
-
-Uses Gemini API (OpenAI-compatible endpoint).
-"""
+"""Google Gemini provider for MyAgent."""
 
 from __future__ import annotations
 
@@ -14,10 +11,14 @@ class GeminiProvider(OpenAIProvider):
     """Provider for Google Gemini API (OpenAI-compatible).
 
     Supports models:
+    - gemini-2.5-pro
+    - gemini-2.5-flash
+    - gemini-2.5-flash-lite
+    - gemini-2.0-pro
+    - gemini-2.0-flash
+    - gemini-2.0-flash-lite
     - gemini-1.5-pro
     - gemini-1.5-flash
-    - gemini-1.5-pro-latest
-    - gemini-1.5-flash-latest
     """
 
     name = "gemini"
@@ -25,7 +26,7 @@ class GeminiProvider(OpenAIProvider):
     def __init__(
         self,
         api_key: str,
-        model: str = "gemini-1.5-pro",
+        model: str = "gemini-2.5-pro",
         base_url: str | None = None,
         **kwargs: Any,
     ) -> None:

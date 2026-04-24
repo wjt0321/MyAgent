@@ -92,3 +92,26 @@ class Settings(BaseModel):
                 pass
         if env_github := os.environ.get("GITHUB_TOKEN"):
             self.github_token = env_github
+
+    def get_provider_api_key(self, provider: str) -> str | None:
+        """Get API key for a provider from config or environment."""
+        env_map: dict[str, str] = {
+            "anthropic": "ANTHROPIC_API_KEY",
+            "openai": "OPENAI_API_KEY",
+            "deepseek": "DEEPSEEK_API_KEY",
+            "zhipu": "ZHIPU_API_KEY",
+            "moonshot": "MOONSHOT_API_KEY",
+            "minimax": "MINIMAX_API_KEY",
+            "openrouter": "OPENROUTER_API_KEY",
+            "xai": "XAI_API_KEY",
+            "gemini": "GEMINI_API_KEY",
+            "alibaba": "DASHSCOPE_API_KEY",
+            "huggingface": "HF_API_KEY",
+            "nvidia": "NVIDIA_API_KEY",
+            "arcee": "ARCEE_API_KEY",
+            "xiaomi": "XIAOMI_API_KEY",
+        }
+        env_var = env_map.get(provider)
+        if env_var:
+            return os.environ.get(env_var) or None
+        return None
