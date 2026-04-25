@@ -626,6 +626,16 @@ class MyAgentWebApp {
         this.sidebarOverlay.classList.remove('show');
     }
 
+    pulseSessionStatus() {
+        if (!this.sessionStatusChip) return;
+        this.sessionStatusChip.classList.remove('is-pulsing');
+        void this.sessionStatusChip.offsetWidth;
+        this.sessionStatusChip.classList.add('is-pulsing');
+        window.setTimeout(() => {
+            this.sessionStatusChip?.classList.remove('is-pulsing');
+        }, 900);
+    }
+
     getCurrentSessionRecord() {
         return this.sessions.find(session => session.id === this.currentSessionId) || null;
     }
@@ -684,6 +694,7 @@ class MyAgentWebApp {
         if (!this.currentSessionId) return;
 
         try {
+            this.pulseSessionStatus();
             this.setStatus('switching', `正在切换 agent：${agentName}`);
             const response = await fetch(`/api/sessions/${this.currentSessionId}`, {
                 method: 'PATCH',
@@ -709,6 +720,7 @@ class MyAgentWebApp {
         if (!this.currentSessionId) return;
 
         try {
+            this.pulseSessionStatus();
             this.setStatus('switching', `正在切换模型：${modelName}`);
             const response = await fetch(`/api/sessions/${this.currentSessionId}`, {
                 method: 'PATCH',
@@ -910,6 +922,20 @@ class MyAgentWebApp {
             </div>
         `;
         this.bindQuickCards();
+        this.applyWelcomeMotion();
+    }
+
+    applyWelcomeMotion() {
+        if (!this.welcomeScreen) return;
+        const nodes = this.welcomeScreen.querySelectorAll(
+            '.welcome-hero, .welcome-quickstart, .welcome-positioning-grid, .welcome-panel'
+        );
+        nodes.forEach((node, index) => {
+            node.classList.remove('motion-enter');
+            node.style.animationDelay = `${Math.min(index * 70, 280)}ms`;
+            void node.offsetWidth;
+            node.classList.add('motion-enter');
+        });
     }
 
     async loadWorkspace() {
@@ -2418,6 +2444,17 @@ class MyAgentWebApp {
         `;
     }
 
+    animateToolCard(container) {
+        const card = container?.querySelector('.tool-event-card-v2');
+        if (!card) return;
+        card.classList.remove('is-entering');
+        void card.offsetWidth;
+        card.classList.add('is-entering');
+        window.setTimeout(() => {
+            card.classList.remove('is-entering');
+        }, 520);
+    }
+
     addToolCall(toolName, args, toolUseId = '') {
         if (toolUseId) {
             this.toolCallRegistry.set(toolUseId, {
@@ -2452,6 +2489,7 @@ class MyAgentWebApp {
             });
         });
         this.messagesContainer.appendChild(div);
+        this.animateToolCard(div);
         this.scrollToBottom();
     }
 
@@ -2485,6 +2523,7 @@ class MyAgentWebApp {
             });
         });
         this.messagesContainer.appendChild(div);
+        this.animateToolCard(div);
         this.scrollToBottom();
     }
 
@@ -2514,6 +2553,7 @@ class MyAgentWebApp {
             });
         });
         this.messagesContainer.appendChild(div);
+        this.animateToolCard(div);
         this.scrollToBottom();
     }
 

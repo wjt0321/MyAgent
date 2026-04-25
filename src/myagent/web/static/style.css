@@ -855,6 +855,10 @@ body {
   animation: fadeInUp 0.5s ease;
 }
 
+.motion-enter {
+  animation: fadeInUp 0.45s ease both;
+}
+
 .welcome-hero {
   width: min(760px, 100%);
   display: grid;
@@ -877,6 +881,17 @@ body {
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes panelGlow {
+  0% {
+    transform: translateY(8px) scale(0.985);
+    box-shadow: 0 0 0 rgba(99, 102, 241, 0);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 12px 28px rgba(99, 102, 241, 0.16);
+  }
 }
 
 .welcome-logo {
@@ -1339,6 +1354,10 @@ body {
   border-radius: var(--radius-md);
   background: linear-gradient(180deg, var(--bg-secondary), var(--bg-tertiary));
   overflow: hidden;
+}
+
+.tool-event-card-v2.is-entering {
+  animation: panelGlow 0.45s ease;
 }
 
 .tool-event-card-v2.pending {
@@ -2942,6 +2961,25 @@ body {
 .session-status-chip.switching .session-status-dot {
   background: var(--accent);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
+}
+
+.session-status-chip.is-pulsing {
+  animation: statusPulse 0.8s ease;
+}
+
+@keyframes statusPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.16);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.08);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+  }
 }
 
 .chat-area {

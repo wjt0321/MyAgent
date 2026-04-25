@@ -324,6 +324,24 @@ class TestWebServer:
         assert ".welcome-docs-grid" in css
         assert ".docs-entry-card" in css
 
+    def test_static_app_contains_phase5_micro_interactions(self, client):
+        """Phase 5 第八批应补齐欢迎页、工具卡片与会话切换的微交互动效。"""
+        js_response = client.get("/static/app.js")
+        css_response = client.get("/static/style.css")
+        assert js_response.status_code == 200
+        assert css_response.status_code == 200
+        js = js_response.text
+        css = css_response.text
+        assert "applyWelcomeMotion(" in js
+        assert "animateToolCard(" in js
+        assert "pulseSessionStatus(" in js
+        assert "motion-enter" in js
+        assert ".motion-enter" in css
+        assert ".tool-event-card-v2.is-entering" in css
+        assert ".session-status-chip.is-pulsing" in css
+        assert "@keyframes panelGlow" in css
+        assert "@keyframes statusPulse" in css
+
     def test_current_task_endpoint_returns_task_snapshot_and_team(self):
         """当前任务接口应返回任务快照与团队概览。"""
         app = create_app()
