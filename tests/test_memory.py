@@ -2,9 +2,7 @@
 
 from pathlib import Path
 
-import pytest
-
-from myagent.memory.manager import MemoryEntry, MemoryManager
+from myagent.memory.manager import MemoryEntry, MemoryManager, MemoryType
 
 
 class TestMemoryManager:
@@ -12,59 +10,91 @@ class TestMemoryManager:
         manager = MemoryManager(memory_dir=tmp_path)
         assert manager.memory_dir == tmp_path
 
-    def test_add_memory_entry(self, tmp_path: Path):
+    def test_save_memory_entry(self, tmp_path: Path):
         manager = MemoryManager(memory_dir=tmp_path)
-        entry = manager.add_entry("Test Title", "Test content here.")
+        entry = MemoryEntry(
+            name="Test Title",
+            description="测试描述",
+            type=MemoryType.PROJECT,
+            content="Test content here.",
+        )
+        saved_path = manager.save_memory(entry)
 
-        assert entry.title == "Test Title"
-        assert entry.path.exists()
-        assert "Test content here." in entry.path.read_text(encoding="utf-8")
+        assert saved_path.exists()
+        assert "Test content here." in saved_path.read_text(encoding="utf-8")
 
-    def test_add_entry_updates_index(self, tmp_path: Path):
+    def test_list_memories(self, tmp_path: Path):
         manager = MemoryManager(memory_dir=tmp_path)
-        manager.add_entry("First", "Content 1")
-        manager.add_entry("Second", "Content 2")
+        manager.save_memory(
+            MemoryEntry(
+                name="Alpha",
+                description="第一条",
+                type=MemoryType.USER,
+                content="Alpha content",
+            )
+        )
+        manager.save_memory(
+            MemoryEntry(
+                name="Beta",
+                description="第二条",
+                type=MemoryType.FEEDBACK,
+                content="Beta content",
+            )
+        )
 
-        index_path = tmp_path / "MEMORY.md"
-        assert index_path.exists()
-        index_content = index_path.read_text(encoding="utf-8")
-        assert "First" in index_content
-        assert "Second" in index_content
-
-    def test_list_entries(self, tmp_path: Path):
-        manager = MemoryManager(memory_dir=tmp_path)
-        manager.add_entry("Alpha", "Alpha content")
-        manager.add_entry("Beta", "Beta content")
-
-        entries = manager.list_entries()
+        entries = manager.list_memories()
         assert len(entries) == 2
-        titles = [e.title for e in entries]
+        titles = [e.name for e in entries]
         assert "Alpha" in titles
         assert "Beta" in titles
 
-    def test_entry_file_format(self, tmp_path: Path):
+    def test_get_and_delete_memory(self, tmp_path: Path):
         manager = MemoryManager(memory_dir=tmp_path)
-        manager.add_entry("My Entry", "This is the content.")
+        manager.save_memory(
+            MemoryEntry(
+                name="Entry 1",
+                description="待删除",
+                type=MemoryType.PROJECT,
+                content="Content 1",
+            )
+        )
 
-        entries = manager.list_entries()
-        assert len(entries) == 1
+        entry = manager.get_memory("Entry 1")
+        assert entry is not None
+        assert entry.name == "Entry 1"
 
-        content = entries[0].path.read_text(encoding="utf-8")
-        assert "# My Entry" in content
-        assert "This is the content." in content
+        assert manager.delete_memory("Entry 1") is True
+        assert manager.get_memory("Entry 1") is None
 
-    def test_memory_entry_from_file(self, tmp_path: Path):
-        entry_file = tmp_path / "test-entry.md"
-        entry_file.write_text("# Test Title\n\nTest content.\n", encoding="utf-8")
+    def test_memory_entry_from_markdown(self):
+        entry = MemoryEntry.from_markdown(
+            """---
+name: Test Title
+description: Test description
+type: reference
+---
 
-        entry = MemoryEntry.from_file(entry_file)
-        assert entry.title == "Test Title"
-        assert entry.path == entry_file
+Test content.
+""",
+        )
 
-    def test_concurrent_add_safe(self, tmp_path: Path):
+        assert entry.name == "Test Title"
+        assert entry.description == "Test description"
+        assert entry.type is MemoryType.REFERENCE
+        assert entry.content == "Test content."
+
+    def test_load_memory_prompt(self, tmp_path: Path):
         manager = MemoryManager(memory_dir=tmp_path)
-        manager.add_entry("Entry 1", "Content 1")
-        manager.add_entry("Entry 2", "Content 2")
+        manager.save_memory(
+            MemoryEntry(
+                name="Prompt Memory",
+                description="用于提示词",
+                type=MemoryType.USER,
+                content="记住这一条信息。",
+            )
+        )
 
-        entries = manager.list_entries()
-        assert len(entries) == 2
+        prompt = manager.load_memory_prompt()
+        assert prompt is not None
+        assert "Prompt Memory" in prompt
+        assert "记住这一条信息。" in prompt

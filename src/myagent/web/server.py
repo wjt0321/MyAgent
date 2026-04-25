@@ -455,7 +455,8 @@ def create_app() -> FastAPI:
         session.system_prompt = system_prompt
         # Clear message history to apply new system prompt
         session.messages = []
-        session.save()
+        session.updated_at = datetime.now()
+        store.update(session)
 
         return session.to_dict()
 
@@ -481,7 +482,8 @@ def create_app() -> FastAPI:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
                 session.messages.append(msg)
 
-        session.save()
+        session.updated_at = datetime.now()
+        store.update(session)
         return session.to_dict()
 
     @app.get("/api/sessions/{session_id}")
@@ -790,11 +792,13 @@ def create_app() -> FastAPI:
             await websocket.send_json({
                 "type": "tool_call",
                 "tool_name": event.tool_name,
+                "tool_use_id": event.tool_use_id,
                 "arguments": event.arguments,
             })
         elif isinstance(event, ToolExecutionCompleted):
             await websocket.send_json({
                 "type": "tool_result",
+                "tool_use_id": event.tool_use_id,
                 "result": event.result,
                 "is_error": event.is_error,
             })

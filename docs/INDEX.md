@@ -1,7 +1,7 @@
 # MyAgent 文档索引
 
 > 本文档为 MyAgent 项目所有技术文档的统一入口和导航索引。
-> 最后更新: 2026-04-24
+> 最后更新: 2026-04-25
 
 ---
 
@@ -18,7 +18,8 @@ docs/
 │   ├── 05-agent-teams.md            # Agent Teams 多协作
 │   ├── 06-codebase.md               # 代码理解系统
 │   ├── 07-gateway.md                # Gateway 网关架构
-│   └── 08-security-boundary.md      # 安全边界文档
+│   ├── 08-security-boundary.md      # 安全边界文档
+│   └── 09-ui-state-and-event-contract.md  # UI 状态与事件契约
 ├── design/                           # 设计文档 — 交互设计与 UI 规范
 │   ├── 01-tui-design.md             # TUI 终端界面设计
 │   ├── 02-web-ui-design.md          # Web UI 设计规范
@@ -62,6 +63,7 @@ docs/
 | 代码理解 | [06-codebase.md](architecture/06-codebase.md) |
 | Gateway | [07-gateway.md](architecture/07-gateway.md) |
 | 安全边界 | [08-security-boundary.md](architecture/08-security-boundary.md) |
+| UI 事件契约 | [09-ui-state-and-event-contract.md](architecture/09-ui-state-and-event-contract.md) |
 | TUI | [01-tui-design.md](design/01-tui-design.md) |
 | Web UI | [02-web-ui-design.md](design/02-web-ui-design.md) |
 | Web API 接口 | [05-web-api-contract.md](reference/05-web-api-contract.md) |
@@ -91,6 +93,7 @@ docs/
 | architecture/06-codebase.md | ✅ | 代码理解系统已完成 |
 | architecture/07-gateway.md | ✅ | Gateway 框架完成，Telegram/GitHub 适配器已就绪，Discord/Slack/Feishu 增强完成 |
 | architecture/08-security-boundary.md | ✅ | 安全边界文档，Web UI/文件/GitHub Webhook 安全规则 |
+| architecture/09-ui-state-and-event-contract.md | ✅ | Phase 0 UI 状态与事件契约基线 |
 | design/01-tui-design.md | ✅ | TUI 设计规范 |
 | design/02-web-ui-design.md | ✅ | Web UI 已重构，JWT 认证、模型选择、主题切换、导出已添加 |
 | design/03-interaction-patterns.md | ✅ | 基础交互模式，TUI Ctrl+R 重生成、Token 统计已添加 |

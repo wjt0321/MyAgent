@@ -201,7 +201,7 @@ class GatewayBot:
                     if approved:
                         # Continue with the tool execution
                         async for cont_event in engine.continue_with_permission(
-                            stream_event.arguments.get("tool_use_id", ""),
+                            stream_event.tool_use_id,
                             approved=True,
                         ):
                             if isinstance(cont_event, AssistantTextDelta):
@@ -213,7 +213,7 @@ class GatewayBot:
                     else:
                         # User denied permission
                         async for cont_event in engine.continue_with_permission(
-                            stream_event.arguments.get("tool_use_id", ""),
+                            stream_event.tool_use_id,
                             approved=False,
                         ):
                             if isinstance(cont_event, AssistantTextDelta):
