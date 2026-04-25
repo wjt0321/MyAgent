@@ -11,12 +11,15 @@ class MyAgentWebApp {
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
         this.isSending = false;
+        this.setupReady = true;
+        this.setupStatus = null;
         this.searchQuery = '';
         this.currentTheme = localStorage.getItem('myagent-theme') || 'dark';
 
         this.initTheme();
         this.initElements();
         this.bindEvents();
+        this.loadSetupStatus();
         this.loadSessions();
         this.loadFileTree('.');
         this.loadWorkspace();
@@ -423,6 +426,37 @@ class MyAgentWebApp {
     }
 
     // ========== Workspace ==========
+
+    async loadSetupStatus() {
+        try {
+            const response = await fetch('/api/setup/status');
+            const data = await response.json();
+            this.setupStatus = data;
+            this.setupReady = !!data.overall_ready;
+            if (!this.setupReady) {
+                this.setSending(true);
+                this.renderSetupRequired();
+            }
+        } catch (error) {
+            console.error('Failed to load setup status:', error);
+        }
+    }
+
+    renderSetupRequired() {
+        if (!this.welcomeScreen || !this.setupStatus || this.setupReady) return;
+        const issues = (this.setupStatus.issues || [])
+            .map(issue => `<li>${this.escapeHtml(issue.summary)} - ${this.escapeHtml(issue.fix)}</li>`)
+            .join('');
+        this.welcomeScreen.style.display = 'flex';
+        this.welcomeScreen.innerHTML = `
+            <div class="welcome-card">
+                <h2>Setup Required</h2>
+                <p>当前环境尚未完成初始化，Web 会保留浏览能力，但不会建立聊天会话。</p>
+                <p><strong>Next:</strong> <code>${this.escapeHtml(this.setupStatus.next_action)}</code></p>
+                <ul>${issues}</ul>
+            </div>
+        `;
+    }
 
     async loadWorkspace() {
         try {
@@ -869,6 +903,12 @@ class MyAgentWebApp {
             this.welcomeScreen.style.display = 'flex';
         }
 
+        if (!this.setupReady) {
+            this.renderSetupRequired();
+            this.setStatus('disconnected');
+            return;
+        }
+
         this.connectWebSocket(sessionId);
     }
 
@@ -1011,6 +1051,11 @@ class MyAgentWebApp {
     async sendMessage() {
         const text = this.messageInput.value.trim();
         if (!text) return;
+
+        if (!this.setupReady) {
+            this.addMessage('error', `Setup Required：请先执行 ${this.setupStatus?.next_action || 'myagent init --quick'}`, false);
+            return;
+        }
 
         // Check for /plan command
         if (text.startsWith('/plan ')) {

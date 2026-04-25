@@ -1,7 +1,10 @@
 """Tests for MyAgent TUI."""
 
+from __future__ import annotations
+
+from pathlib import Path
+
 import pytest
-from textual.pilot import Pilot
 
 from myagent.tui.app import MyAgentApp
 
@@ -68,7 +71,7 @@ async def test_add_user_message():
 @pytest.mark.asyncio
 async def test_add_assistant_message():
     app = MyAgentApp()
-    async with app.run_test() as pilot:
+    async with app.run_test():
         app.add_assistant_message("Hi there!")
         # Logo + welcome + assistant msg = 3 lines
         assert len(app._transcript_lines) == 3
@@ -78,7 +81,7 @@ async def test_add_assistant_message():
 @pytest.mark.asyncio
 async def test_add_tool_call():
     app = MyAgentApp()
-    async with app.run_test() as pilot:
+    async with app.run_test():
         app.add_tool_call("Read", {"path": "test.py"})
         # Logo + welcome + tool call = 3 lines
         assert len(app._transcript_lines) == 3
@@ -88,7 +91,7 @@ async def test_add_tool_call():
 @pytest.mark.asyncio
 async def test_clear_transcript():
     app = MyAgentApp()
-    async with app.run_test() as pilot:
+    async with app.run_test():
         app.add_user_message("Hello")
         app.clear_transcript()
         assert len(app._transcript_lines) == 0
@@ -111,3 +114,13 @@ async def test_current_response_update():
         assert app._current_response_text == "Thinking..."
         response = pilot.app.query_one("#current-response")
         assert response is not None
+
+
+@pytest.mark.asyncio
+async def test_setup_required_message_for_incomplete_setup(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("MYAGENT_HOME", str(tmp_path))
+
+    app = MyAgentApp()
+    async with app.run_test():
+        assert app.setup_status.overall_ready is False
+        assert any("Setup Required" in line for line in app._transcript_lines)

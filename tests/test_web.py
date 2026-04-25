@@ -42,6 +42,21 @@ class TestWebServer:
         assert data["status"] == "ok"
         assert "version" in data
 
+    def test_setup_status_endpoint_reports_missing_setup(self, monkeypatch, tmp_path: Path):
+        """未初始化时应返回 setup status。"""
+        monkeypatch.setenv("MYAGENT_HOME", str(tmp_path))
+        app = create_app()
+
+        with TestClient(app) as client:
+            response = client.get("/api/setup/status")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["overall_ready"] is False
+        assert data["workspace_ready"] is False
+        assert data["llm_ready"] is False
+        assert data["next_action"] == "myagent init --quick"
+
     def test_list_sessions(self, client):
         """Should list sessions."""
         response = client.get("/api/sessions")

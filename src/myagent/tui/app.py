@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import Any
 
 import yaml
@@ -15,8 +14,7 @@ from textual.widgets import Footer, RichLog, Static, TextArea
 
 from myagent.agents.loader import AgentLoader
 from myagent.cost.tracker import CostTracker
-from myagent.memory.manager import MemoryManager
-from myagent.engine.messages import ConversationMessage, TextBlock
+from myagent.engine.messages import ConversationMessage
 from myagent.engine.query_engine import QueryEngine
 from myagent.engine.stream_events import (
     AssistantTextDelta,
@@ -24,11 +22,12 @@ from myagent.engine.stream_events import (
     ErrorEvent,
     PermissionRequestEvent,
     PermissionResultEvent,
-    StreamEvent,
     ToolExecutionCompleted,
     ToolExecutionStarted,
 )
+from myagent.init.status import SetupStatus, get_myagent_home, get_setup_status
 from myagent.llm.providers.anthropic import AnthropicProvider
+from myagent.memory.manager import MemoryManager
 from myagent.security.checker import PermissionChecker
 from myagent.tools.bash import Bash
 from myagent.tools.edit import Edit
@@ -145,10 +144,11 @@ class MyAgentApp(App[None]):
         self._last_user_message = ""
         self._current_agent_def = self._agents.get("general")
         self._memory_manager = MemoryManager(
-            memory_dir=Path.home() / ".myagent" / "memory"
+            memory_dir=get_myagent_home() / "memory"
         )
-        self._config_path = Path.home() / ".myagent" / "config.yaml"
+        self._config_path = get_myagent_home() / "config.yaml"
         self._config: dict[str, Any] = {}
+        self.setup_status: SetupStatus = get_setup_status()
         self._load_config()
         self._init_provider()
 
@@ -180,6 +180,7 @@ class MyAgentApp(App[None]):
             self.current_provider = "none (set ZHIPU_API_KEY)"
 
     def compose(self) -> ComposeResult:
+        """Compose the TUI layout."""
         yield Static(
             f"MyAgent v0.2.0 | Agent: {self.current_agent} | Provider: {self.current_provider}",
             id="header",
@@ -200,6 +201,7 @@ class MyAgentApp(App[None]):
         yield Footer(id="footer")
 
     def on_mount(self) -> None:
+        """Initialize focus and startup messages."""
         self.query_one("#composer", TextArea).focus()
 
         # Display ASCII logo on startup
@@ -208,7 +210,9 @@ class MyAgentApp(App[None]):
         logo = get_logo(term_width)
         self.add_assistant_message(f"[dim]{logo}[/dim]")
 
-        if self._query_engine is None:
+        if not self.setup_status.overall_ready:
+            self.add_assistant_message(self._get_setup_required_text())
+        elif self._query_engine is None:
             self.add_assistant_message(
                 "[yellow]Warning: No API key configured.[/yellow] "
                 "Set ZHIPU_API_KEY environment variable to enable LLM responses.\n"
@@ -268,9 +272,13 @@ class MyAgentApp(App[None]):
                 self.add_assistant_message("[dim]Regenerating response...[/dim]")
                 self.run_worker(self._handle_user_message(self._last_user_message))
             else:
-                self.add_assistant_message("[yellow]Could not find previous message to regenerate.[/yellow]")
+                self.add_assistant_message(
+                    "[yellow]Could not find previous message to regenerate.[/yellow]"
+                )
         else:
-            self.add_assistant_message("[yellow]Not enough conversation history to regenerate.[/yellow]")
+            self.add_assistant_message(
+                "[yellow]Not enough conversation history to regenerate.[/yellow]"
+            )
 
     def _handle_command(self, command: str) -> None:
         """Handle slash commands."""
@@ -300,13 +308,29 @@ class MyAgentApp(App[None]):
             if len(parts) > 1:
                 self._switch_model(parts[1])
             else:
-                self.add_assistant_message("Usage: /model <name> (e.g., glm-4.7, glm-5.1)")
+                self.add_assistant_message(
+                    "Usage: /model <name> (e.g., glm-4.7, glm-5.1)"
+                )
         elif cmd == "/memory":
             self._show_memory()
         elif cmd == "/tokens":
             self._show_token_stats()
+        elif cmd == "/setup":
+            self.setup_status = get_setup_status()
+            self.add_assistant_message(self._get_setup_required_text())
+        elif cmd == "/doctor":
+            self.setup_status = get_setup_status()
+            self.add_assistant_message(
+                "[bold]Doctor Summary[/bold]\n"
+                f"Workspace: {'OK' if self.setup_status.workspace_ready else 'FAIL'}\n"
+                f"Config: {'OK' if self.setup_status.config_ready else 'FAIL'}\n"
+                f"LLM: {'OK' if self.setup_status.llm_ready else 'FAIL'}\n"
+                f"Next: {self.setup_status.next_action}"
+            )
         else:
-            self.add_assistant_message(f"Unknown command: {cmd}. Type /help for available commands.")
+            self.add_assistant_message(
+                f"Unknown command: {cmd}. Type /help for available commands."
+            )
 
     def _show_token_stats(self) -> None:
         """Show token usage statistics."""
@@ -327,6 +351,10 @@ class MyAgentApp(App[None]):
 
     async def _handle_user_message(self, message: str) -> None:
         """Process user message with QueryEngine event loop."""
+        self.setup_status = get_setup_status()
+        if not self.setup_status.overall_ready:
+            self.add_assistant_message(self._get_setup_required_text())
+            return
         if self._query_engine is None:
             self.add_assistant_message(
                 "[red]Error: No LLM provider configured.[/red]\n"
@@ -462,9 +490,10 @@ class MyAgentApp(App[None]):
 
         self._turn_count = 0
         self._update_header()
+        tools = ", ".join(t.name for t in self._query_engine.tool_registry.list_tools())
         self.add_assistant_message(
             f"Switched to agent: {agent_name}\n"
-            f"[dim]Tools: {', '.join(t.name for t in self._query_engine.tool_registry.list_tools())}[/dim]"
+            f"[dim]Tools: {tools}[/dim]"
         )
 
     def _switch_model(self, model_name: str) -> None:
@@ -482,31 +511,26 @@ class MyAgentApp(App[None]):
 
     def _show_memory(self) -> None:
         """Show memory entries."""
-        entries = self._memory_manager.list_entries()
+        entries = self._memory_manager.list_memories()
         if not entries:
             self.add_assistant_message("No memory entries yet.")
             return
 
         lines = ["[bold]Memory Entries:[/bold]"]
         for entry in entries:
-            lines.append(f"  - {entry.title}")
+            lines.append(f"  - {entry.name}")
         self.add_assistant_message("\n".join(lines))
 
     def _load_config(self) -> None:
         """Load configuration from file."""
         if self._config_path.exists():
             try:
-                with open(self._config_path, "r", encoding="utf-8") as f:
+                with open(self._config_path, encoding="utf-8") as f:
                     self._config = yaml.safe_load(f) or {}
             except Exception:
                 self._config = {}
         else:
-            self._config = {
-                "agent": "general",
-                "model": "glm-4.7",
-                "provider": "zhipu",
-            }
-            self._save_config()
+            self._config = {}
 
     def _save_config(self) -> None:
         """Save configuration to file."""
@@ -519,7 +543,11 @@ class MyAgentApp(App[None]):
 
     def _update_header(self) -> None:
         """Update header text."""
-        cost = f"${self._cost_tracker.total_cost:.4f}" if self._cost_tracker.total_cost > 0 else "$0.0000"
+        cost = (
+            f"${self._cost_tracker.total_cost:.4f}"
+            if self._cost_tracker.total_cost > 0
+            else "$0.0000"
+        )
         header_text = (
             f"MyAgent v0.2.0 | Agent: {self.current_agent} | "
             f"Turns: {self._turn_count} | Cost: {cost} | Provider: {self.current_provider}"
@@ -549,10 +577,11 @@ class MyAgentApp(App[None]):
 
     def add_tool_result(self, result: str, is_error: bool = False) -> None:
         """Add a tool result to the transcript with formatted display."""
-        if is_error:
-            prefix = "[bold red]Error:[/bold red]"
-        else:
-            prefix = "[bold cyan]Result:[/bold cyan]"
+        prefix = (
+            "[bold red]Error:[/bold red]"
+            if is_error
+            else "[bold cyan]Result:[/bold cyan]"
+        )
 
         preview = result[:500] + "..." if len(result) > 500 else result
         lines = preview.split("\n")
@@ -595,7 +624,7 @@ class MyAgentApp(App[None]):
             pass
 
     def action_clear(self) -> None:
-        """Action handler for Ctrl+L."""
+        """Clear the transcript via keyboard shortcut."""
         self.clear_transcript()
 
     def _get_help_text(self) -> str:
@@ -608,6 +637,8 @@ class MyAgentApp(App[None]):
   /provider <n> - Switch LLM provider
   /model <name> - Switch LLM model (e.g., glm-4.7, glm-5.1)
   /memory       - Show memory entries
+  /setup        - Show setup required guidance
+  /doctor       - Show setup health summary
   /tokens       - Show token usage statistics
 
 Keyboard shortcuts:
@@ -616,6 +647,21 @@ Keyboard shortcuts:
   Ctrl+L     - Clear transcript
   Ctrl+R     - Regenerate last response
   Ctrl+D     - Exit"""
+
+    def _get_setup_required_text(self) -> str:
+        """Render setup guidance in the transcript."""
+        issues = "\n".join(
+            f"- {issue.summary} -> {issue.fix}"
+            for issue in self.setup_status.issues
+        )
+        if not issues:
+            issues = "- 当前配置尚未完成，请先运行初始化。"
+        return (
+            "[bold yellow]Setup Required[/bold yellow]\n"
+            f"MyAgent Home: {self.setup_status.home}\n"
+            f"Next: {self.setup_status.next_action}\n"
+            f"{issues}"
+        )
 
 
 def run_tui() -> None:

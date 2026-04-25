@@ -6,20 +6,21 @@ Inspired by OpenClaw's `onboard` and Hermes Agent's setup flow.
 
 from __future__ import annotations
 
-import json
 import os
 import secrets
 from pathlib import Path
 from typing import Any
 
+import yaml
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Confirm, IntPrompt, Prompt
+from rich.prompt import Confirm, Prompt
 
 from myagent import __version__
-from myagent.gateway.base import Platform
+from myagent.init.status import get_setup_status
+from myagent.memory.manager import MemoryEntry, MemoryManager, MemoryType
 from myagent.tui.logo import get_logo
-from myagent.workspace.manager import WorkspaceManager, ensure_workspace
+from myagent.workspace.manager import ensure_workspace
 from myagent.workspace.templates import initialize_workspace
 
 console = Console()
@@ -173,17 +174,24 @@ def _step_user_profile(ws: Path) -> dict[str, str]:
     user_path.write_text(user_md, encoding="utf-8")
     console.print(f"[green]已写入[/green] {user_path}")
 
-    # Also create a memory entry for user role
-    from myagent.memory.manager import MemoryManager, MemoryEntry, MemoryType
     mm = MemoryManager(ws / "memory")
+    memory_content = (
+        f"姓名: {name}\n"
+        f"职位: {role}\n"
+        f"经验: {exp}\n"
+        f"语言: {primary_langs}\n"
+        f"框架: {frameworks}\n"
+        f"沟通风格: {comm_style}\n"
+        f"决策风格: {decision}"
+    )
     entry = MemoryEntry(
         name="用户画像",
         description=f"{name} — {role} ({exp})",
         type=MemoryType.USER,
-        content=f"姓名: {name}\n职位: {role}\n经验: {exp}\n语言: {primary_langs}\n框架: {frameworks}\n沟通风格: {comm_style}\n决策风格: {decision}",
+        content=memory_content,
     )
     mm.save_memory(entry)
-    console.print(f"[green]已保存记忆[/green] 用户画像")
+    console.print("[green]已保存记忆[/green] 用户画像")
 
     return profile
 
@@ -332,6 +340,33 @@ def _step_gateway_settings() -> dict[str, Any]:
     }
 
 
+def _detect_llm_from_environment() -> dict[str, Any]:
+    """Pick the first configured provider from environment variables."""
+    candidates: list[tuple[str, str, str, str | None]] = [
+        ("anthropic", "ANTHROPIC_API_KEY", "claude-sonnet-4-20250514", None),
+        ("openai", "OPENAI_API_KEY", "gpt-4o", None),
+        ("deepseek", "DEEPSEEK_API_KEY", "deepseek-chat", None),
+        ("gemini", "GEMINI_API_KEY", "gemini-1.5-pro", None),
+        ("zhipu", "ZHIPU_API_KEY", "glm-4.7", "ZHIPU_MODEL"),
+        ("openrouter", "OPENROUTER_API_KEY", "anthropic/claude-sonnet-4", None),
+        ("azure", "AZURE_OPENAI_API_KEY", "gpt-4o", "AZURE_OPENAI_MODEL"),
+        ("alibaba", "DASHSCOPE_API_KEY", "qwen-max", None),
+    ]
+    for provider, env_key, default_model, model_env in candidates:
+        api_key = os.getenv(env_key)
+        if api_key:
+            result: dict[str, Any] = {
+                "provider": provider,
+                "api_key": api_key,
+                "model": os.getenv(model_env, default_model) if model_env else default_model,
+            }
+            if provider == "azure":
+                result["azure_endpoint"] = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+                result["api_version"] = os.getenv("AZURE_OPENAI_API_VERSION", "2024-08-01-preview")
+            return result
+    return {}
+
+
 def _write_config(
     llm_config: dict[str, Any],
     platforms: dict[str, Any],
@@ -349,14 +384,23 @@ def _write_config(
         if provider == "openai":
             env_lines.append(f"OPENAI_MODEL={llm_config.get('model', 'gpt-4o')}")
         elif provider == "anthropic":
-            env_lines.append(f"ANTHROPIC_MODEL={llm_config.get('model', 'claude-sonnet-4-20250514')}")
+            env_lines.append(
+                f"ANTHROPIC_MODEL={llm_config.get('model', 'claude-sonnet-4-20250514')}"
+            )
         elif provider == "ollama":
             env_lines.append(f"OLLAMA_BASE_URL={llm_config.get('base_url', 'http://localhost:11434')}")
             env_lines.append(f"OLLAMA_MODEL={llm_config.get('model', 'llama3.2')}")
         elif provider == "azure":
             env_lines.append(f"AZURE_OPENAI_ENDPOINT={llm_config.get('azure_endpoint', '')}")
-            env_lines.append(f"AZURE_OPENAI_API_VERSION={llm_config.get('api_version', '2024-08-01-preview')}")
+            env_lines.append(
+                "AZURE_OPENAI_API_VERSION="
+                f"{llm_config.get('api_version', '2024-08-01-preview')}"
+            )
             env_lines.append(f"AZURE_OPENAI_MODEL={llm_config.get('model', 'gpt-4o')}")
+        elif provider == "zhipu":
+            env_lines.append(f"ZHIPU_MODEL={llm_config.get('model', 'glm-4.7')}")
+        elif provider == "alibaba":
+            env_lines.append(f"MYAGENT_MODEL_DEFAULT={llm_config.get('model', 'qwen-max')}")
         else:
             env_lines.append(f"MYAGENT_MODEL_DEFAULT={llm_config.get('model', '')}")
 
@@ -375,7 +419,7 @@ def _write_config(
             env_lines.append(f"DINGTALK_CLIENT_ID={cfg['client_id']}")
             env_lines.append(f"DINGTALK_CLIENT_SECRET={cfg['client_secret']}")
 
-    env_lines.append(f"\n# Gateway 设置")
+    env_lines.append("\n# Gateway 设置")
     env_lines.append(f"WEBHOOK_SECRET={gateway_settings['webhook_secret']}")
 
     env_file = _env_path()
@@ -424,8 +468,8 @@ def _write_config(
             }
 
     gateway_file = _gateway_config_path()
-    import yaml
-    gateway_file.write_text(yaml.safe_dump(gateway_yaml, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    gateway_text = yaml.safe_dump(gateway_yaml, sort_keys=False, allow_unicode=True)
+    gateway_file.write_text(gateway_text, encoding="utf-8")
     console.print(f"[green]已写入[/green] {gateway_file}")
 
     # Write config.yaml (agent settings)
@@ -449,7 +493,8 @@ def _write_config(
     }
 
     config_file = _config_path()
-    config_file.write_text(yaml.safe_dump(agent_config, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    config_text = yaml.safe_dump(agent_config, sort_keys=False, allow_unicode=True)
+    config_file.write_text(config_text, encoding="utf-8")
     console.print(f"[green]已写入[/green] {config_file}")
 
 
@@ -466,22 +511,25 @@ def _print_summary(
 
     home = _myagent_home()
     console.print(f"[bold]工作区：[/bold]   {home}")
-    console.print(f"  [dim]- soul.md、user.md、identity.md[/dim]")
-    console.print(f"  [dim]- memory/（持久化记忆）[/dim]")
-    console.print(f"  [dim]- projects/（项目工作区）[/dim]")
-    console.print(f"  [dim]- sessions/（对话历史）[/dim]")
+    console.print("  [dim]- soul.md、user.md、identity.md[/dim]")
+    console.print("  [dim]- memory/（持久化记忆）[/dim]")
+    console.print("  [dim]- projects/（项目工作区）[/dim]")
+    console.print("  [dim]- sessions/（对话历史）[/dim]")
     console.print(f"[bold]配置：[/bold]      {home / 'config.yaml'}")
     console.print(f"[bold]网关：[/bold]     {home / 'gateway.yaml'}")
     console.print(f"[bold]环境：[/bold]         {home / '.env'}")
     console.print()
 
     if profile.get("name"):
-        console.print(f"[bold]用户：[/bold]        {profile['name']}（{profile.get('role', '未知')}）")
+        user_name = profile["name"]
+        user_role = profile.get("role", "未知")
+        console.print(f"[bold]用户：[/bold]        {user_name}（{user_role}）")
     else:
         console.print("[yellow]用户：[/yellow]        未设置画像（稍后请编辑 user.md）")
 
     if llm_config.get("provider"):
-        console.print(f"[bold]LLM：[/bold]         {llm_config['provider']} / {llm_config.get('model', 'default')}")
+        model_name = llm_config.get("model", "default")
+        console.print(f"[bold]LLM：[/bold]         {llm_config['provider']} / {model_name}")
     else:
         console.print("[yellow]LLM：[/yellow]         未配置")
 
@@ -495,10 +543,10 @@ def _print_summary(
 
     console.print(Panel(
         "[bold]下一步：[/bold]\n"
-        "1. 加载环境变量：[cyan]source ~/.myagent/.env[/cyan]\n"
-        "2. 启动网关：   [cyan]myagent gateway[/cyan]\n"
-        "3. 启动 Web UI：[cyan]myagent web[/cyan]\n"
-        "4. 或使用 TUI： [cyan]myagent --tui[/cyan]\n"
+        "1. 加载环境变量： [cyan]source ~/.myagent/.env[/cyan]（Windows PowerShell 可手动导入）\n"
+        "2. 检查配置状态： [cyan]myagent doctor[/cyan]\n"
+        "3. 启动 Web UI：   [cyan]myagent web[/cyan]\n"
+        "4. 或使用 TUI：   [cyan]myagent --tui[/cyan]\n"
         "\n"
         "[dim]编辑 ~/.myagent/user.md 更新您的画像。[/dim]\n"
         "[dim]编辑 ~/.myagent/gateway.yaml 添加更多平台。[/dim]\n"
@@ -507,9 +555,36 @@ def _print_summary(
     ))
 
 
-def run_wizard() -> None:
+def _run_quick_setup() -> None:
+    """Create a minimal ready-to-edit setup without interactive prompts."""
+    console.print("[bold cyan]快速配置模式[/bold cyan]：使用推荐默认值生成基础配置。\n")
+    ws = _step_workspace()
+    llm_config = _detect_llm_from_environment()
+    gateway_settings = {
+        "webhook_secret": secrets.token_urlsafe(32),
+        "session_reset_mode": "both",
+    }
+    _write_config(llm_config, {}, gateway_settings)
+    _print_summary(ws, {}, llm_config, {}, gateway_settings)
+    status = get_setup_status()
+    if not status.overall_ready:
+        console.print(
+            Panel(
+                "[bold yellow]Setup Required[/bold yellow]\n"
+                "已生成基础目录和配置模板，但仍需补齐 LLM API Key。\n"
+                f"建议下一步： [cyan]{status.next_action}[/cyan]",
+                border_style="yellow",
+            )
+        )
+
+
+def run_wizard(quick: bool = False) -> None:
     """Run the interactive initialization wizard."""
     _print_header()
+
+    if quick:
+        _run_quick_setup()
+        return
 
     if not _step_welcome():
         console.print("[yellow]配置已取消。随时可运行 `myagent init` 重新启动。[/yellow]")

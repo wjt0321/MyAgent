@@ -12,6 +12,7 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 
 from myagent import __version__
+from myagent.init.status import get_setup_status
 
 # Load .env file from project root or current directory
 _env_loaded = False
@@ -70,12 +71,17 @@ Type **/help** for available commands.
 
 @app.command()
 def init(
-    quick: bool = typer.Option(False, "--quick", "-q", help="Quick mode — skip prompts, use defaults"),
+    quick: bool = typer.Option(
+        False,
+        "--quick",
+        "-q",
+        help="Quick mode — skip prompts, use defaults",
+    ),
 ) -> None:
     """Initialize MyAgent configuration and workspace."""
     _load_env()
     from myagent.init.wizard import run_wizard
-    run_wizard()
+    run_wizard(quick=quick)
 
 
 @app.command()
@@ -86,15 +92,31 @@ def doctor() -> None:
     run_doctor()
 
 
+def _print_setup_hint() -> None:
+    status = get_setup_status()
+    if status.overall_ready:
+        return
+    console.print(
+        Panel(
+            "[bold yellow]Setup Required[/bold yellow]\n"
+            f"MyAgent 尚未完成初始化，建议下一步： [cyan]{status.next_action}[/cyan]",
+            border_style="yellow",
+        )
+    )
+
+
 @app.command()
 def web(
     host: str = typer.Option("127.0.0.1", "--host", help="Host to bind to"),
     port: int = typer.Option(8000, "--port", "-p", help="Port to listen on"),
     json_log: bool = typer.Option(False, "--json-log", help="Enable JSON structured logging"),
-    log_level: str = typer.Option("INFO", "--log-level", help="Log level (DEBUG/INFO/WARNING/ERROR)"),
+    log_level: str = typer.Option(
+        "INFO", "--log-level", help="Log level (DEBUG/INFO/WARNING/ERROR)"
+    ),
 ) -> None:
     """Start the MyAgent Web UI server."""
     _load_env()
+    _print_setup_hint()
     from myagent.logging_config import setup_logging
 
     log_file = Path.home() / ".myagent" / "logs" / "myagent.log"
@@ -105,6 +127,7 @@ def web(
     )
 
     import uvicorn
+
     from myagent.web.server import create_app
 
     console.print(f"[bold green]Starting MyAgent Web UI on http://{host}:{port}[/bold green]")
@@ -144,8 +167,9 @@ def main(
         run_tui()
         return
 
+    _print_setup_hint()
+
     from myagent.agents.loader import AgentLoader
-    from myagent.engine.query_engine import QueryEngine
     from myagent.tools.bash import Bash
     from myagent.tools.edit import Edit
     from myagent.tools.glob import Glob
@@ -169,11 +193,6 @@ def main(
     registry.register(Bash())
     registry.register(Glob())
     registry.register(Grep())
-
-    engine = QueryEngine(
-        tool_registry=registry,
-        system_prompt=agent_def.system_prompt or "You are a helpful assistant.",
-    )
 
     if prompt:
         console.print(f"[bold blue]> {prompt}[/bold blue]")
