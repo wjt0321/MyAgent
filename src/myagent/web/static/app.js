@@ -837,6 +837,19 @@ class MyAgentWebApp {
         });
     }
 
+    bindDocsEntryCards() {
+        document.querySelectorAll('.docs-entry-card[data-doc-path]').forEach(card => {
+            card.addEventListener('click', async () => {
+                const docPath = card.dataset.docPath;
+                const docName = card.dataset.docName || docPath || '文档';
+                if (!docPath) return;
+                this.setActiveView('files');
+                await this.loadFileTree('.');
+                await this.showFilePreview(docPath, docName);
+            });
+        });
+    }
+
     renderWelcomeLanding() {
         if (!this.welcomeScreen || !this.setupReady) return;
         this.welcomeScreen.style.display = 'flex';
@@ -946,20 +959,23 @@ class MyAgentWebApp {
                 <div class="welcome-panel">
                     <div class="welcome-panel-title">文档入口</div>
                     <div class="welcome-docs-grid">
-                        <div class="docs-entry-card surface-card surface-card-soft">
+                        <div class="docs-entry-card is-link-card surface-card surface-card-soft" data-doc-path="README.md" data-doc-name="README.md">
                             <div class="surface-eyebrow">Docs</div>
                             <div class="docs-entry-title">README</div>
                             <div class="docs-entry-desc">先看产品定位、Quickstart 与当前 Web 工作台亮点。</div>
+                            <div class="docs-entry-card-link">打开文档预览</div>
                         </div>
-                        <div class="docs-entry-card surface-card surface-card-soft">
+                        <div class="docs-entry-card is-link-card surface-card surface-card-soft" data-doc-path="docs/GETTING_STARTED.md" data-doc-name="GETTING_STARTED.md">
                             <div class="surface-eyebrow">Docs</div>
                             <div class="docs-entry-title">GETTING_STARTED</div>
                             <div class="docs-entry-desc">按首次安装与配置流程逐步完成本地 setup。</div>
+                            <div class="docs-entry-card-link">打开文档预览</div>
                         </div>
-                        <div class="docs-entry-card surface-card surface-card-soft">
+                        <div class="docs-entry-card is-link-card surface-card surface-card-soft" data-doc-path="docs/design/03-interaction-patterns.md" data-doc-name="03-interaction-patterns.md">
                             <div class="surface-eyebrow">Docs</div>
                             <div class="docs-entry-title">Interaction Patterns</div>
                             <div class="docs-entry-desc">查看 Task、Tool、Session 与详情侧栏的交互约定。</div>
+                            <div class="docs-entry-card-link">打开文档预览</div>
                         </div>
                     </div>
                 </div>
@@ -967,6 +983,7 @@ class MyAgentWebApp {
         `;
         this.bindQuickCards();
         this.bindDemoPathCards();
+        this.bindDocsEntryCards();
         this.applyWelcomeMotion();
     }
 

@@ -220,6 +220,7 @@ Web 当前支持：
 - 欢迎页分段入场、工具卡片入场强调与会话切换 pulse 反馈
 - 任务卡片、工具卡片与文档入口卡片共享的 surface 表面系统与统一 eyebrow
 - 欢迎页中的 `Recommended Demo Path` 会把首屏演示统一收口到 `Chat -> Tasks -> Workspace`
+- 欢迎页中的 docs entry card 可直接跳转到 `Files` 并打开对应 Markdown 预览
 - 取消当前任务
 - 对失败或已取消任务执行重试重置
 - 对最近任务快照执行恢复

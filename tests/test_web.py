@@ -377,6 +377,22 @@ class TestWebServer:
         assert ".demo-path-card" in css
         assert ".demo-path-kicker" in css
 
+    def test_static_app_contains_phase5_docs_entry_links(self, client):
+        """Phase 5 第十一批应让欢迎页文档入口成为真实可点击入口。"""
+        js_response = client.get("/static/app.js")
+        css_response = client.get("/static/style.css")
+        assert js_response.status_code == 200
+        assert css_response.status_code == 200
+        js = js_response.text
+        css = css_response.text
+        assert "bindDocsEntryCards(" in js
+        assert "data-doc-path" in js
+        assert "showFilePreview(docPath" in js
+        assert "setActiveView('files')" in js
+        assert "docs-entry-card is-link-card" in js
+        assert ".docs-entry-card.is-link-card" in css
+        assert ".docs-entry-card-link" in css
+
     def test_current_task_endpoint_returns_task_snapshot_and_team(self):
         """当前任务接口应返回任务快照与团队概览。"""
         app = create_app()

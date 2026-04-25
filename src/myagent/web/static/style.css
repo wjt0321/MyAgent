@@ -3159,6 +3159,17 @@ body {
   margin-bottom: 6px;
 }
 
+.docs-entry-card.is-link-card {
+  cursor: pointer;
+}
+
+.docs-entry-card-link {
+  margin-top: 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 .quickstart-step-desc,
 .positioning-card-desc,
 .docs-entry-desc {

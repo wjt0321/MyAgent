@@ -53,6 +53,7 @@ Supported platforms: **Feishu/Lark, Slack, Discord, Telegram, DingTalk, WeCom, W
 
 - Screenshot-ready landing: open the Web workbench and stay on the welcome screen to show the `3-step Quickstart`, product positioning, recommended actions, and docs entry cards
 - Guided landing tour: click the welcome screen `Recommended Demo Path` cards and walk through `Chat -> Tasks -> Workspace`
+- Docs walkthrough: click the welcome docs cards to open `README`, `GETTING_STARTED`, and the interaction design doc directly in the `Files` view
 - Task showcase: create a `/plan` task, approve it, then switch to `Tasks` to show `Task -> Team -> Review` with timeline and structured review cards
 - Session showcase: use the header session control bar to switch `agent` and `model` and watch the live session summary stay in sync
 
