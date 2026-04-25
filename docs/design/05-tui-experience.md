@@ -24,7 +24,7 @@ TUI 当前由五个核心区块组成：
 2. 主消息区
    - 展示 transcript 和结构化工具轨迹
 3. 右侧状态面板
-   - 展示状态概览、任务状态、活动轨迹、当前响应
+   - 展示 `Workbench 概览`、`Task Flow`、`Tool Activity`、`Live Draft`
 4. 输入区
    - 支持多行输入与 Slash Commands
 5. 浮层区
@@ -77,6 +77,7 @@ TUI 当前由五个核心区块组成：
 
 - 当前 `agent`
 - 当前 `model`
+- 当前 `session` 摘要（至少包含 `agent / model`）
 - 当前 `workspace`
 - setup 是否 ready
 - Header 品牌命名需与 Web Workbench 保持一致，避免 TUI/Web 出现割裂文案

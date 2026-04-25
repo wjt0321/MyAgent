@@ -41,6 +41,21 @@ async def test_side_panel_exists():
 
 
 @pytest.mark.asyncio
+async def test_phase5_tui_panel_titles_and_summary_are_workbench_aligned():
+    app = MyAgentApp()
+    async with app.run_test() as pilot:
+        titles = [str(widget.render()) for widget in pilot.app.query(".panel-title")]
+        status_panel = pilot.app.query_one("#status-panel")
+        rendered_status = str(status_panel.render())
+        assert any("Workbench 概览" in title for title in titles)
+        assert any("Task Flow" in title for title in titles)
+        assert any("Tool Activity" in title for title in titles)
+        assert any("Live Draft" in title for title in titles)
+        assert "Session:" in rendered_status
+        assert "Setup:" in rendered_status
+
+
+@pytest.mark.asyncio
 async def test_transcript_exists():
     app = MyAgentApp()
     async with app.run_test() as pilot:

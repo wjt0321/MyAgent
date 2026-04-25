@@ -233,13 +233,13 @@ class MyAgentApp(App[None]):
                 yield RichLog(id="transcript", highlight=True, markup=True)
 
             with Vertical(id="side-panel"):
-                yield Static("状态概览", classes="panel-title")
+                yield Static("Workbench 概览", classes="panel-title")
                 yield Static("", id="status-panel", classes="panel-body")
-                yield Static("任务状态", classes="panel-title")
+                yield Static("Task Flow", classes="panel-title")
                 yield Static("", id="task-panel", classes="panel-body")
-                yield Static("活动轨迹", classes="panel-title")
+                yield Static("Tool Activity", classes="panel-title")
                 yield Static("", id="activity-panel", classes="panel-body")
-                yield Static("当前响应", classes="panel-title")
+                yield Static("Live Draft", classes="panel-title")
                 yield Static("", id="current-response", classes="panel-body")
 
         with Horizontal(id="composer-container"):
@@ -848,6 +848,7 @@ Keyboard shortcuts:
     def _refresh_side_panel(self) -> None:
         """Refresh the structured side panel widgets."""
         status_text = (
+            f"Session: {self.current_agent} / {self.current_model}\n"
             f"Agent: {self.current_agent}\n"
             f"Model: {self.current_model}\n"
             f"Workspace: {self._workspace_path}\n"
