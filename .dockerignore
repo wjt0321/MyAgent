@@ -51,6 +51,9 @@ Thumbs.db
 dist/
 build/
 
+# Git worktrees
+.worktrees/
+
 # Session data (will be mounted as volume)
 data/
 sessions/

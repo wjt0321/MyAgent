@@ -53,10 +53,15 @@ services:
       - DOUBAO_API_KEY=${DOUBAO_API_KEY:-}
       - HUNYUAN_API_KEY=${HUNYUAN_API_KEY:-}
       - COHERE_API_KEY=${COHERE_API_KEY:-}
+      - AZURE_API_KEY=${AZURE_API_KEY:-}
       # GitHub Integration
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - GITHUB_APP_ID=${GITHUB_APP_ID:-}
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-}
+      # MyAgent Config
+      - MYAGENT_HOME=/app/data
+      - MYAGENT_DEFAULT_PROVIDER=${MYAGENT_DEFAULT_PROVIDER:-zhipu}
+      - MYAGENT_DEFAULT_MODEL=${MYAGENT_DEFAULT_MODEL:-glm-4}
     volumes:
       - myagent-data:/app/data
       - ./agents:/app/agents:ro
@@ -99,6 +104,11 @@ services:
       - NVIDIA_API_KEY=${NVIDIA_API_KEY:-}
       - ARCEE_API_KEY=${ARCEE_API_KEY:-}
       - XIAOMI_API_KEY=${XIAOMI_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - SILICONFLOW_API_KEY=${SILICONFLOW_API_KEY:-}
+      - QWEN_API_KEY=${QWEN_API_KEY:-}
+      - COHERE_API_KEY=${COHERE_API_KEY:-}
+      - AZURE_API_KEY=${AZURE_API_KEY:-}
       # Telegram
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       # Discord
@@ -114,6 +124,10 @@ services:
       # QQ
       - QQ_APP_ID=${QQ_APP_ID:-}
       - QQ_CLIENT_SECRET=${QQ_CLIENT_SECRET:-}
+      # MyAgent Config
+      - MYAGENT_HOME=/app/data
+      - MYAGENT_DEFAULT_PROVIDER=${MYAGENT_DEFAULT_PROVIDER:-zhipu}
+      - MYAGENT_DEFAULT_MODEL=${MYAGENT_DEFAULT_MODEL:-glm-4}
     volumes:
       - myagent-data:/app/data
       - ./agents:/app/agents:ro

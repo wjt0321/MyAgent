@@ -13,15 +13,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv for fast package management
-COPY --from=ghcr.io/astral-sh/uv:0.5.0 /uv /bin/uv
-
 # Copy dependency files
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml ./
 
 # Create virtual environment and install dependencies
-RUN uv venv /app/.venv
-RUN uv pip install --no-cache -e ".[web,gateway]"
+RUN python -m venv /app/.venv
+RUN /app/.venv/bin/pip install --no-cache-dir --upgrade pip
+RUN /app/.venv/bin/pip install --no-cache-dir -e ".[web,gateway]"
 
 # ---------------------------------------------------------------------------
 # Stage 2: Production
@@ -36,6 +34,7 @@ RUN groupadd -r myagent && useradd -r -g myagent myagent
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder
@@ -44,9 +43,10 @@ COPY --from=builder /app/.venv /app/.venv
 # Copy application code
 COPY src/ ./src/
 COPY README.md ./
+COPY pyproject.toml ./
 
 # Install the package in production mode
-RUN /app/.venv/bin/pip install --no-cache -e .
+RUN /app/.venv/bin/pip install --no-cache-dir -e .
 
 # Set environment variables
 ENV PATH="/app/.venv/bin:$PATH"

@@ -6,16 +6,16 @@ MyAgent project instructions for Claude Code / AI assistants.
 
 MyAgent is an autonomous AI agent platform with multi-channel gateway support. It provides:
 
-- **Gateway**: Multi-platform messaging (Feishu, Slack, Discord, Telegram, etc.)
-- **Web UI**: Real-time WebSocket chat interface (FastAPI + vanilla JS, JWT auth, session isolation)
-- **TUI**: Rich terminal interface (Textual)
-- **Engine**: LLM query engine with tool calling
+- **Gateway**: Multi-platform messaging (Telegram, Discord, Slack, Feishu, QQ, Weixin, GitHub Webhook)
+- **Web UI**: Workbench-style browser UI (FastAPI + vanilla JS, JWT auth, session isolation, command palette, tool cards, task timeline)
+- **TUI**: Rich terminal interface (Textual) with status sidebar, slash commands, modal approvals
+- **Engine**: LLM query engine with tool calling and context compression
 - **Workspace**: Agent "home" with persistent memory and configuration
-- **Memory**: Auto-collection and manual editing of agent memory
-- **Task Engine**: Plan → Execute → Review workflow (with auto-execution on approval)
-- **Agent Teams**: Multi-agent collaboration with role-based assignment
-- **Codebase**: Automatic code scanning, indexing, and search
-- **Security**: File API path restriction, WebSocket token validation, GitHub webhook server-side secret validation
+- **Memory**: Auto-extraction and RAG retrieval with persistent memory files
+- **Task Engine**: Plan → Execute → Review workflow with snapshots, retry, restore
+- **Agent Teams**: Multi-agent collaboration with Planner, Explorer, Executor, Reviewer roles
+- **Codebase**: Automatic code scanning, indexing, and semantic search
+- **Security**: File API path restriction, WebSocket token validation, GitHub webhook server-side secret validation, JWT authentication
 
 ## Key Concepts
 
@@ -88,24 +88,48 @@ Default team roles:
 
 ### Key files to know:
 
-- `src/myagent/cli.py` — CLI entry point
-- `src/myagent/engine/query_engine.py` — Core query engine
-- `src/myagent/web/server.py` — Web UI server (FastAPI + JWT auth)
+- `src/myagent/cli.py` — CLI entry point (init, doctor, web, gateway, tui)
+- `src/myagent/engine/query_engine.py` — Core query engine with context compression
+- `src/myagent/engine/context_compression.py` — Context compression with dynamic threshold
+- `src/myagent/web/server.py` — Web UI server (FastAPI + JWT auth + WebSocket)
 - `src/myagent/web/auth.py` — JWT authentication module
+- `src/myagent/web/engine_manager.py` — Web engine manager
+- `src/myagent/tui/app.py` — TUI application with status sidebar and task panel
+- `src/myagent/tui/screens.py` — TUI screens and modals
 - `src/myagent/gateway/bot.py` — Gateway bot with session persistence
 - `src/myagent/gateway/adapters/telegram.py` — Telegram adapter with inline permissions
-- `src/myagent/gateway/adapters/discord.py` — Discord Gateway WebSocket adapter with slash commands, message editing, thread creation
+- `src/myagent/gateway/adapters/discord.py` — Discord adapter with slash commands, message editing, thread creation
 - `src/myagent/gateway/adapters/slack.py` — Slack Socket Mode adapter with Block Kit support
 - `src/myagent/gateway/adapters/feishu.py` — Feishu Webhook + WebSocket adapter with signature verification
 - `src/myagent/gateway/adapters/github.py` — GitHub webhook adapter
+- `src/myagent/gateway/adapters/qq.py` — QQ adapter
+- `src/myagent/gateway/adapters/weixin.py` — Weixin adapter
 - `src/myagent/workspace/manager.py` — Workspace management
 - `src/myagent/memory/manager.py` — Memory system
 - `src/myagent/memory/extractor.py` — Memory auto-extraction and RAG retrieval
-- `src/myagent/tasks/engine.py` — Task engine
+- `src/myagent/tasks/engine.py` — Task engine with snapshots and retry
+- `src/myagent/tasks/models.py` — Task models and status definitions
 - `src/myagent/teams/orchestrator.py` — Team orchestration
+- `src/myagent/teams/models.py` — Team models
 - `src/myagent/codebase/indexer.py` — Codebase indexing
+- `src/myagent/codebase/search.py` — Codebase semantic search
 - `src/myagent/tools/git.py` — Git operations tool
 - `src/myagent/tools/code_interpreter.py` — Sandboxed Python code execution
+- `src/myagent/tools/web_search.py` — Web search tool
+- `src/myagent/tools/web_fetch.py` — Web fetch tool
+- `src/myagent/tools/image_analyze.py` — Image analysis tool
+- `src/myagent/tools/text_to_speech.py` — Text-to-speech tool
+- `src/myagent/tools/todo.py` — Todo tracking tool
+- `src/myagent/init/wizard.py` — Setup wizard
+- `src/myagent/init/doctor.py` — Setup diagnostics
+- `src/myagent/init/status.py` — Setup status detection
+- `src/myagent/config/settings.py` — Configuration settings
+- `src/myagent/config/hot_reload.py` — Config hot-reload watcher
+- `src/myagent/llm/registry.py` — LLM provider registry
+- `src/myagent/llm/stream_parser.py` — LLM stream parser
+- `src/myagent/mcp/client.py` — MCP client
+- `src/myagent/plugins/registry.py` — Plugin registry
+- `src/myagent/monitoring/metrics.py` — Prometheus metrics
 - `deploy/helm/myagent/` — Kubernetes Helm Chart
 - `deploy/grafana/dashboard.json` — Grafana Dashboard
 - `deploy/prometheus/alerts.yaml` — Prometheus Alert Rules

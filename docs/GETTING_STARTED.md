@@ -13,7 +13,7 @@ pip install myagent
 Or from source:
 
 ```bash
-git clone https://github.com/myagent/myagent.git
+git clone https://github.com/wjt0321/MyAgent.git
 cd myagent
 pip install -e ".[dev]"
 ```
@@ -50,6 +50,9 @@ myagent --tui
 
 # Or launch the Web UI
 myagent web --port 8000
+
+# Or start the Gateway server
+myagent gateway --port 18789
 ```
 
 Open http://localhost:8000 in your browser.
@@ -81,27 +84,65 @@ All user configuration lives in `~/.myagent/`:
 You can override any config with environment variables:
 
 ```bash
-# LLM
+# LLM (International)
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 DEEPSEEK_API_KEY=sk-...
+GEMINI_API_KEY=...
+XAI_API_KEY=...
+OPENROUTER_API_KEY=...
+HF_API_KEY=...
+NVIDIA_API_KEY=...
+ARCEE_API_KEY=...
+XIAOMI_API_KEY=...
+SILICONFLOW_API_KEY=...
+QWEN_API_KEY=...
+COHERE_API_KEY=...
+AZURE_API_KEY=...
+
+# LLM (China Domestic)
+ZHIPU_API_KEY=...
+ZHIPU_CN_API_KEY=...
+MOONSHOT_API_KEY=...
+MOONSHOT_CN_API_KEY=...
+MINIMAX_API_KEY=...
+MINIMAX_CN_API_KEY=...
+DASHSCOPE_API_KEY=...
+DASHSCOPE_CN_API_KEY=...
+BAIDU_API_KEY=...
+BAIDU_SECRET_KEY=...
+SPARK_API_KEY=...
+SPARK_API_SECRET=...
+DOUBAO_API_KEY=...
+HUNYUAN_API_KEY=...
 
 # Gateway
 FEISHU_APP_ID=cli_...
 FEISHU_APP_SECRET=...
 SLACK_BOT_TOKEN=xoxb-...
 TELEGRAM_BOT_TOKEN=...
+DISCORD_BOT_TOKEN=...
+WEIXIN_TOKEN=...
+WEIXIN_ACCOUNT_ID=...
+QQ_APP_ID=...
+QQ_CLIENT_SECRET=...
+
+# GitHub Integration
+GITHUB_TOKEN=ghp_...
+GITHUB_APP_ID=...
+GITHUB_WEBHOOK_SECRET=...
 
 # MyAgent
 MYAGENT_HOME=/custom/path
 MYAGENT_MODEL_DEFAULT=anthropic/claude-sonnet-4
+MYAGENT_CONTEXT_MAX_TURNS=50
 ```
 
 ---
 
 ## LLM Providers
 
-MyAgent supports 19 LLM providers out of the box:
+MyAgent supports 30+ LLM providers out of the box:
 
 ### International Providers
 
@@ -117,6 +158,10 @@ MyAgent supports 19 LLM providers out of the box:
 | NVIDIA | `NVIDIA_API_KEY` | `nvidia/llama-3.3-nemotron-super-49b-v1` |
 | Arcee | `ARCEE_API_KEY` | `trinity-large-thinking` |
 | Xiaomi | `XIAOMI_API_KEY` | `mimo-v2-pro` |
+| Qwen | `QWEN_API_KEY` | `qwen-max` |
+| Cohere | `COHERE_API_KEY` | `command-r-plus` |
+| SiliconFlow | `SILICONFLOW_API_KEY` | `deepseek-ai/DeepSeek-V3` |
+| Azure | `AZURE_API_KEY` | `gpt-4o` |
 | Ollama (local) | None | `llama3.3` |
 
 ### China Domestic Providers (API Key NOT interchangeable with international versions)
@@ -127,6 +172,10 @@ MyAgent supports 19 LLM providers out of the box:
 | Moonshot (Kimi) | `MOONSHOT_API_KEY` / `MOONSHOT_CN_API_KEY` | `moonshot-v1-8k` |
 | MiniMax | `MINIMAX_API_KEY` / `MINIMAX_CN_API_KEY` | `abab6.5s-chat` |
 | Alibaba (DashScope) | `DASHSCOPE_API_KEY` / `DASHSCOPE_CN_API_KEY` | `qwen-max` |
+| Baidu (文心一言) | `BAIDU_API_KEY` / `BAIDU_SECRET_KEY` | `ernie-bot-4` |
+| iFlytek (讯飞星火) | `SPARK_API_KEY` / `SPARK_API_SECRET` | `spark-v3.5` |
+| ByteDance (豆包) | `DOUBAO_API_KEY` | `doubao-pro-32k` |
+| Tencent (混元) | `HUNYUAN_API_KEY` | `hunyuan-large` |
 
 ### Ollama (Local Models)
 
@@ -189,16 +238,28 @@ Required env vars:
 TELEGRAM_BOT_TOKEN=xxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-### DingTalk (钉钉)
+### QQ
 
-1. Create an app at [open.dingtalk.com](https://open.dingtalk.com)
-2. Get Client ID and Client Secret
+1. Create a QQ bot at [q.qq.com](https://q.qq.com)
+2. Get App ID and Client Secret
 3. Run `myagent init` and enter your credentials
 
 Required env vars:
 ```bash
-DINGTALK_CLIENT_ID=dingxxxxxxxxxxxxxxxx
-DINGTALK_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+QQ_APP_ID=xxxxxxxxxxxxxxxx
+QQ_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### Weixin (微信)
+
+1. Create a Weixin Official Account at [mp.weixin.qq.com](https://mp.weixin.qq.com)
+2. Get Token and Account ID
+3. Run `myagent init` and enter your credentials
+
+Required env vars:
+```bash
+WEIXIN_TOKEN=xxxxxxxxxxxxxxxx
+WEIXIN_ACCOUNT_ID=xxxxxxxxxxxxxxxx
 ```
 
 ---
@@ -267,6 +328,9 @@ Keep `~/.myagent/` as "your stuff" — don't put personal configs into the repo.
 | Gateway not receiving messages | Check platform webhook URL and credentials |
 | Session not resetting | Check `gateway.yaml` reset_policy settings |
 | High token usage | Adjust `context.auto_compact_threshold` in config |
+| Config not updating | Check `config.yaml` syntax, hot-reload is automatic |
+| Task execution failed | Check task logs, use retry action in Web UI |
+| Gateway not connecting | Verify platform credentials and webhook URL |
 
 ---
 

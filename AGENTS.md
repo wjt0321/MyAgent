@@ -12,13 +12,13 @@ Telegraph style. Root rules only. Read scoped `AGENTS.md` before touching a subt
 ## Repo Map
 
 - Core Python: `src/myagent/`
-- CLI entry: `src/myagent/cli.py`
-- Web UI: `src/myagent/web/` (FastAPI + static files)
-- TUI: `src/myagent/tui/` (Textual)
+- CLI entry: `src/myagent/cli.py` (init, doctor, web, gateway, tui)
+- Web UI: `src/myagent/web/` (FastAPI + static files, JWT auth, WebSocket)
+- TUI: `src/myagent/tui/` (Textual, status sidebar, task panel)
 - Gateway: `src/myagent/gateway/` (multi-platform adapters, session persistence)
 - Engine: `src/myagent/engine/` (QueryEngine, context compression)
-- LLM providers: `src/myagent/llm/providers/` (40+ providers: Anthropic, OpenAI, DeepSeek, Gemini, xAI, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Ollama, OpenRouter, Baidu, Spark, Doubao, Hunyuan, Cohere, SiliconFlow)
-- Tools: `src/myagent/tools/` (Bash, CodeInterpreter, Read, Write, Edit, Glob, Grep, Git, WebFetch, etc.)
+- LLM providers: `src/myagent/llm/providers/` (30+ providers: Anthropic, OpenAI, DeepSeek, Gemini, xAI, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Ollama, OpenRouter, Baidu, Spark, Doubao, Hunyuan, Cohere, SiliconFlow, Azure, Qwen)
+- Tools: `src/myagent/tools/` (Bash, CodeInterpreter, Read, Write, Edit, Glob, Grep, Git, WebFetch, WebSearch, ImageAnalyze, TextToSpeech, Todo, etc.)
 - Memory: `src/myagent/memory/extractor.py` — MemoryExtractor, MemoryRAG
 - Deploy: `deploy/` — Helm Chart, Grafana Dashboard, Prometheus alerts
 - Workspace: `src/myagent/workspace/` (manager, templates, project)
@@ -31,6 +31,7 @@ Telegraph style. Root rules only. Read scoped `AGENTS.md` before touching a subt
 - MCP: `src/myagent/mcp/` (client, config, types)
 - Config: `src/myagent/config/` (settings, hot_reload)
 - Web Auth: `src/myagent/web/auth.py` (JWT authentication)
+- Monitoring: `src/myagent/monitoring/metrics.py` (Prometheus metrics)
 - Docs: `docs/` (structured documentation)
 - Tests: `tests/`
 
@@ -68,12 +69,13 @@ Scoped guides:
 - Pre-commit: run `ruff check` and `mypy src/` before committing.
 - Do not land related failing format/lint/type/tests.
 - If failures are unrelated on latest `origin/main`, say so and give scoped proof.
-- Gateway adapters: Telegram/Discord/Slack/Feishu all support inline permission requests via `send_permission_request()`. Discord supports slash commands (`/ask`, `/reset`, `/agent`), message editing, and thread creation. Slack supports Block Kit messages. Feishu supports WebSocket mode.
+- Gateway adapters: Telegram/Discord/Slack/Feishu/QQ/Weixin all support inline permission requests via `send_permission_request()`. Discord supports slash commands (`/ask`, `/reset`, `/agent`), message editing, and thread creation. Slack supports Block Kit messages. Feishu supports WebSocket mode. GitHub webhook supports server-side secret validation.
 - Web UI auth: JWT-based, optional password protection via `myagent.web.auth`.
 - Session isolation: Web UI sessions are scoped per-user via `user_id` field.
 - File API: path-restricted access (cwd/workspace only), requires authentication.
 - WebSocket: token validation with session owner verification.
 - GitHub webhook: server-side secret validation, never trust request payload.
+- Config hot-reload: `config.yaml` changes are auto-detected and applied without restart.
 
 ## Code Style
 
