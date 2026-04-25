@@ -14,8 +14,7 @@ from myagent.engine.stream_events import (
     ToolExecutionCompleted,
     ToolExecutionStarted,
 )
-from myagent.tasks.models import SubTask, Task, TaskStatus
-from myagent.tasks.models import TaskResult
+from myagent.tasks.models import SubTask, Task, TaskResult, TaskStatus
 from myagent.web.engine_manager import WebEngineManager
 from myagent.web.server import create_app
 from myagent.web.session import SessionStore
