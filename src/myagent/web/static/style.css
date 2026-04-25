@@ -3017,6 +3017,64 @@ body {
   margin-bottom: 12px;
 }
 
+.welcome-quickstart {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--accent-glow);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(121, 40, 255, 0.06));
+  box-shadow: var(--panel-glow);
+}
+
+.welcome-quickstart-grid,
+.welcome-positioning-grid,
+.welcome-docs-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.welcome-quickstart-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.quickstart-step,
+.positioning-card,
+.docs-entry-card {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.quickstart-step-index {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.quickstart-step-title,
+.docs-entry-title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.quickstart-step-desc,
+.positioning-card-desc,
+.docs-entry-desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.welcome-positioning-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 16px;
+}
+
 .recent-sessions,
 .capability-list {
   display: grid;

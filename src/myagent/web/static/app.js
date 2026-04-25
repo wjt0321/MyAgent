@@ -816,6 +816,40 @@ class MyAgentWebApp {
                 <h1>从对话式助手，进入可执行工作台</h1>
                 <p>把聊天、任务、团队和文件操作收敛到同一个 Workbench，让第一次进入也能快速知道下一步该做什么。</p>
             </div>
+            <div class="welcome-quickstart">
+                <div class="welcome-panel-title">3 步 Quickstart</div>
+                <div class="welcome-quickstart-grid">
+                    <div class="quickstart-step">
+                        <div class="quickstart-step-index">01</div>
+                        <div class="quickstart-step-title">初始化环境</div>
+                        <div class="quickstart-step-desc"><code>myagent init --quick</code> 先生成最小可运行配置。</div>
+                    </div>
+                    <div class="quickstart-step">
+                        <div class="quickstart-step-index">02</div>
+                        <div class="quickstart-step-title">检查缺口</div>
+                        <div class="quickstart-step-desc"><code>myagent doctor</code> 查看缺失项与下一步动作。</div>
+                    </div>
+                    <div class="quickstart-step">
+                        <div class="quickstart-step-index">03</div>
+                        <div class="quickstart-step-title">进入工作台</div>
+                        <div class="quickstart-step-desc">使用 <code>myagent --tui</code> 或 <code>myagent web --port 8000</code> 开始工作。</div>
+                    </div>
+                </div>
+            </div>
+            <div class="welcome-positioning-grid">
+                <div class="positioning-card">
+                    <div class="welcome-panel-title">Hermes 式初始化</div>
+                    <div class="positioning-card-desc">先把 setup、doctor 和 next action 讲清楚，降低首次进入的理解成本。</div>
+                </div>
+                <div class="positioning-card">
+                    <div class="welcome-panel-title">OpenClaw 式工作台</div>
+                    <div class="positioning-card-desc">把导航、工具结果、任务状态和详情侧栏放到同一个可操作的 Workbench。</div>
+                </div>
+                <div class="positioning-card">
+                    <div class="welcome-panel-title">MyAgent 的收敛方向</div>
+                    <div class="positioning-card-desc">强调“能计划、能执行、能审查”的任务闭环，而不是只有聊天与工具输出。</div>
+                </div>
+            </div>
             <div class="welcome-grid">
                 <div class="welcome-panel">
                     <div class="welcome-panel-title">推荐动作</div>
@@ -854,6 +888,23 @@ class MyAgentWebApp {
                         <div class="welcome-help-item"><strong>/plan</strong> 先生成任务计划，再决定是否执行</div>
                         <div class="welcome-help-item"><strong>Ctrl+K</strong> 打开 Command Palette，快速跳转高频动作</div>
                         <div class="welcome-help-item"><strong>任务视图</strong> 查看 Task、Team、Review 与执行时间线</div>
+                    </div>
+                </div>
+                <div class="welcome-panel">
+                    <div class="welcome-panel-title">文档入口</div>
+                    <div class="welcome-docs-grid">
+                        <div class="docs-entry-card">
+                            <div class="docs-entry-title">README</div>
+                            <div class="docs-entry-desc">先看产品定位、Quickstart 与当前 Web 工作台亮点。</div>
+                        </div>
+                        <div class="docs-entry-card">
+                            <div class="docs-entry-title">GETTING_STARTED</div>
+                            <div class="docs-entry-desc">按首次安装与配置流程逐步完成本地 setup。</div>
+                        </div>
+                        <div class="docs-entry-card">
+                            <div class="docs-entry-title">Interaction Patterns</div>
+                            <div class="docs-entry-desc">查看 Task、Tool、Session 与详情侧栏的交互约定。</div>
+                        </div>
                     </div>
                 </div>
             </div>

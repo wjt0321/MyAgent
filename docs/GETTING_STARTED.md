@@ -54,6 +54,13 @@ myagent web --port 8000
 
 Open http://localhost:8000 in your browser.
 
+### 5. First Tour
+
+1. Stay on the Web welcome screen and review the `3-step Quickstart`
+2. Use the recommended action cards or `Ctrl+K` to jump into common tasks
+3. Switch `agent` or `model` from the header session control bar and verify the session summary updates immediately
+4. Run `/plan <request>` to see the full `Task -> Team -> Review` workflow
+
 ---
 
 ## Configuration Files

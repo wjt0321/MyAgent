@@ -303,6 +303,27 @@ class TestWebServer:
         assert ".session-summary-line" in css
         assert ".session-status-chip.switching" in css
 
+    def test_static_app_contains_phase5_quickstart_showcase(self, client):
+        """Phase 5 第六批应补齐可截图的 Quickstart 与文档入口首屏。"""
+        js_response = client.get("/static/app.js")
+        css_response = client.get("/static/style.css")
+        assert js_response.status_code == 200
+        assert css_response.status_code == 200
+        js = js_response.text
+        css = css_response.text
+        assert "welcome-quickstart" in js
+        assert "quickstart-step" in js
+        assert "positioning-card" in js
+        assert "welcome-docs-grid" in js
+        assert "docs-entry-card" in js
+        assert "Hermes 式初始化" in js
+        assert "OpenClaw 式工作台" in js
+        assert ".welcome-quickstart" in css
+        assert ".quickstart-step" in css
+        assert ".positioning-card" in css
+        assert ".welcome-docs-grid" in css
+        assert ".docs-entry-card" in css
+
     def test_current_task_endpoint_returns_task_snapshot_and_team(self):
         """当前任务接口应返回任务快照与团队概览。"""
         app = create_app()

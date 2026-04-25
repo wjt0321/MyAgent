@@ -49,6 +49,12 @@
 
 ![记忆标签页](images/webui-memory-tab-2026-04-23T04-10-30-994Z.png)
 
+### 推荐演示路径
+
+- 截图首选场景：停留在 Web 工作台欢迎页，展示 `3 步 Quickstart`、产品定位、推荐动作和文档入口卡片
+- 任务展示场景：创建 `/plan` 任务并批准执行，在 `Tasks` 视图展示 `Task -> Team -> Review`、执行时间线与结构化审查结果
+- 会话展示场景：使用 Header 中的会话控制条切换 `agent` 与 `model`，确认会话摘要与状态反馈会即时同步
+
 ## 快速开始
 
 ```bash
@@ -75,6 +81,12 @@ myagent web --port 8000
 - `myagent init --quick` 会生成基础目录、配置模板和 `.env` 脚手架。
 - 当配置未完成时，TUI 与 Web 都会进入 `Setup Required` 状态，并提示下一步命令。
 
+推荐首次导览：
+1. 先停留在 Web 欢迎页，查看 `3 步 Quickstart`
+2. 通过推荐动作卡片或 `Ctrl+K` 进入工作台主流程
+3. 在会话控制条中切换 `agent` 或 `model`，确认会话反馈实时更新
+4. 执行 `/plan <需求>`，完整体验 `Task -> Team -> Review` 工作流
+
 ### Web 工作台亮点
 
 - 使用左侧工作台导航在 `Chat`、`Tasks`、`Files`、`Workspace`、`Team` 之间切换
@@ -93,6 +105,7 @@ myagent web --port 8000
 - Phase 5 第三批把工具执行升级为统一卡片系统，按 `tool_use_id` 串联调用与结果，并补充摘要与状态芯片
 - Phase 5 第四批进一步收口窄屏体验，补充移动端视图 chip、横向工作台导航与全宽详情侧栏
 - Phase 5 第五批补齐会话控制条，增加 agent/model 即时切换反馈、会话摘要行，以及保持当前会话状态同步的重连路径
+- Phase 5 第六批把欢迎页升级为可截图的 Quickstart 首屏，补齐上手步骤、产品定位与文档入口卡片
 
 ## 文档
 

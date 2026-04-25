@@ -49,6 +49,12 @@ Supported platforms: **Feishu/Lark, Slack, Discord, Telegram, DingTalk, WeCom, W
 
 ![Memory Tab](images/webui-memory-tab-2026-04-23T04-10-30-994Z.png)
 
+### Recommended Demo Path
+
+- Screenshot-ready landing: open the Web workbench and stay on the welcome screen to show the `3-step Quickstart`, product positioning, recommended actions, and docs entry cards
+- Task showcase: create a `/plan` task, approve it, then switch to `Tasks` to show `Task -> Team -> Review` with timeline and structured review cards
+- Session showcase: use the header session control bar to switch `agent` and `model` and watch the live session summary stay in sync
+
 ## Quick Start
 
 ```bash
@@ -75,6 +81,12 @@ Notes:
 - `myagent init --quick` creates the base workspace, config templates, and `.env` scaffold.
 - When setup is incomplete, both TUI and Web show `Setup Required` with the next suggested action.
 
+Recommended first tour:
+1. Land on the Web welcome screen and review the `3-step Quickstart`
+2. Use a recommended action card or `Ctrl+K` to enter the workbench
+3. Switch `agent` or `model` from the session control bar to verify live session feedback
+4. Run `/plan <request>` to inspect the full `Task -> Team -> Review` workflow
+
 ### Web Workbench Highlights
 
 - Use the left-side workbench navigation to switch between `Chat`, `Tasks`, `Files`, `Workspace`, and `Team`
@@ -93,6 +105,7 @@ Notes:
 - Phase 5 batch 3 upgrades tool execution into a unified card system with summaries, status chips, and linked result cards by `tool_use_id`
 - Phase 5 batch 4 improves narrow-screen usability with a mobile view chip, horizontal workbench navigation, and clearer full-width detail sidebars
 - Phase 5 batch 5 upgrades the session control bar with instant agent/model switching feedback, a live session summary line, and a reconnect path that keeps the active session state in sync
+- Phase 5 batch 6 upgrades the welcome screen into a screenshot-ready Quickstart showcase with onboarding steps, product positioning, and clearer docs entry cards
 
 ## Documentation
 

@@ -46,7 +46,7 @@ docs/
 
 | 角色 | 推荐阅读 |
 |------|----------|
-| **新用户** | [快速入门](reference/01-getting-started.md) → [配置参考](reference/02-configuration.md) |
+| **新用户** | [快速入门](reference/01-getting-started.md) → [交互模式](design/03-interaction-patterns.md) → [配置参考](reference/02-configuration.md) |
 | **开发者** | [架构总览](architecture/01-overview.md) → [Workspace](architecture/02-workspace.md) → [Memory](architecture/03-memory.md) |
 | **运维人员** | [生产部署](reference/03-production.md) → [配置参考](reference/02-configuration.md) |
 | **架构师** | [架构总览](architecture/01-overview.md) → [Task Engine](architecture/04-task-engine.md) → [Agent Teams](architecture/05-agent-teams.md) |
