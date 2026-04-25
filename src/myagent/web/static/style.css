@@ -701,6 +701,34 @@ body {
   text-overflow: ellipsis;
 }
 
+.context-help-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  background: var(--bg-secondary);
+  max-width: 100%;
+}
+
+.context-help-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.context-help-text {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .agent-badge,
 .model-badge {
   font-size: 0.75rem;
@@ -2059,6 +2087,10 @@ body {
     flex-wrap: wrap;
     gap: 6px;
     align-items: flex-start;
+  }
+
+  .context-help-strip {
+    width: 100%;
   }
 
   .mobile-view-chip {

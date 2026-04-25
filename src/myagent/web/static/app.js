@@ -147,6 +147,7 @@ class MyAgentWebApp {
         this.sessionStatusChip = document.getElementById('session-status-chip');
         this.sessionStatusLabel = document.getElementById('session-status-label');
         this.sessionSummaryLine = document.getElementById('session-summary-line');
+        this.contextHelpStrip = document.getElementById('context-help-strip');
         this.commandPaletteBtn = document.getElementById('command-palette-btn');
         this.commandPaletteModal = document.getElementById('command-palette-modal');
         this.commandPaletteInput = document.getElementById('command-palette-input');
@@ -419,10 +420,26 @@ class MyAgentWebApp {
         if (viewName === 'team') {
             this.renderTeamOverview();
         }
+        this.updateContextHelp(viewName);
         this.updateMobileViewChip(viewName);
         this.scrollActiveWorkbenchNavIntoView();
         if (window.innerWidth <= 768) {
             this.closeSidebar();
+        }
+    }
+
+    updateContextHelp(viewName) {
+        if (!this.contextHelpStrip) return;
+        const viewHints = {
+            chat: '先描述需求，或直接使用 /plan 建立任务流',
+            tasks: '查看当前 Task、Team、Review 与执行时间线',
+            files: '浏览文件树，或打开文档与代码预览',
+            workspace: '检查用户画像、记忆与项目上下文是否齐全',
+            team: '查看成员负载、角色分工与协作状态',
+        };
+        const helpText = this.contextHelpStrip.querySelector('.context-help-text');
+        if (helpText) {
+            helpText.textContent = viewHints[viewName] || viewHints.chat;
         }
     }
 
