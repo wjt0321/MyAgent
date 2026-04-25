@@ -678,8 +678,27 @@ body {
 
 .header-info {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+}
+
+.session-control-bar {
+  display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.session-summary-line {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .agent-badge,
@@ -2912,6 +2931,17 @@ body {
 .session-status-chip.disconnected .session-status-dot {
   background: var(--danger);
   box-shadow: 0 0 0 3px var(--danger-soft);
+}
+
+.session-status-chip.switching {
+  border-color: var(--accent-glow);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.session-status-chip.switching .session-status-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
 }
 
 .chat-area {

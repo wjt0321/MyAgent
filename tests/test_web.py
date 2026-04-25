@@ -283,6 +283,26 @@ class TestWebServer:
         assert ".detail-sidebar.show-mobile" in css
         assert ".workbench-nav-scroll" in css
 
+    def test_static_shell_contains_phase5_session_control_hooks(self, client):
+        """Phase 5 第五批应补齐会话控制条与即时切换反馈。"""
+        html_response = client.get("/")
+        js_response = client.get("/static/app.js")
+        css_response = client.get("/static/style.css")
+        assert html_response.status_code == 200
+        assert js_response.status_code == 200
+        assert css_response.status_code == 200
+        html = html_response.text
+        js = js_response.text
+        css = css_response.text
+        assert 'id="session-control-bar"' in html
+        assert 'id="session-summary-line"' in html
+        assert "refreshActiveSession(" in js
+        assert "renderSessionSummaryLine(" in js
+        assert "setStatus('switching'" in js
+        assert ".session-control-bar" in css
+        assert ".session-summary-line" in css
+        assert ".session-status-chip.switching" in css
+
     def test_current_task_endpoint_returns_task_snapshot_and_team(self):
         """当前任务接口应返回任务快照与团队概览。"""
         app = create_app()

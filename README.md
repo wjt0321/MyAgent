@@ -92,6 +92,7 @@ Notes:
 - Phase 5 batch 2 upgrades the welcome screen and empty states with a clearer hero, recommended actions, and stronger task-entry guidance
 - Phase 5 batch 3 upgrades tool execution into a unified card system with summaries, status chips, and linked result cards by `tool_use_id`
 - Phase 5 batch 4 improves narrow-screen usability with a mobile view chip, horizontal workbench navigation, and clearer full-width detail sidebars
+- Phase 5 batch 5 upgrades the session control bar with instant agent/model switching feedback, a live session summary line, and a reconnect path that keeps the active session state in sync
 
 ## Documentation
 

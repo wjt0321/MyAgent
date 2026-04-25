@@ -143,8 +143,10 @@ class MyAgentWebApp {
         this.workbenchNavBtns = document.querySelectorAll('.workbench-nav-btn');
         this.workbenchViews = document.querySelectorAll('.workbench-view');
         this.mobileViewChip = document.getElementById('mobile-view-chip');
+        this.sessionControlBar = document.getElementById('session-control-bar');
         this.sessionStatusChip = document.getElementById('session-status-chip');
         this.sessionStatusLabel = document.getElementById('session-status-label');
+        this.sessionSummaryLine = document.getElementById('session-summary-line');
         this.commandPaletteBtn = document.getElementById('command-palette-btn');
         this.commandPaletteModal = document.getElementById('command-palette-modal');
         this.commandPaletteInput = document.getElementById('command-palette-input');
@@ -624,12 +626,65 @@ class MyAgentWebApp {
         this.sidebarOverlay.classList.remove('show');
     }
 
+    getCurrentSessionRecord() {
+        return this.sessions.find(session => session.id === this.currentSessionId) || null;
+    }
+
+    renderSessionSummaryLine(session = null, statusText = '') {
+        if (!this.sessionSummaryLine) return;
+        if (!session) {
+            this.sessionSummaryLine.textContent = statusText || '当前会话尚未加载';
+            return;
+        }
+
+        const parts = [
+            session.agent || 'general',
+            session.model || 'default',
+            `${session.messages?.length || 0} 条消息`,
+        ];
+        if (statusText) {
+            parts.push(statusText);
+        }
+        this.sessionSummaryLine.textContent = parts.join(' · ');
+    }
+
+    refreshActiveSession(session, statusText = '') {
+        if (!session) return;
+
+        const index = this.sessions.findIndex(item => item.id === session.id);
+        if (index >= 0) {
+            this.sessions[index] = {
+                ...this.sessions[index],
+                ...session,
+            };
+        } else {
+            this.sessions.unshift(session);
+        }
+
+        this.currentAgent.textContent = session.agent || 'general';
+        this.currentModel.textContent = session.model || 'default';
+        if (this.agentSelect) {
+            this.agentSelect.value = session.agent || 'general';
+        }
+        if (this.modelSelect && session.model) {
+            this.modelSelect.value = session.model;
+        }
+        this.renderSessionList();
+        this.renderSessionSummaryLine(session, statusText);
+        this.renderDetailSidebar('session', {
+            title: session.agent || 'general',
+            meta: session.model || 'default',
+            body: `会话 ID：${session.id}\n消息数：${session.messages?.length || 0}\n最近更新：${this.formatDate(session.updated_at)}`,
+        });
+    }
+
     // ========== Agent Switch ==========
 
     async switchAgent(agentName) {
         if (!this.currentSessionId) return;
 
         try {
+            this.setStatus('switching', `正在切换 agent：${agentName}`);
             const response = await fetch(`/api/sessions/${this.currentSessionId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -637,22 +692,14 @@ class MyAgentWebApp {
             });
 
             if (response.ok) {
-                const session = this.sessions.find(s => s.id === this.currentSessionId);
-                if (session) {
-                    session.agent = agentName;
-                    this.currentAgent.textContent = agentName;
-                    this.renderSessionList();
-                    this.renderDetailSidebar('session', {
-                        title: session.agent,
-                        meta: session.model || 'default',
-                        body: `会话 ID：${session.id}\n消息数：${session.messages?.length || 0}\n最近更新：${this.formatDate(session.updated_at)}`,
-                    });
-                }
+                const session = await response.json();
+                this.refreshActiveSession(session, `agent 已切换为 ${agentName}`);
                 this.connectWebSocket(this.currentSessionId);
                 this.addMessage('assistant', `已切换到 agent: **${agentName}**`, false);
             }
         } catch (error) {
             console.error('Failed to switch agent:', error);
+            this.setStatus('disconnected');
         }
     }
 
@@ -662,6 +709,7 @@ class MyAgentWebApp {
         if (!this.currentSessionId) return;
 
         try {
+            this.setStatus('switching', `正在切换模型：${modelName}`);
             const response = await fetch(`/api/sessions/${this.currentSessionId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -669,20 +717,14 @@ class MyAgentWebApp {
             });
 
             if (response.ok) {
-                const session = this.sessions.find(s => s.id === this.currentSessionId);
-                if (session) {
-                    session.model = modelName;
-                    this.renderSessionList();
-                    this.currentModel.textContent = modelName;
-                    this.renderDetailSidebar('session', {
-                        title: session.agent,
-                        meta: session.model || 'default',
-                        body: `会话 ID：${session.id}\n消息数：${session.messages?.length || 0}\n最近更新：${this.formatDate(session.updated_at)}`,
-                    });
-                }
+                const session = await response.json();
+                this.refreshActiveSession(session, `模型已切换为 ${modelName}`);
+                this.connectWebSocket(this.currentSessionId);
+                this.addMessage('assistant', `已切换到模型: **${modelName}**`, false);
             }
         } catch (error) {
             console.error('Failed to switch model:', error);
+            this.setStatus('disconnected');
         }
     }
 
@@ -1302,23 +1344,13 @@ class MyAgentWebApp {
         const session = this.sessions.find(s => s.id === sessionId);
         if (session) {
             this.welcomeScreen.style.display = 'none';
-            this.currentAgent.textContent = session.agent;
-            this.currentModel.textContent = session.model || 'default';
-            this.agentSelect.value = session.agent;
-            if (this.modelSelect && session.model) {
-                this.modelSelect.value = session.model;
-            }
+            this.refreshActiveSession(session, '当前会话已同步');
 
             session.messages.forEach(msg => {
                 this.addMessage(msg.role, msg.content, false);
             });
-
-            this.renderDetailSidebar('session', {
-                title: session.agent,
-                meta: session.model || 'default',
-                body: `会话 ID：${session.id}\n消息数：${session.messages?.length || 0}\n最近更新：${this.formatDate(session.updated_at)}`,
-            });
         } else {
+            this.renderSessionSummaryLine(null, '当前会话尚未加载');
             this.renderWelcomeLanding();
         }
 
@@ -2460,14 +2492,21 @@ class MyAgentWebApp {
         this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
     }
 
-    setStatus(status) {
+    setStatus(status, label = '') {
         const isConnected = status === 'connected';
-        this.statusIndicator.textContent = isConnected ? '已连接' : '未连接';
+        const isSwitching = status === 'switching';
+        this.statusIndicator.textContent = isConnected ? '已连接' : (isSwitching ? '切换中' : '未连接');
         this.statusDot.classList.toggle('connected', isConnected);
         if (this.sessionStatusChip && this.sessionStatusLabel) {
-            this.sessionStatusLabel.textContent = isConnected ? '会话已连接' : '等待连接';
+            this.sessionStatusLabel.textContent = label || (isConnected ? '会话已连接' : (isSwitching ? '会话切换中' : '等待连接'));
             this.sessionStatusChip.classList.toggle('connected', isConnected);
-            this.sessionStatusChip.classList.toggle('disconnected', !isConnected);
+            this.sessionStatusChip.classList.toggle('disconnected', !isConnected && !isSwitching);
+            this.sessionStatusChip.classList.toggle('switching', isSwitching);
+        }
+        if (status === 'connected') {
+            this.renderSessionSummaryLine(this.getCurrentSessionRecord(), label || '当前会话已连接');
+        } else if (status === 'switching') {
+            this.renderSessionSummaryLine(this.getCurrentSessionRecord(), label || '正在同步会话设置');
         }
     }
 
