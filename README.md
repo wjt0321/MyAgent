@@ -23,9 +23,15 @@ Supported platforms: **Feishu/Lark, Slack, Discord, Telegram, DingTalk, WeCom, W
 
 ## Features
 
+<<<<<<< HEAD
 - **Multi-Channel Gateway Foundation** — Platform adapters, session isolation, and permission hooks for Telegram, Discord, Slack, Feishu, and more
 - **TUI Workbench** — Setup-aware terminal UI with status sidebar, command palette, slash commands, and modal approvals
 - **Web UI** — Real-time WebSocket chat with JWT authentication, multi-user session isolation, and setup-status gating
+=======
+- **Multi-Channel Gateway** — Unified inbox for all messaging platforms (Telegram, Discord, Slack, Feishu, etc.)
+- **TUI Interface** — Rich terminal UI with ASCII art logo
+- **Web UI** — Workbench-style browser UI with grouped navigation, command palette, tool detail sidebar, and real-time WebSocket chat
+>>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
 - **Multi-LLM Support** — 40+ Providers (Intl + China): Anthropic (Claude 4.6/4.5), OpenAI (GPT-5.5/5/4.5), DeepSeek (V4 Pro/V4 Flash/V3/R1), Gemini (3.1 Pro/3 Flash/2.5 Pro), xAI (Grok 4/3), Qwen 3.6, Ollama, OpenRouter, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Baidu ERNIE, iFlytek Spark, ByteDance Doubao, Tencent Hunyuan, Cohere, SiliconFlow
 - **Context Compression** — Automatic conversation compaction with AutoCompactor
 - **Session Management** — Per-user, per-group, per-thread sessions with persistent bindings
@@ -55,8 +61,13 @@ Supported platforms: **Feishu/Lark, Slack, Discord, Telegram, DingTalk, WeCom, W
 # Install
 pip install myagent
 
+<<<<<<< HEAD
 # Quick setup for first boot
 myagent init --quick
+=======
+# Initialize
+myagent init
+>>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
 
 # Verify missing pieces and next step
 myagent doctor
@@ -70,10 +81,19 @@ myagent web --port 8000
 
 Open http://localhost:8000 in your browser.
 
+<<<<<<< HEAD
 Notes:
 - `myagent init` remains the full interactive wizard.
 - `myagent init --quick` creates the base workspace, config templates, and `.env` scaffold.
 - When setup is incomplete, both TUI and Web show `Setup Required` with the next suggested action.
+=======
+### Web Workbench Highlights
+
+- Use the left-side workbench navigation to switch between `Chat`, `Tasks`, `Files`, `Workspace`, and `Team`
+- Press `Ctrl+K` to open the command palette and jump to common actions
+- Use slash commands like `/plan`, `/agent`, `/model`, `/session`, `/setup`, and `/doctor`
+- Click tool cards, tasks, sessions, or files to inspect details in the right sidebar
+>>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
 
 ## Documentation
 

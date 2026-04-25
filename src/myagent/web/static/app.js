@@ -8,6 +8,7 @@ class MyAgentWebApp {
         this.ws = null;
         this.currentSessionId = null;
         this.sessions = [];
+        this.memories = [];
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
         this.isSending = false;
@@ -15,11 +16,26 @@ class MyAgentWebApp {
         this.setupStatus = null;
         this.searchQuery = '';
         this.currentTheme = localStorage.getItem('myagent-theme') || 'dark';
+        this.activeView = 'chat';
+        this.workspaceData = null;
+        this.teamData = null;
+        this.fileEntries = [];
+        this.commandPaletteItems = [];
+        this.commandPaletteIndex = 0;
 
         this.initTheme();
         this.initElements();
         this.bindEvents();
+<<<<<<< HEAD
         this.loadSetupStatus();
+=======
+        this.renderCommandPalette();
+        this.renderDetailSidebar('overview', {
+            title: '工作台详情',
+            meta: '准备就绪',
+            body: '选择一个会话、任务、文件或工具卡片查看更详细的信息。',
+        });
+>>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
         this.loadSessions();
         this.loadFileTree('.');
         this.loadWorkspace();
@@ -121,6 +137,25 @@ class MyAgentWebApp {
         this.searchBar = document.getElementById('search-bar');
         this.searchInput = document.getElementById('search-input');
         this.searchClose = document.getElementById('search-close');
+        this.workbenchNav = document.getElementById('workbench-nav');
+        this.workbenchNavBtns = document.querySelectorAll('.workbench-nav-btn');
+        this.workbenchViews = document.querySelectorAll('.workbench-view');
+        this.sessionStatusChip = document.getElementById('session-status-chip');
+        this.sessionStatusLabel = document.getElementById('session-status-label');
+        this.commandPaletteBtn = document.getElementById('command-palette-btn');
+        this.commandPaletteModal = document.getElementById('command-palette-modal');
+        this.commandPaletteInput = document.getElementById('command-palette-input');
+        this.commandPaletteList = document.getElementById('command-palette-list');
+        this.closeCommandPaletteBtn = document.getElementById('close-command-palette');
+        this.recentSessions = document.getElementById('welcome-recent-sessions');
+        this.taskStream = document.getElementById('task-stream');
+        this.fileBrowserView = document.getElementById('file-browser-view');
+        this.workspaceOverview = document.getElementById('workspace-overview');
+        this.teamOverview = document.getElementById('team-overview');
+        this.detailSidebar = document.getElementById('detail-sidebar');
+        this.detailSidebarMeta = document.getElementById('detail-sidebar-meta');
+        this.detailSidebarContent = document.getElementById('detail-sidebar-content');
+        this.filePreviewPanel = this.filePreviewPanel || this.detailSidebar;
 
         // Settings modal
         this.settingsBtn = document.getElementById('settings-btn');
@@ -211,6 +246,14 @@ class MyAgentWebApp {
             if (e.key === 'Escape') {
                 this.closeSettings();
                 this.closeSidebar();
+                this.hideCommandPalette();
+                this.hideFilePreview();
+                return;
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                this.toggleCommandPalette();
             }
         });
 
@@ -240,6 +283,32 @@ class MyAgentWebApp {
         this.searchToggle.addEventListener('click', () => this.toggleSearch());
         this.searchClose.addEventListener('click', () => this.toggleSearch());
         this.searchInput.addEventListener('input', (e) => this.performSearch(e.target.value));
+
+        this.workbenchNavBtns.forEach(btn => {
+            btn.addEventListener('click', () => this.setActiveView(btn.dataset.view));
+        });
+
+        if (this.commandPaletteBtn) {
+            this.commandPaletteBtn.addEventListener('click', () => this.showCommandPalette());
+        }
+        if (this.closeCommandPaletteBtn) {
+            this.closeCommandPaletteBtn.addEventListener('click', () => this.hideCommandPalette());
+        }
+        if (this.commandPaletteModal) {
+            this.commandPaletteModal.addEventListener('click', (e) => {
+                if (e.target === this.commandPaletteModal) {
+                    this.hideCommandPalette();
+                }
+            });
+        }
+        if (this.commandPaletteInput) {
+            this.commandPaletteInput.addEventListener('input', (e) => {
+                this.renderCommandPalette(e.target.value);
+            });
+            this.commandPaletteInput.addEventListener('keydown', (e) => {
+                this.handleCommandPaletteKeydown(e);
+            });
+        }
 
         // Settings
         this.settingsBtn.addEventListener('click', () => this.openSettings());
@@ -328,6 +397,190 @@ class MyAgentWebApp {
         });
     }
 
+    setActiveView(viewName) {
+        this.activeView = viewName;
+        this.workbenchNavBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.view === viewName);
+        });
+        this.workbenchViews.forEach(view => {
+            view.classList.toggle('active', view.dataset.view === viewName);
+        });
+
+        if (viewName === 'chat') {
+            this.messageInput?.focus();
+        }
+        if (viewName === 'tasks') {
+            this.renderTaskStream();
+        }
+        if (viewName === 'files') {
+            this.renderFileBrowser();
+        }
+        if (viewName === 'workspace') {
+            this.renderWorkspaceOverview();
+        }
+        if (viewName === 'team') {
+            this.renderTeamOverview();
+        }
+    }
+
+    getCommandPaletteItems() {
+        return [
+            {
+                id: 'new-session',
+                title: '新建会话',
+                meta: '创建一个新的 general 会话',
+                shortcut: 'Enter',
+                handler: () => this.createSession(),
+            },
+            {
+                id: 'focus-chat',
+                title: '切换到聊天视图',
+                meta: '回到主聊天工作区',
+                shortcut: 'chat',
+                handler: () => this.setActiveView('chat'),
+            },
+            {
+                id: 'focus-tasks',
+                title: '切换到任务视图',
+                meta: '查看任务计划与执行状态',
+                shortcut: 'tasks',
+                handler: () => this.setActiveView('tasks'),
+            },
+            {
+                id: 'focus-files',
+                title: '切换到文件视图',
+                meta: '浏览当前文件与预览',
+                shortcut: 'files',
+                handler: () => this.setActiveView('files'),
+            },
+            {
+                id: 'focus-workspace',
+                title: '切换到 Workspace 视图',
+                meta: '查看用户、记忆与项目信息',
+                shortcut: 'workspace',
+                handler: () => this.setActiveView('workspace'),
+            },
+            {
+                id: 'focus-team',
+                title: '切换到团队视图',
+                meta: '查看当前团队状态',
+                shortcut: 'team',
+                handler: () => this.setActiveView('team'),
+            },
+            {
+                id: 'open-settings',
+                title: '打开设置',
+                meta: '配置 agent、memory、codebase 和外观',
+                shortcut: 'settings',
+                handler: () => this.openSettings(),
+            },
+            {
+                id: 'focus-input',
+                title: '聚焦输入框',
+                meta: '准备发送消息',
+                shortcut: 'input',
+                handler: () => this.messageInput?.focus(),
+            },
+            {
+                id: 'show-help',
+                title: '查看 Slash Commands',
+                meta: '展示 /help 中可用的命令',
+                shortcut: '/help',
+                handler: () => this.executeSlashCommand('/help'),
+            },
+        ];
+    }
+
+    renderCommandPalette(query = '') {
+        if (!this.commandPaletteList) return;
+        const normalized = query.trim().toLowerCase();
+        const items = this.getCommandPaletteItems().filter(item => {
+            if (!normalized) return true;
+            return `${item.title} ${item.meta} ${item.shortcut}`.toLowerCase().includes(normalized);
+        });
+        this.commandPaletteItems = items;
+        this.commandPaletteIndex = Math.min(this.commandPaletteIndex, Math.max(items.length - 1, 0));
+
+        if (items.length === 0) {
+            this.commandPaletteList.innerHTML = '<div class="command-item"><div><div class="command-item-title">未找到命令</div><div class="command-item-meta">试试输入 chat、tasks、settings 或 /help</div></div></div>';
+            return;
+        }
+
+        this.commandPaletteList.innerHTML = items.map((item, index) => `
+            <button class="command-item ${index === this.commandPaletteIndex ? 'active' : ''}" data-command-id="${item.id}">
+                <span>
+                    <span class="command-item-title">${this.escapeHtml(item.title)}</span>
+                    <span class="command-item-meta">${this.escapeHtml(item.meta)}</span>
+                </span>
+                <span class="command-item-shortcut">${this.escapeHtml(item.shortcut)}</span>
+            </button>
+        `).join('');
+
+        this.commandPaletteList.querySelectorAll('.command-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.runCommandPaletteAction(btn.dataset.commandId);
+            });
+        });
+    }
+
+    handleCommandPaletteKeydown(event) {
+        if (!this.commandPaletteItems.length) return;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            this.commandPaletteIndex = (this.commandPaletteIndex + 1) % this.commandPaletteItems.length;
+            this.renderCommandPalette(this.commandPaletteInput.value);
+            return;
+        }
+
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            this.commandPaletteIndex = (this.commandPaletteIndex - 1 + this.commandPaletteItems.length) % this.commandPaletteItems.length;
+            this.renderCommandPalette(this.commandPaletteInput.value);
+            return;
+        }
+
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const item = this.commandPaletteItems[this.commandPaletteIndex];
+            if (item) {
+                this.runCommandPaletteAction(item.id);
+            }
+        }
+    }
+
+    runCommandPaletteAction(commandId) {
+        const item = this.commandPaletteItems.find(entry => entry.id === commandId);
+        if (!item) return;
+        this.hideCommandPalette();
+        item.handler();
+    }
+
+    showCommandPalette() {
+        if (!this.commandPaletteModal) return;
+        this.renderCommandPalette('');
+        this.commandPaletteModal.classList.add('show');
+        if (this.commandPaletteInput) {
+            this.commandPaletteInput.value = '';
+            this.commandPaletteInput.focus();
+        }
+    }
+
+    hideCommandPalette() {
+        if (!this.commandPaletteModal) return;
+        this.commandPaletteModal.classList.remove('show');
+    }
+
+    toggleCommandPalette() {
+        if (!this.commandPaletteModal) return;
+        const visible = this.commandPaletteModal.classList.contains('show');
+        if (visible) {
+            this.hideCommandPalette();
+        } else {
+            this.showCommandPalette();
+        }
+    }
+
     // ========== Sidebar Mobile ==========
 
     openSidebar() {
@@ -358,6 +611,11 @@ class MyAgentWebApp {
                     session.agent = agentName;
                     this.currentAgent.textContent = agentName;
                     this.renderSessionList();
+                    this.renderDetailSidebar('session', {
+                        title: session.agent,
+                        meta: session.model || 'default',
+                        body: `会话 ID：${session.id}\n消息数：${session.messages?.length || 0}\n最近更新：${this.formatDate(session.updated_at)}`,
+                    });
                 }
                 this.connectWebSocket(this.currentSessionId);
                 this.addMessage('assistant', `已切换到 agent: **${agentName}**`, false);
@@ -384,6 +642,12 @@ class MyAgentWebApp {
                 if (session) {
                     session.model = modelName;
                     this.renderSessionList();
+                    this.currentModel.textContent = modelName;
+                    this.renderDetailSidebar('session', {
+                        title: session.agent,
+                        meta: session.model || 'default',
+                        body: `会话 ID：${session.id}\n消息数：${session.messages?.length || 0}\n最近更新：${this.formatDate(session.updated_at)}`,
+                    });
                 }
             }
         } catch (error) {
@@ -468,11 +732,15 @@ class MyAgentWebApp {
             if (this.workspaceInfo) {
                 this.workspaceInfo.innerHTML = '<div class="workspace-empty">Workspace 未初始化</div>';
             }
+            if (this.workspaceOverview) {
+                this.workspaceOverview.innerHTML = '<div class="workspace-empty">Workspace 未初始化</div>';
+            }
         }
     }
 
     renderWorkspace(data) {
         if (!this.workspaceInfo) return;
+        this.workspaceData = data;
 
         if (!data.initialized) {
             this.workspaceInfo.innerHTML = `
@@ -481,6 +749,7 @@ class MyAgentWebApp {
                     <div class="workspace-empty-desc">运行 <code>myagent init</code> 创建 Workspace</div>
                 </div>
             `;
+            this.renderWorkspaceOverview();
             return;
         }
 
@@ -519,17 +788,16 @@ class MyAgentWebApp {
             item.addEventListener('click', () => {
                 const filename = item.dataset.filename;
                 if (filename) {
-                    // Memory files are in ~/.myagent/memory/
-                    // We'll use a dedicated endpoint or construct path
                     this.showMemoryPreview(filename);
                 }
             });
         });
+
+        this.renderWorkspaceOverview();
     }
 
     async showMemoryPreview(filename) {
         try {
-            // Try to read from workspace memory directory via files API
             const wsPath = await this._getWorkspacePath();
             if (!wsPath) return;
             const memPath = `${wsPath}/memory/${filename}`;
@@ -539,7 +807,12 @@ class MyAgentWebApp {
             this.previewFilename.textContent = filename;
             this.previewContent.innerHTML = window.marked ? window.marked.parse(data.content) : this.escapeHtml(data.content);
             this.previewContent.className = 'markdown-preview';
-            this.filePreviewPanel.classList.add('show');
+            this.renderDetailSidebar('memory', {
+                title: filename,
+                meta: 'Workspace 记忆',
+                body: data.content,
+            });
+            this.filePreviewPanel.classList.add('show', 'has-preview');
         } catch (error) {
             console.error('Failed to load memory preview:', error);
         }
@@ -569,8 +842,10 @@ class MyAgentWebApp {
 
     renderFileTree(entries, parentPath) {
         this.fileTree.innerHTML = '';
+        this.fileEntries = entries;
         this._fileTreeData = { entries, parentPath };
         this._renderFileTreeNodes(entries, this.fileTree, parentPath, 0);
+        this.renderFileBrowser();
     }
 
     _renderFileTreeNodes(entries, container, parentPath, depth) {
@@ -666,7 +941,12 @@ class MyAgentWebApp {
                 }
             }
 
-            this.filePreviewPanel.classList.add('show');
+            this.renderDetailSidebar('file', {
+                title: name,
+                meta: path,
+                body: `文件类型：${ext || 'text'}\n路径：${path}`,
+            });
+            this.filePreviewPanel.classList.add('show', 'has-preview');
             this.closeSidebar();
         } catch (error) {
             console.error('Failed to load file:', error);
@@ -674,7 +954,11 @@ class MyAgentWebApp {
     }
 
     hideFilePreview() {
-        this.filePreviewPanel.classList.remove('show');
+        this.filePreviewPanel.classList.remove('show', 'has-preview');
+        if (this.previewContent) {
+            this.previewContent.textContent = '';
+            this.previewContent.className = '';
+        }
     }
 
     // ========== Sessions ==========
@@ -684,6 +968,7 @@ class MyAgentWebApp {
             const response = await fetch('/api/sessions');
             this.sessions = await response.json();
             this.renderSessionList();
+            this.renderRecentSessions();
 
             if (this.sessions.length > 0 && !this.currentSessionId) {
                 this.selectSession(this.sessions[0].id);
@@ -758,6 +1043,8 @@ class MyAgentWebApp {
 
             this.sessionList.appendChild(item);
         });
+
+        this.renderRecentSessions();
     }
 
     startRenameSession(sessionId) {
@@ -883,6 +1170,29 @@ class MyAgentWebApp {
         }
     }
 
+    renderRecentSessions() {
+        if (!this.recentSessions) return;
+
+        if (!this.sessions.length) {
+            this.recentSessions.innerHTML = '<div class="recent-session-empty">暂无最近会话</div>';
+            return;
+        }
+
+        this.recentSessions.innerHTML = this.sessions.slice(0, 5).map(session => `
+            <button class="recent-session-item" data-session-id="${session.id}">
+                <div class="recent-session-title">${this.escapeHtml(session.agent)}</div>
+                <div class="recent-session-meta">${this.escapeHtml(session.model || 'default')} · ${this.formatDate(session.updated_at)}</div>
+            </button>
+        `).join('');
+
+        this.recentSessions.querySelectorAll('.recent-session-item').forEach(button => {
+            button.addEventListener('click', () => {
+                this.setActiveView('chat');
+                this.selectSession(button.dataset.sessionId);
+            });
+        });
+    }
+
     selectSession(sessionId) {
         this.currentSessionId = sessionId;
         this.renderSessionList();
@@ -893,22 +1203,35 @@ class MyAgentWebApp {
         if (session) {
             this.welcomeScreen.style.display = 'none';
             this.currentAgent.textContent = session.agent;
-            this.currentModel.textContent = session.model;
+            this.currentModel.textContent = session.model || 'default';
             this.agentSelect.value = session.agent;
+            if (this.modelSelect && session.model) {
+                this.modelSelect.value = session.model;
+            }
 
             session.messages.forEach(msg => {
                 this.addMessage(msg.role, msg.content, false);
+            });
+
+            this.renderDetailSidebar('session', {
+                title: session.agent,
+                meta: session.model || 'default',
+                body: `会话 ID：${session.id}\n消息数：${session.messages?.length || 0}\n最近更新：${this.formatDate(session.updated_at)}`,
             });
         } else {
             this.welcomeScreen.style.display = 'flex';
         }
 
+<<<<<<< HEAD
         if (!this.setupReady) {
             this.renderSetupRequired();
             this.setStatus('disconnected');
             return;
         }
 
+=======
+        this.setActiveView('chat');
+>>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
         this.connectWebSocket(sessionId);
     }
 
@@ -1016,6 +1339,11 @@ class MyAgentWebApp {
                 break;
 
             case 'permission_request':
+                this.renderDetailSidebar('permission', {
+                    title: data.tool_name || 'Permission Request',
+                    meta: data.reason || '需要确认',
+                    body: JSON.stringify(data.arguments || {}, null, 2),
+                });
                 this.showPermissionModal(data);
                 break;
 
@@ -1052,6 +1380,7 @@ class MyAgentWebApp {
         const text = this.messageInput.value.trim();
         if (!text) return;
 
+<<<<<<< HEAD
         if (!this.setupReady) {
             this.addMessage('error', `Setup Required：请先执行 ${this.setupStatus?.next_action || 'myagent init --quick'}`, false);
             return;
@@ -1065,8 +1394,16 @@ class MyAgentWebApp {
                 this.messageInput.value = '';
                 this.messageInput.style.height = 'auto';
                 await this.createTaskPlan(request);
+=======
+        if (text.startsWith('/')) {
+            this.addMessage('user', text, false);
+            this.messageInput.value = '';
+            this.messageInput.style.height = 'auto';
+            const handled = await this.executeSlashCommand(text);
+            if (handled) {
+                return;
+>>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
             }
-            return;
         }
 
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN || this.isSending) {
@@ -1077,6 +1414,78 @@ class MyAgentWebApp {
         this.messageInput.value = '';
         this.messageInput.style.height = 'auto';
         this.setSending(true);
+    }
+
+    async executeSlashCommand(text) {
+        const [command, ...rest] = text.split(/\s+/);
+        const args = rest.join(' ').trim();
+
+        switch (command) {
+            case '/plan':
+                if (args) {
+                    await this.createTaskPlan(args);
+                } else {
+                    this.addMessage('assistant', '用法：`/plan 任务描述`', false);
+                }
+                return true;
+            case '/help':
+                this.addMessage(
+                    'assistant',
+                    [
+                        '可用命令：',
+                        '- `/plan <任务>`：创建任务计划',
+                        '- `/agent <name>`：切换 agent',
+                        '- `/model <name>`：切换 model',
+                        '- `/session`：查看当前会话摘要',
+                        '- `/setup`：打开设置',
+                        '- `/doctor`：查看当前工作台状态',
+                    ].join('\n'),
+                    false,
+                );
+                return true;
+            case '/setup':
+                this.openSettings();
+                this.addMessage('assistant', '已打开设置面板。', false);
+                return true;
+            case '/doctor':
+                this.addMessage(
+                    'assistant',
+                    `当前状态：\n- 会话：${this.currentSessionId ? '已选择' : '未选择'}\n- WebSocket：${this.ws?.readyState === WebSocket.OPEN ? '已连接' : '未连接'}\n- 当前视图：${this.activeView}`,
+                    false,
+                );
+                return true;
+            case '/session': {
+                const session = this.sessions.find(item => item.id === this.currentSessionId);
+                if (!session) {
+                    this.addMessage('assistant', '当前没有激活会话。', false);
+                } else {
+                    this.renderDetailSidebar('session', {
+                        title: session.agent,
+                        meta: session.model || 'default',
+                        body: `会话 ID：${session.id}\n消息数：${session.messages?.length || 0}\n最近更新：${this.formatDate(session.updated_at)}`,
+                    });
+                    this.addMessage('assistant', `当前会话：**${session.agent}**`, false);
+                }
+                return true;
+            }
+            case '/agent':
+                if (args) {
+                    await this.switchAgent(args);
+                } else {
+                    this.addMessage('assistant', '用法：`/agent general`', false);
+                }
+                return true;
+            case '/model':
+                if (args) {
+                    await this.switchModel(args);
+                } else {
+                    this.addMessage('assistant', '用法：`/model <model-name>`', false);
+                }
+                return true;
+            default:
+                this.addMessage('assistant', `未识别命令：\`${command}\``, false);
+                return true;
+        }
     }
 
     sendPermissionResponse(toolUseId, approved) {
@@ -1205,6 +1614,7 @@ class MyAgentWebApp {
 
         if (!this.currentTask) {
             this.taskPanel.innerHTML = '<div class="task-empty">暂无任务</div>';
+            this.renderTaskStream();
             return;
         }
 
@@ -1236,6 +1646,17 @@ class MyAgentWebApp {
                 </div>
             </div>
         `;
+
+        this.taskPanel.querySelector('.task-card')?.addEventListener('click', () => {
+            this.setActiveView('tasks');
+            this.renderDetailSidebar('task', {
+                title: task.title,
+                meta: statusLabels[task.status] || task.status,
+                body: (task.subtasks || []).map((item, index) => `${index + 1}. ${item.description} [${item.status}]`).join('\n') || '暂无子任务',
+            });
+        });
+
+        this.renderTaskStream();
     }
 
     // ========== Team Panel ==========
@@ -1257,12 +1678,14 @@ class MyAgentWebApp {
 
     renderTeamPanel(data) {
         if (!this.teamPanel) return;
+        this.teamData = data;
 
         const team = data.team || {};
         const members = team.members || [];
 
         if (members.length === 0) {
             this.teamPanel.innerHTML = '<div class="team-empty">暂无团队成员</div>';
+            this.renderTeamOverview();
             return;
         }
 
@@ -1308,11 +1731,144 @@ class MyAgentWebApp {
         `;
 
         this.teamPanel.innerHTML = memberItems + stats;
+        this.renderTeamOverview();
+    }
+
+    renderTaskStream() {
+        if (!this.taskStream) return;
+        if (!this.currentTask) {
+            this.taskStream.innerHTML = '<div class="task-empty">暂无任务</div>';
+            return;
+        }
+
+        const task = this.currentTask;
+        const steps = (task.subtasks || []).map((item, index) => `
+            <div class="task-step-item">
+                <span class="task-step-badge">${index + 1}</span>
+                <div>
+                    <div class="task-stream-title">${this.escapeHtml(item.description)}</div>
+                    <div class="task-stream-meta">状态：${this.escapeHtml(item.status || 'pending')}</div>
+                </div>
+            </div>
+        `).join('');
+
+        this.taskStream.innerHTML = `
+            <div class="task-stream-card">
+                <div class="task-stream-title">${this.escapeHtml(task.title)}</div>
+                <div class="task-stream-meta">状态：${this.escapeHtml(task.status || 'pending')}</div>
+                <div class="task-step-list">${steps || '<div class="task-empty">暂无步骤</div>'}</div>
+            </div>
+        `;
+    }
+
+    renderWorkspaceOverview() {
+        if (!this.workspaceOverview) return;
+        if (!this.workspaceData || !this.workspaceData.initialized) {
+            this.workspaceOverview.innerHTML = '<div class="workspace-empty">Workspace 未初始化</div>';
+            return;
+        }
+
+        const memories = (this.workspaceData.memories || []).slice(0, 5).map(mem => `
+            <button class="workspace-overview-card" data-memory-file="${mem.filename}">
+                <div class="workspace-overview-title">${this.escapeHtml(mem.name)}</div>
+                <div class="workspace-overview-body">${this.escapeHtml(mem.description || mem.type || 'memory')}</div>
+            </button>
+        `).join('');
+
+        const projects = (this.workspaceData.projects || []).slice(0, 5).map(project => `
+            <div class="workspace-overview-card">
+                <div class="workspace-overview-title">${this.escapeHtml(project)}</div>
+                <div class="workspace-overview-body">项目上下文已加载</div>
+            </div>
+        `).join('');
+
+        this.workspaceOverview.innerHTML = `
+            <div class="workspace-overview-card">
+                <div class="workspace-overview-title">用户资料</div>
+                <div class="workspace-overview-body">${this.escapeHtml(this.workspaceData.user || '未设置用户资料')}</div>
+            </div>
+            ${memories || '<div class="workspace-empty-item">暂无记忆</div>'}
+            ${projects || '<div class="workspace-empty-item">暂无项目</div>'}
+        `;
+
+        this.workspaceOverview.querySelectorAll('[data-memory-file]').forEach(button => {
+            button.addEventListener('click', () => this.showMemoryPreview(button.dataset.memoryFile));
+        });
+    }
+
+    renderTeamOverview() {
+        if (!this.teamOverview) return;
+        const members = this.teamData?.team?.members || [];
+
+        if (!members.length) {
+            this.teamOverview.innerHTML = '<div class="team-empty">暂无团队成员</div>';
+            return;
+        }
+
+        this.teamOverview.innerHTML = members.map(member => `
+            <div class="detail-card">
+                <div class="detail-card-title">${this.escapeHtml(member.name)}</div>
+                <div class="detail-card-body">角色：${this.escapeHtml(member.role || 'member')} | 状态：${this.escapeHtml(member.status || 'idle')}</div>
+            </div>
+        `).join('');
+    }
+
+    renderFileBrowser() {
+        if (!this.fileBrowserView) return;
+        if (!this.fileEntries.length) {
+            this.fileBrowserView.innerHTML = '<div class="workspace-empty">暂无文件</div>';
+            return;
+        }
+
+        this.fileBrowserView.innerHTML = `
+            <div class="file-browser-grid">
+                ${this.fileEntries.slice(0, 24).map(entry => `
+                    <button class="file-entry-card" data-path="${this.escapeHtml(entry.path)}" data-name="${this.escapeHtml(entry.name)}" data-is-dir="${entry.is_dir}">
+                        <div class="file-entry-title">${this.escapeHtml(entry.name)}</div>
+                        <div class="file-entry-meta">${entry.is_dir ? '目录' : '文件'}</div>
+                        <div class="file-entry-path">${this.escapeHtml(entry.path)}</div>
+                    </button>
+                `).join('')}
+            </div>
+        `;
+
+        this.fileBrowserView.querySelectorAll('.file-entry-card').forEach(button => {
+            button.addEventListener('click', () => {
+                if (button.dataset.isDir === 'true') {
+                    this.loadFileTree(button.dataset.path);
+                    this.renderDetailSidebar('file', {
+                        title: button.dataset.name,
+                        meta: button.dataset.path,
+                        body: '目录已展开，请在左侧文件树继续浏览。',
+                    });
+                    return;
+                }
+                this.showFilePreview(button.dataset.path, button.dataset.name);
+            });
+        });
+    }
+
+    renderDetailSidebar(kind, payload) {
+        if (!this.detailSidebar || !this.previewFilename || !this.detailSidebarContent) return;
+        this.previewFilename.textContent = payload.title || '详情侧栏';
+        this.detailSidebarMeta.textContent = payload.meta || kind;
+
+        const bodyHtml = this.escapeHtml(payload.body || '').replace(/\n/g, '<br>');
+        this.detailSidebarContent.innerHTML = `
+            <div class="detail-card">
+                <div class="detail-card-title">${this.escapeHtml(payload.title || '详情')}</div>
+                <div class="detail-card-body">${bodyHtml || '暂无详情'}</div>
+            </div>
+        `;
+        this.detailSidebar.classList.add('show');
     }
 
     // ========== Messages ==========
 
     addMessage(role, content, append = false) {
+        if (this.welcomeScreen) {
+            this.welcomeScreen.style.display = 'none';
+        }
         if (append) {
             const lastMessage = this.messagesContainer.lastElementChild;
             if (lastMessage && lastMessage.classList.contains(role)) {
@@ -1431,7 +1987,7 @@ class MyAgentWebApp {
         div.innerHTML = `
             <div class="role-label">Tool</div>
             <div class="content">
-                <details class="tool-collapsible">
+                <details class="tool-collapsible tool-event-card">
                     <summary>
                         <span class="tool-icon">🔧</span>
                         <span class="tool-name">${this.escapeHtml(toolName)}</span>
@@ -1441,6 +1997,13 @@ class MyAgentWebApp {
                 </details>
             </div>
         `;
+        div.addEventListener('click', () => {
+            this.renderDetailSidebar('tool', {
+                title: toolName,
+                meta: 'Tool Call',
+                body: JSON.stringify(args, null, 2),
+            });
+        });
         this.messagesContainer.appendChild(div);
         this.scrollToBottom();
     }
@@ -1453,7 +2016,7 @@ class MyAgentWebApp {
         div.innerHTML = `
             <div class="role-label">${label}</div>
             <div class="content">
-                <details class="tool-collapsible">
+                <details class="tool-collapsible tool-event-card">
                     <summary>
                         <span class="tool-icon">${icon}</span>
                         <span class="tool-name">${isError ? 'Execution Failed' : 'Execution Complete'}</span>
@@ -1463,6 +2026,13 @@ class MyAgentWebApp {
                 </details>
             </div>
         `;
+        div.addEventListener('click', () => {
+            this.renderDetailSidebar('tool-result', {
+                title: isError ? 'Execution Failed' : 'Execution Complete',
+                meta: isError ? '错误结果' : '成功结果',
+                body: result,
+            });
+        });
         this.messagesContainer.appendChild(div);
         this.scrollToBottom();
     }
@@ -1497,11 +2067,16 @@ class MyAgentWebApp {
         const isConnected = status === 'connected';
         this.statusIndicator.textContent = isConnected ? '已连接' : '未连接';
         this.statusDot.classList.toggle('connected', isConnected);
+        if (this.sessionStatusChip && this.sessionStatusLabel) {
+            this.sessionStatusLabel.textContent = isConnected ? '会话已连接' : '等待连接';
+            this.sessionStatusChip.classList.toggle('connected', isConnected);
+            this.sessionStatusChip.classList.toggle('disconnected', !isConnected);
+        }
     }
 
     escapeHtml(text) {
         const div = document.createElement('div');
-        div.textContent = text;
+        div.textContent = text ?? '';
         return div.innerHTML;
     }
 

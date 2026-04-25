@@ -33,6 +33,13 @@ class TestWebServer:
         response = client.get("/")
         assert response.status_code == 200
         assert "text/html" in response.headers.get("content-type", "")
+        html = response.text
+        assert 'id="workbench-nav"' in html
+        assert 'id="detail-sidebar"' in html
+        assert 'id="command-palette-modal"' in html
+        assert 'data-view="chat"' in html
+        assert 'id="session-status-chip"' in html
+        assert 'id="welcome-recent-sessions"' in html
 
     def test_health_endpoint(self, client):
         """Health check endpoint should return ok."""
@@ -72,6 +79,7 @@ class TestWebServer:
         assert "id" in data
         assert data["agent"] == "general"
 
+<<<<<<< HEAD
     def test_update_system_prompt_persists_session(self, tmp_path: Path):
         """更新 system prompt 后应持久化到磁盘。"""
         app = create_app()
@@ -181,3 +189,14 @@ class TestWebServer:
                 "reason": "需要危险命令审批",
             },
         ]
+=======
+    def test_static_app_contains_workbench_behaviors(self, client):
+        """Static app bundle should include workbench interaction hooks."""
+        response = client.get("/static/app.js")
+        assert response.status_code == 200
+        content = response.text
+        assert "setActiveView(" in content
+        assert "showCommandPalette(" in content
+        assert "executeSlashCommand(" in content
+        assert "renderDetailSidebar(" in content
+>>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
