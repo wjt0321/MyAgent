@@ -29,6 +29,7 @@ class MyAgentWebApp {
         this.initTheme();
         this.initElements();
         this.bindEvents();
+        this.syncResponsiveWorkbenchState();
         this.loadSetupStatus();
         this.renderCommandPalette();
         this.renderDetailSidebar('overview', {
@@ -141,6 +142,7 @@ class MyAgentWebApp {
         this.workbenchNav = document.getElementById('workbench-nav');
         this.workbenchNavBtns = document.querySelectorAll('.workbench-nav-btn');
         this.workbenchViews = document.querySelectorAll('.workbench-view');
+        this.mobileViewChip = document.getElementById('mobile-view-chip');
         this.sessionStatusChip = document.getElementById('session-status-chip');
         this.sessionStatusLabel = document.getElementById('session-status-label');
         this.commandPaletteBtn = document.getElementById('command-palette-btn');
@@ -271,6 +273,7 @@ class MyAgentWebApp {
         // Mobile sidebar
         this.mobileSidebarToggle.addEventListener('click', () => this.openSidebar());
         this.sidebarOverlay.addEventListener('click', () => this.closeSidebar());
+        window.addEventListener('resize', () => this.syncResponsiveWorkbenchState());
 
         // Agent select
         this.agentSelect.addEventListener('change', (e) => this.switchAgent(e.target.value));
@@ -413,6 +416,41 @@ class MyAgentWebApp {
         }
         if (viewName === 'team') {
             this.renderTeamOverview();
+        }
+        this.updateMobileViewChip(viewName);
+        this.scrollActiveWorkbenchNavIntoView();
+        if (window.innerWidth <= 768) {
+            this.closeSidebar();
+        }
+    }
+
+    updateMobileViewChip(viewName) {
+        if (!this.mobileViewChip) return;
+        const labels = {
+            chat: '聊天',
+            tasks: '任务',
+            files: '文件',
+            workspace: 'Workspace',
+            team: '团队',
+        };
+        this.mobileViewChip.textContent = labels[viewName] || '工作台';
+    }
+
+    scrollActiveWorkbenchNavIntoView() {
+        const activeButton = this.workbenchNav?.querySelector('.workbench-nav-btn.active');
+        activeButton?.scrollIntoView({
+            block: 'nearest',
+            inline: 'center',
+            behavior: 'smooth',
+        });
+    }
+
+    syncResponsiveWorkbenchState() {
+        this.updateMobileViewChip(this.activeView);
+        this.scrollActiveWorkbenchNavIntoView();
+        if (window.innerWidth > 768) {
+            this.closeSidebar();
+            this.detailSidebar?.classList.remove('show-mobile');
         }
     }
 
@@ -1014,6 +1052,7 @@ class MyAgentWebApp {
 
     hideFilePreview() {
         this.filePreviewPanel.classList.remove('show', 'has-preview');
+        this.detailSidebar?.classList.remove('show-mobile');
         if (this.previewContent) {
             this.previewContent.textContent = '';
             this.previewContent.className = '';
@@ -2117,6 +2156,7 @@ class MyAgentWebApp {
             </div>
         `;
         this.detailSidebar.classList.add('show');
+        this.detailSidebar.classList.toggle('show-mobile', window.innerWidth <= 768);
     }
 
     // ========== Messages ==========

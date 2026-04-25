@@ -264,6 +264,25 @@ class TestWebServer:
         assert ".tool-event-summary" in css
         assert ".tool-event-meta" in css
 
+    def test_static_shell_contains_phase5_mobile_workbench_hooks(self, client):
+        """Phase 5 第四批应补窄屏工作台可用性钩子。"""
+        html_response = client.get("/")
+        js_response = client.get("/static/app.js")
+        css_response = client.get("/static/style.css")
+        assert html_response.status_code == 200
+        assert js_response.status_code == 200
+        assert css_response.status_code == 200
+        html = html_response.text
+        js = js_response.text
+        css = css_response.text
+        assert 'id="mobile-view-chip"' in html
+        assert "syncResponsiveWorkbenchState(" in js
+        assert "updateMobileViewChip(" in js
+        assert "scrollActiveWorkbenchNavIntoView(" in js
+        assert ".mobile-view-chip" in css
+        assert ".detail-sidebar.show-mobile" in css
+        assert ".workbench-nav-scroll" in css
+
     def test_current_task_endpoint_returns_task_snapshot_and_team(self):
         """当前任务接口应返回任务快照与团队概览。"""
         app = create_app()
