@@ -23,15 +23,9 @@
 
 ## 功能特性
 
-<<<<<<< HEAD
 - **多渠道网关底座** — 提供 Telegram、Discord、Slack、飞书等平台适配器、会话隔离和权限审批钩子
 - **TUI 工作台** — 具备 setup 感知、状态侧栏、Command Palette、Slash Commands 与浮层审批的终端主界面
-- **Web UI** — 基于 WebSocket 的实时聊天，支持 JWT 认证、多用户会话隔离，以及 setup 状态兜底
-=======
-- **多渠道网关** — 统一管理所有消息平台的收件箱（Telegram、Discord、Slack、飞书等）
-- **TUI 界面** — 带有 ASCII 艺术 Logo 的富终端界面
-- **Web UI** — 工作台式浏览器界面，提供分组导航、命令面板、工具详情侧栏与基于 WebSocket 的实时聊天
->>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
+- **Web UI** — 工作台式浏览器界面，提供分组导航、命令面板、工具详情侧栏、任务/团队快照、审查结果卡片与基于 WebSocket 的实时聊天
 - **多 LLM 支持** — 40+ Provider（含国内/国际版）：Anthropic（Claude 4.6/4.5）、OpenAI（GPT-5.5/5/4.5）、DeepSeek（V4 Pro/V4 Flash/V3/R1）、Gemini（3.1 Pro/3 Flash/2.5 Pro）、xAI（Grok 4/3）、Qwen 3.6、Ollama、OpenRouter、智谱/智谱-CN、Moonshot/Moonshot-CN、MiniMax/MiniMax-CN、阿里云/阿里云-CN、HuggingFace、NVIDIA、Arcee、Xiaomi、百度文心一言、讯飞星火、字节豆包、腾讯混元、Cohere、SiliconFlow
 - **上下文压缩** — 自动压缩对话历史，支持 AutoCompactor
 - **会话管理** — 支持按用户、按群组、按话题的会话隔离，支持持久化绑定
@@ -61,13 +55,8 @@
 # 安装
 pip install myagent
 
-<<<<<<< HEAD
 # 首次快速初始化
 myagent init --quick
-=======
-# 初始化
-myagent init
->>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
 
 # 检查缺失项与下一步动作
 myagent doctor
@@ -81,19 +70,18 @@ myagent web --port 8000
 
 在浏览器中打开 http://localhost:8000。
 
-<<<<<<< HEAD
 说明：
 - `myagent init` 仍然是完整的交互式向导。
 - `myagent init --quick` 会生成基础目录、配置模板和 `.env` 脚手架。
 - 当配置未完成时，TUI 与 Web 都会进入 `Setup Required` 状态，并提示下一步命令。
-=======
+
 ### Web 工作台亮点
 
 - 使用左侧工作台导航在 `Chat`、`Tasks`、`Files`、`Workspace`、`Team` 之间切换
 - 按 `Ctrl+K` 打开命令面板，快速跳转到常用操作
 - 支持 `/plan`、`/agent`、`/model`、`/session`、`/setup`、`/doctor` 等 Slash Commands
 - 点击工具卡片、任务、会话或文件后，可在右侧详情侧栏查看上下文
->>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
+- 任务批准后会进入可见的 `Task -> Team -> Review` 流程，并持续刷新当前任务与审查摘要
 
 ## 文档
 

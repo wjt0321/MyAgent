@@ -22,20 +22,18 @@ class MyAgentWebApp {
         this.fileEntries = [];
         this.commandPaletteItems = [];
         this.commandPaletteIndex = 0;
+        this.taskPollingTimer = null;
 
         this.initTheme();
         this.initElements();
         this.bindEvents();
-<<<<<<< HEAD
         this.loadSetupStatus();
-=======
         this.renderCommandPalette();
         this.renderDetailSidebar('overview', {
             title: '工作台详情',
             meta: '准备就绪',
             body: '选择一个会话、任务、文件或工具卡片查看更详细的信息。',
         });
->>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
         this.loadSessions();
         this.loadFileTree('.');
         this.loadWorkspace();
@@ -411,6 +409,7 @@ class MyAgentWebApp {
         }
         if (viewName === 'tasks') {
             this.renderTaskStream();
+            this.startTaskPolling();
         }
         if (viewName === 'files') {
             this.renderFileBrowser();
@@ -1222,16 +1221,12 @@ class MyAgentWebApp {
             this.welcomeScreen.style.display = 'flex';
         }
 
-<<<<<<< HEAD
         if (!this.setupReady) {
             this.renderSetupRequired();
             this.setStatus('disconnected');
             return;
         }
-
-=======
         this.setActiveView('chat');
->>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
         this.connectWebSocket(sessionId);
     }
 
@@ -1380,21 +1375,11 @@ class MyAgentWebApp {
         const text = this.messageInput.value.trim();
         if (!text) return;
 
-<<<<<<< HEAD
         if (!this.setupReady) {
             this.addMessage('error', `Setup Required：请先执行 ${this.setupStatus?.next_action || 'myagent init --quick'}`, false);
             return;
         }
 
-        // Check for /plan command
-        if (text.startsWith('/plan ')) {
-            const request = text.slice(6).trim();
-            if (request) {
-                this.addMessage('user', text, false);
-                this.messageInput.value = '';
-                this.messageInput.style.height = 'auto';
-                await this.createTaskPlan(request);
-=======
         if (text.startsWith('/')) {
             this.addMessage('user', text, false);
             this.messageInput.value = '';
@@ -1402,7 +1387,6 @@ class MyAgentWebApp {
             const handled = await this.executeSlashCommand(text);
             if (handled) {
                 return;
->>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
             }
         }
 
@@ -1588,6 +1572,7 @@ class MyAgentWebApp {
                 this.hideTaskWorkflow();
                 this.currentTask.plan_approved = true;
                 this.renderTaskPanel();
+                this.startTaskPolling();
                 // Show approval message in chat
                 this.addMessage('assistant', `任务 "${this.currentTask.title}" 已批准，开始执行...`);
             }
@@ -1596,17 +1581,67 @@ class MyAgentWebApp {
         }
     }
 
+    async cancelTask() {
+        if (!this.currentTask) return;
+
+        try {
+            const response = await fetch(`/api/tasks/${this.currentTask.id}/cancel`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.currentTask = data.task;
+                this.renderTaskPanel();
+                this.stopTaskPolling();
+                this.addMessage('assistant', `任务 "${this.currentTask.title}" 已取消。`, false);
+            }
+        } catch (error) {
+            console.error('Failed to cancel task:', error);
+        }
+    }
+
     async loadCurrentTask() {
         try {
             const response = await fetch('/api/tasks/current');
             if (response.ok) {
-                const task = await response.json();
-                this.currentTask = task;
+                const snapshot = await response.json();
+                this.currentTask = snapshot.task;
+                this.teamData = snapshot.team || this.teamData;
                 this.renderTaskPanel();
+                this.renderTeamPanel(this.teamData || {});
+                this.syncTaskPollingState();
             }
         } catch (error) {
             console.error('Failed to load current task:', error);
         }
+    }
+
+    startTaskPolling() {
+        if (this.taskPollingTimer) {
+            return;
+        }
+        this.taskPollingTimer = window.setInterval(() => {
+            this.loadCurrentTask();
+        }, 1500);
+    }
+
+    stopTaskPolling() {
+        if (!this.taskPollingTimer) {
+            return;
+        }
+        window.clearInterval(this.taskPollingTimer);
+        this.taskPollingTimer = null;
+    }
+
+    syncTaskPollingState() {
+        const activeStatuses = ['planning', 'planned', 'executing', 'executed', 'reviewing'];
+        if (this.currentTask && activeStatuses.includes(this.currentTask.status)) {
+            this.startTaskPolling();
+            return;
+        }
+        this.stopTaskPolling();
     }
 
     renderTaskPanel() {
@@ -1636,6 +1671,9 @@ class MyAgentWebApp {
         ).length;
         const total = (task.subtasks || []).length;
         const progress = total > 0 ? (completed / total * 100) : 0;
+        const reviewSummary = task.result?.summary
+            ? `<div class="task-card-summary">${this.escapeHtml(task.result.summary)}</div>`
+            : '';
 
         this.taskPanel.innerHTML = `
             <div class="task-card" data-task-id="${task.id}">
@@ -1644,16 +1682,28 @@ class MyAgentWebApp {
                 <div class="task-progress">
                     <div class="task-progress-bar" style="width: ${progress}%"></div>
                 </div>
+                ${reviewSummary}
+                ${['planning', 'planned', 'executing', 'executed', 'reviewing'].includes(task.status) ? '<button class="task-cancel-btn">取消任务</button>' : ''}
             </div>
         `;
 
         this.taskPanel.querySelector('.task-card')?.addEventListener('click', () => {
+            const resultBody = task.result ? [
+                task.result.summary ? `审查摘要：${task.result.summary}` : '',
+                (task.result.issues || []).length ? `问题：\n- ${(task.result.issues || []).join('\n- ')}` : '',
+                (task.result.suggestions || []).length ? `建议：\n- ${(task.result.suggestions || []).join('\n- ')}` : '',
+                (task.result.deliverables || []).length ? `交付物：\n- ${(task.result.deliverables || []).join('\n- ')}` : '',
+            ].filter(Boolean).join('\n\n') : '暂无审查结果';
             this.setActiveView('tasks');
             this.renderDetailSidebar('task', {
                 title: task.title,
                 meta: statusLabels[task.status] || task.status,
-                body: (task.subtasks || []).map((item, index) => `${index + 1}. ${item.description} [${item.status}]`).join('\n') || '暂无子任务',
+                body: `${(task.subtasks || []).map((item, index) => `${index + 1}. ${item.description} [${item.status}]`).join('\n') || '暂无子任务'}\n\n${resultBody}`,
             });
+        });
+        this.taskPanel.querySelector('.task-cancel-btn')?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            this.cancelTask();
         });
 
         this.renderTaskStream();
@@ -1751,14 +1801,35 @@ class MyAgentWebApp {
                 </div>
             </div>
         `).join('');
+        const reviewCard = task.result ? `
+            <div class="task-review-card">
+                <div class="task-stream-title">审查结果</div>
+                <div class="task-stream-meta">${this.escapeHtml(task.result.summary || '暂无摘要')}</div>
+                ${(task.result.issues || []).length ? `
+                    <div class="task-review-section">
+                        <strong>问题</strong>
+                        <div>${this.escapeHtml(task.result.issues.join(' | '))}</div>
+                    </div>
+                ` : ''}
+                ${(task.result.suggestions || []).length ? `
+                    <div class="task-review-section">
+                        <strong>建议</strong>
+                        <div>${this.escapeHtml(task.result.suggestions.join(' | '))}</div>
+                    </div>
+                ` : ''}
+            </div>
+        ` : '';
 
         this.taskStream.innerHTML = `
             <div class="task-stream-card">
                 <div class="task-stream-title">${this.escapeHtml(task.title)}</div>
                 <div class="task-stream-meta">状态：${this.escapeHtml(task.status || 'pending')}</div>
+                ${['planning', 'planned', 'executing', 'executed', 'reviewing'].includes(task.status) ? '<button class="task-cancel-btn">取消任务</button>' : ''}
                 <div class="task-step-list">${steps || '<div class="task-empty">暂无步骤</div>'}</div>
+                ${reviewCard}
             </div>
         `;
+        this.taskStream.querySelector('.task-cancel-btn')?.addEventListener('click', () => this.cancelTask());
     }
 
     renderWorkspaceOverview() {

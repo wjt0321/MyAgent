@@ -158,12 +158,9 @@ UI: Detail sidebar shows session summary
 | Thinking | 处理中... |
 | Tool Call | 调用工具... |
 | Permission | 等待审批 |
-<<<<<<< HEAD
 | Setup Required | 配置未完成，需进入初始化 |
-=======
 | Connected | WebSocket 已连接 |
 | Disconnected | WebSocket 未连接 |
->>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
 
 ### 3.2 任务状态
 
@@ -195,6 +192,28 @@ UI: Detail sidebar shows session summary
 | Idle | 绿色 |
 | Busy | 黄色 |
 | Offline | 灰色 |
+
+### 3.5 Task / Team / Review 工作流
+
+当前 Phase 4 已落地的最小闭环如下：
+
+1. 用户在 Web 或 TUI 中输入 `/plan <request>`
+2. 系统创建计划并展示子任务清单
+3. 用户批准后，后端进入 `TeamOrchestrator.execute_with_team()`，任务状态切到 `executing`
+4. Web 通过 `/api/tasks/current` 轮询当前 `task + team` 快照
+5. 子任务执行完成后进入 `reviewing / done / failed / cancelled`
+6. 审查摘要、问题、建议、交付物在任务流与详情侧栏中可见
+
+Web 当前支持：
+- Task 当前快照
+- Team 当前状态摘要
+- Review 结果卡片
+- 取消当前任务
+
+TUI 当前支持：
+- `/plan` 进入规划态
+- Header 显示 `Task: <status>`
+- 侧栏显示当前任务请求与状态摘要
 
 ---
 

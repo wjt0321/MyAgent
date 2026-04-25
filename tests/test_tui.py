@@ -161,6 +161,19 @@ async def test_session_command_opens_info_modal():
         assert pilot.app.screen.__class__.__name__ == "InfoModalScreen"
 
 
+@pytest.mark.asyncio
+async def test_plan_command_updates_header_and_task_panel():
+    app = MyAgentApp()
+    async with app.run_test() as pilot:
+        app._handle_command("/plan 设计新的任务流")
+        await pilot.pause()
+        header = pilot.app.query_one("#header")
+        task_panel = pilot.app.query_one("#task-panel")
+        assert "Task: planning" in str(header.render())
+        assert "State: planning" in str(task_panel.render())
+        assert "设计新的任务流" in str(task_panel.render())
+
+
 def test_plan_command_updates_task_state():
     app = MyAgentApp()
     app._handle_command("/plan 设计新的任务流")

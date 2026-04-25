@@ -2974,6 +2974,36 @@ body {
   gap: 8px;
 }
 
+.task-review-card {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.task-review-section {
+  margin-top: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.task-card-summary {
+  margin-top: 0.65rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.task-cancel-btn {
+  margin-top: 0.85rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
 .task-step-item {
   display: flex;
   gap: 10px;

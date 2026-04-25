@@ -633,7 +633,8 @@ class MyAgentApp(App[None]):
         header_text = (
             "MyAgent v0.2.0 | "
             f"Agent: {self.current_agent} | Model: {self.current_model} | "
-            f"Turns: {self._turn_count} | Cost: {cost} | Provider: {self.current_provider}"
+            f"Turns: {self._turn_count} | Task: {self._task_status['state']} | "
+            f"Cost: {cost} | Provider: {self.current_provider}"
         )
         try:
             header = self.query_one("#header", Static)

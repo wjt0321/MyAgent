@@ -362,16 +362,21 @@ def create_app() -> FastAPI:
         return task.to_dict()
 
     @app.get("/api/tasks/current")
-    async def get_current_task() -> dict[str, Any] | None:
-        """Get the currently active task."""
+    async def get_current_task() -> dict[str, Any]:
+        """Get the current task snapshot and team status."""
         task_engine: TaskEngine = app.state.task_engine
+        orchestrator: TeamOrchestrator = app.state.team_orchestrator
         task = task_engine.get_current_task()
-        return task.to_dict() if task else None
+        return {
+            "task": task.to_dict() if task else None,
+            "team": orchestrator.get_team_status(),
+        }
 
     @app.post("/api/tasks/{task_id}/approve")
     async def approve_task_plan(task_id: str) -> dict[str, Any]:
         """Approve a task plan and start execution."""
         task_engine: TaskEngine = app.state.task_engine
+        orchestrator: TeamOrchestrator = app.state.team_orchestrator
         task = task_engine.get_current_task()
         if task is None or task.id != task_id:
             from fastapi import HTTPException
@@ -381,15 +386,35 @@ def create_app() -> FastAPI:
 
         # Start execution in background and return immediately
         import asyncio
-        asyncio.create_task(_run_task_execution(task_engine, task))
+        asyncio.create_task(_run_task_execution(task_engine, orchestrator, task))
 
         return {"status": "approved", "task": task.to_dict()}
 
-    async def _run_task_execution(task_engine: TaskEngine, task: Any) -> None:
+    @app.post("/api/tasks/{task_id}/cancel")
+    async def cancel_task(task_id: str) -> dict[str, Any]:
+        """Cancel the current task."""
+        task_engine: TaskEngine = app.state.task_engine
+        task = task_engine.get_current_task()
+        if task is None or task.id != task_id:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        task.update_status(TaskStatus.CANCELLED)
+        for subtask in task.subtasks:
+            if subtask.status == TaskStatus.EXECUTING:
+                subtask.status = TaskStatus.CANCELLED
+
+        return {"status": "cancelled", "task": task.to_dict()}
+
+    async def _run_task_execution(
+        task_engine: TaskEngine,
+        orchestrator: TeamOrchestrator,
+        task: Any,
+    ) -> None:
         """Run task execution and review in background."""
         try:
-            async for _ in task_engine.execute_task(task):
-                pass  # Progress could be streamed via WebSocket/SSE in future
+            async for _ in orchestrator.execute_with_team(task):
+                pass  # Progress is exposed through the current task snapshot.
             await task_engine.review_task(task)
         except Exception as e:
             logger.error("Task execution failed: %s", e, exc_info=True)

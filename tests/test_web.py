@@ -14,6 +14,7 @@ from myagent.engine.stream_events import (
     ToolExecutionCompleted,
     ToolExecutionStarted,
 )
+from myagent.tasks.models import SubTask, Task, TaskStatus
 from myagent.web.engine_manager import WebEngineManager
 from myagent.web.server import create_app
 from myagent.web.session import SessionStore
@@ -198,3 +199,47 @@ class TestWebServer:
         assert "showCommandPalette(" in content
         assert "executeSlashCommand(" in content
         assert "renderDetailSidebar(" in content
+        assert "startTaskPolling(" in content
+        assert "cancelTask(" in content
+        assert "task-review-card" in content
+        assert "result.summary" in content
+        assert "<<<<<<<" not in content
+
+    def test_current_task_endpoint_returns_task_snapshot_and_team(self):
+        """当前任务接口应返回任务快照与团队概览。"""
+        app = create_app()
+        task = Task(
+            title="实现 Phase 4",
+            description="让任务流对用户可见",
+            status=TaskStatus.EXECUTING,
+            subtasks=[SubTask(description="接入任务快照", status=TaskStatus.EXECUTING)],
+        )
+
+        with TestClient(app) as client:
+            app.state.task_engine._current_task = task
+            response = client.get("/api/tasks/current")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["task"]["id"] == task.id
+        assert data["task"]["status"] == "executing"
+        assert data["team"]["total_members"] >= 1
+
+    def test_cancel_task_endpoint_marks_current_task_cancelled(self):
+        """取消任务接口应将当前任务标记为 cancelled。"""
+        app = create_app()
+        task = Task(
+            title="实现 Phase 4",
+            description="让任务流对用户可见",
+            status=TaskStatus.EXECUTING,
+            subtasks=[SubTask(description="接入任务快照", status=TaskStatus.EXECUTING)],
+        )
+
+        with TestClient(app) as client:
+            app.state.task_engine._current_task = task
+            response = client.post(f"/api/tasks/{task.id}/cancel")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "cancelled"
+        assert data["task"]["status"] == "cancelled"
