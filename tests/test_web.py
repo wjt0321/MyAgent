@@ -214,6 +214,20 @@ class TestWebServer:
         assert "result.summary" in content
         assert "<<<<<<<" not in content
 
+    def test_static_shell_exposes_phase5_brand_tokens(self, client):
+        """Phase 5 首批应统一品牌命名与主题 token。"""
+        html_response = client.get("/")
+        css_response = client.get("/static/style.css")
+        assert html_response.status_code == 200
+        assert css_response.status_code == 200
+        html = html_response.text
+        css = css_response.text
+        assert "<title>MyAgent Workbench</title>" in html
+        assert "MyAgent Workbench" in html
+        assert "--brand-primary" in css
+        assert "--brand-gradient" in css
+        assert "--panel-glow" in css
+
     def test_current_task_endpoint_returns_task_snapshot_and_team(self):
         """当前任务接口应返回任务快照与团队概览。"""
         app = create_app()

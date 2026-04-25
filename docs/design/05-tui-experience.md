@@ -79,6 +79,7 @@ TUI 当前由五个核心区块组成：
 - 当前 `model`
 - 当前 `workspace`
 - setup 是否 ready
+- Header 品牌命名需与 Web Workbench 保持一致，避免 TUI/Web 出现割裂文案
 
 ### 4.2 任务状态
 

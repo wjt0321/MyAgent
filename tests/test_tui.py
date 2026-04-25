@@ -29,6 +29,7 @@ async def test_header_exists():
     async with app.run_test() as pilot:
         header = pilot.app.query_one("#header")
         assert header is not None
+        assert "MyAgent Workbench" in str(header.render())
 
 
 @pytest.mark.asyncio

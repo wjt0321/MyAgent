@@ -11,6 +11,12 @@
   --header-height: 56px;
   --composer-height: auto;
 
+  /* Brand */
+  --brand-primary: #6366f1;
+  --brand-secondary: #7928ff;
+  --brand-gradient: linear-gradient(135deg, var(--brand-secondary) 0%, var(--brand-primary) 100%);
+  --panel-glow: 0 16px 48px rgba(99, 102, 241, 0.16);
+
   /* Radii */
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -51,7 +57,7 @@
   --text-muted: #5b6378;
   --text-inverse: #020306;
 
-  --accent: #7928ff; /* Cyber purple accent */
+  --accent: var(--brand-secondary); /* Cyber purple accent */
   --accent-soft: rgba(121, 40, 255, 0.15);
   --accent-hover: #9b5a2ff;
   --accent-glow: rgba(121, 40, 255, 0.6);
@@ -63,7 +69,7 @@
   --danger: #ef4444;
   --danger-soft: rgba(239,68,68,0.12);
 
-  --user-msg-bg: linear-gradient(135deg, #7928ff 0%, #4f46e5 100%);
+  --user-msg-bg: var(--brand-gradient);
   --assistant-msg-bg: var(--bg-secondary);
   --assistant-msg-border: var(--border-default);
 }
@@ -89,7 +95,7 @@
   --text-muted: #9aa0b0;
   --text-inverse: #ffffff;
 
-  --accent: #4f46e5;
+  --accent: var(--brand-primary);
   --accent-soft: rgba(79,70,229,0.1);
   --accent-hover: #6366f1;
   --accent-glow: rgba(79,70,229,0.2);
@@ -101,7 +107,7 @@
   --danger: #dc2626;
   --danger-soft: rgba(220,38,38,0.1);
 
-  --user-msg-bg: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  --user-msg-bg: var(--brand-gradient);
   --assistant-msg-bg: var(--bg-secondary);
   --assistant-msg-border: var(--border-default);
 }
@@ -155,7 +161,7 @@ body {
   flex-direction: column;
   flex-shrink: 0;
   transition: transform var(--transition-slow);
-  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--panel-glow);
 }
 
 .sidebar-header {
@@ -171,17 +177,21 @@ body {
 }
 
 .brand-icon {
-  color: var(--accent);
+  color: var(--brand-primary);
   display: flex;
   align-items: center;
   justify-content: center;
+  filter: drop-shadow(0 0 18px rgba(99, 102, 241, 0.32));
 }
 
 .brand-text {
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.3px;
-  color: var(--text-primary);
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .btn-new-session {

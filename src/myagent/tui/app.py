@@ -221,7 +221,7 @@ class MyAgentApp(App[None]):
         """Compose the TUI layout."""
         yield Static(
             (
-                "MyAgent v0.2.0 | "
+                "MyAgent Workbench v0.2.0 | "
                 f"Agent: {self.current_agent} | Model: {self.current_model} | "
                 f"Provider: {self.current_provider}"
             ),
@@ -631,7 +631,7 @@ class MyAgentApp(App[None]):
             else "$0.0000"
         )
         header_text = (
-            "MyAgent v0.2.0 | "
+            "MyAgent Workbench v0.2.0 | "
             f"Agent: {self.current_agent} | Model: {self.current_model} | "
             f"Turns: {self._turn_count} | Task: {self._task_status['state']} | "
             f"Cost: {cost} | Provider: {self.current_provider}"
