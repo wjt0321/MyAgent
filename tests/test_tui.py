@@ -174,6 +174,38 @@ async def test_plan_command_updates_header_and_task_panel():
         assert "设计新的任务流" in str(task_panel.render())
 
 
+@pytest.mark.asyncio
+async def test_apply_task_snapshot_updates_tui_task_panel_with_timeline():
+    app = MyAgentApp()
+    async with app.run_test() as pilot:
+        app.apply_task_snapshot(
+            {
+                "status": "reviewing",
+                "title": "实现执行时间线",
+                "description": "把时间线同步到 TUI",
+                "subtasks": [
+                    {"status": "done", "agent": "planner"},
+                    {"status": "executing", "agent": "worker"},
+                ],
+                "events": [
+                    {"type": "member_assigned", "message": "planner 已接手规划"},
+                    {"type": "member_progress", "message": "worker 正在使用工具：Read"},
+                ],
+                "result": {"summary": "审查进行中"},
+            }
+        )
+        await pilot.pause()
+        header = pilot.app.query_one("#header")
+        task_panel = pilot.app.query_one("#task-panel")
+        rendered = str(task_panel.render())
+        assert "Task: reviewing" in str(header.render())
+        assert "State: reviewing" in rendered
+        assert "Progress: 1/2" in rendered
+        assert "Agents: planner, worker" in rendered
+        assert "Timeline: worker 正在使用工具：Read" in rendered
+        assert "Review: 审查进行中" in rendered
+
+
 def test_plan_command_updates_task_state():
     app = MyAgentApp()
     app._handle_command("/plan 设计新的任务流")

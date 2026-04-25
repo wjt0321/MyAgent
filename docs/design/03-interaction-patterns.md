@@ -219,6 +219,7 @@ TUI 当前支持：
 - `/plan` 进入规划态
 - Header 显示 `Task: <status>`
 - 侧栏显示当前任务请求与状态摘要
+- TUI 可消费 `task snapshot`，显示进度、参与 agent、最近时间线事件与审查摘要
 
 ---
 

@@ -87,6 +87,7 @@ Notes:
 - Review cards now split `deliverables`, `issues`, and `suggestions` into separate sections for faster inspection
 - The task view now includes a lightweight team summary so execution load and completion counts stay visible
 - Task snapshots now include an execution timeline so member assignment, tool activity, and review transitions stay visible
+- The TUI task panel can now consume task snapshots and surface progress, active agents, latest timeline event, and review summary
 
 ## Documentation
 

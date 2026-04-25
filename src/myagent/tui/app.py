@@ -811,6 +811,40 @@ Keyboard shortcuts:
             f"[dim]Task: {request}[/dim]"
         )
 
+    def apply_task_snapshot(self, snapshot: dict[str, Any]) -> None:
+        """Apply a task snapshot so TUI can mirror the current workflow state."""
+        subtasks = snapshot.get("subtasks", [])
+        completed = sum(1 for item in subtasks if item.get("status") == "done")
+        total = len(subtasks)
+        agents = sorted(
+            {
+                str(item.get("agent")).strip()
+                for item in subtasks
+                if item.get("agent")
+            }
+        )
+        latest_event = "-"
+        if snapshot.get("events"):
+            latest_event = snapshot["events"][-1].get("message", "-")
+        review_summary = "-"
+        if snapshot.get("result"):
+            review_summary = snapshot["result"].get("summary") or "-"
+
+        detail_lines = [
+            f"Progress: {completed}/{total}",
+            f"Agents: {', '.join(agents) if agents else '-'}",
+            f"Timeline: {latest_event}",
+            f"Review: {review_summary}",
+        ]
+        self._task_status = {
+            "state": snapshot.get("status", "idle"),
+            "request": snapshot.get("title")
+            or snapshot.get("description")
+            or "",
+            "detail": "\n".join(detail_lines),
+        }
+        self._update_header()
+
     def _refresh_side_panel(self) -> None:
         """Refresh the structured side panel widgets."""
         status_text = (

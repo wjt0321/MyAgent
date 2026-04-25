@@ -85,6 +85,7 @@ TUI 当前由五个核心区块组成：
 - `state`
 - `request`
 - `detail`
+- 当存在 `task snapshot` 时，`detail` 需至少包含进度、参与 agent、最近时间线事件、review 摘要
 
 ### 4.3 活动轨迹
 
