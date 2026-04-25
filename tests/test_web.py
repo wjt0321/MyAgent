@@ -342,6 +342,23 @@ class TestWebServer:
         assert "@keyframes panelGlow" in css
         assert "@keyframes statusPulse" in css
 
+    def test_static_app_contains_phase5_surface_family_hooks(self, client):
+        """Phase 5 第九批应补齐统一的主题表面系统钩子。"""
+        js_response = client.get("/static/app.js")
+        css_response = client.get("/static/style.css")
+        assert js_response.status_code == 200
+        assert css_response.status_code == 200
+        js = js_response.text
+        css = css_response.text
+        assert "surface-card surface-card-strong" in js
+        assert "surface-card surface-card-soft" in js
+        assert "surface-eyebrow" in js
+        assert ".surface-card" in css
+        assert ".surface-card-strong" in css
+        assert ".surface-card-soft" in css
+        assert ".surface-eyebrow" in css
+        assert ".surface-card:hover" in css
+
     def test_current_task_endpoint_returns_task_snapshot_and_team(self):
         """当前任务接口应返回任务快照与团队概览。"""
         app = create_app()

@@ -108,6 +108,7 @@ Recommended first tour:
 - Phase 5 batch 6 upgrades the welcome screen into a screenshot-ready Quickstart showcase with onboarding steps, product positioning, and clearer docs entry cards
 - Phase 5 batch 7 aligns the TUI side panel with the Web Workbench vocabulary through clearer section titles and a concise session summary line
 - Phase 5 batch 8 adds lightweight micro-interactions for the welcome screen, tool event cards, and session switching states so the workbench feels more responsive without changing core flows
+- Phase 5 batch 9 introduces a shared surface family for task cards, tool cards, and docs entry cards so the workbench reads like one product instead of separate panels
 
 ## Documentation
 

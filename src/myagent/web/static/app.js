@@ -849,15 +849,18 @@ class MyAgentWebApp {
                 </div>
             </div>
             <div class="welcome-positioning-grid">
-                <div class="positioning-card">
+                <div class="positioning-card surface-card surface-card-strong">
+                    <div class="surface-eyebrow">Positioning</div>
                     <div class="welcome-panel-title">Hermes 式初始化</div>
                     <div class="positioning-card-desc">先把 setup、doctor 和 next action 讲清楚，降低首次进入的理解成本。</div>
                 </div>
-                <div class="positioning-card">
+                <div class="positioning-card surface-card surface-card-strong">
+                    <div class="surface-eyebrow">Positioning</div>
                     <div class="welcome-panel-title">OpenClaw 式工作台</div>
                     <div class="positioning-card-desc">把导航、工具结果、任务状态和详情侧栏放到同一个可操作的 Workbench。</div>
                 </div>
-                <div class="positioning-card">
+                <div class="positioning-card surface-card surface-card-strong">
+                    <div class="surface-eyebrow">Positioning</div>
                     <div class="welcome-panel-title">MyAgent 的收敛方向</div>
                     <div class="positioning-card-desc">强调“能计划、能执行、能审查”的任务闭环，而不是只有聊天与工具输出。</div>
                 </div>
@@ -905,15 +908,18 @@ class MyAgentWebApp {
                 <div class="welcome-panel">
                     <div class="welcome-panel-title">文档入口</div>
                     <div class="welcome-docs-grid">
-                        <div class="docs-entry-card">
+                        <div class="docs-entry-card surface-card surface-card-soft">
+                            <div class="surface-eyebrow">Docs</div>
                             <div class="docs-entry-title">README</div>
                             <div class="docs-entry-desc">先看产品定位、Quickstart 与当前 Web 工作台亮点。</div>
                         </div>
-                        <div class="docs-entry-card">
+                        <div class="docs-entry-card surface-card surface-card-soft">
+                            <div class="surface-eyebrow">Docs</div>
                             <div class="docs-entry-title">GETTING_STARTED</div>
                             <div class="docs-entry-desc">按首次安装与配置流程逐步完成本地 setup。</div>
                         </div>
-                        <div class="docs-entry-card">
+                        <div class="docs-entry-card surface-card surface-card-soft">
+                            <div class="surface-eyebrow">Docs</div>
                             <div class="docs-entry-title">Interaction Patterns</div>
                             <div class="docs-entry-desc">查看 Task、Tool、Session 与详情侧栏的交互约定。</div>
                         </div>
@@ -1933,7 +1939,8 @@ class MyAgentWebApp {
         const canRetry = ['failed', 'cancelled'].includes(task.status);
 
         this.taskPanel.innerHTML = `
-            <div class="task-card" data-task-id="${task.id}">
+            <div class="task-card surface-card surface-card-strong" data-task-id="${task.id}">
+                <div class="surface-eyebrow">Task</div>
                 <div class="task-card-title">${this.escapeHtml(task.title)}</div>
                 <span class="task-card-status ${task.status}">${statusLabels[task.status] || task.status}</span>
                 <div class="task-progress">
@@ -2425,10 +2432,11 @@ class MyAgentWebApp {
             ? payload
             : JSON.stringify(payload || {}, null, 2);
         return `
-            <details class="tool-collapsible tool-event-card tool-event-card-v2 ${statusTone}" ${kind === 'tool-result' ? 'open' : ''}>
+            <details class="tool-collapsible tool-event-card tool-event-card-v2 surface-card surface-card-soft ${statusTone}" ${kind === 'tool-result' ? 'open' : ''}>
                 <summary>
                     <span class="tool-icon">${icon}</span>
                     <span class="tool-event-heading">
+                        <span class="surface-eyebrow">Tool Event</span>
                         <span class="tool-name">${this.escapeHtml(title)}</span>
                         <span class="tool-event-summary">${this.escapeHtml(summary)}</span>
                     </span>
