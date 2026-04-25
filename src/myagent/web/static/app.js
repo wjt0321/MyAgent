@@ -819,6 +819,24 @@ class MyAgentWebApp {
         });
     }
 
+    bindDemoPathCards() {
+        document.querySelectorAll('.demo-path-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const viewName = card.dataset.demoView;
+                const prompt = card.dataset.demoPrompt;
+                if (viewName) {
+                    this.setActiveView(viewName);
+                }
+                if (prompt && this.messageInput) {
+                    this.messageInput.value = prompt;
+                    if (viewName === 'chat') {
+                        this.messageInput.focus();
+                    }
+                }
+            });
+        });
+    }
+
     renderWelcomeLanding() {
         if (!this.welcomeScreen || !this.setupReady) return;
         this.welcomeScreen.style.display = 'flex';
@@ -863,6 +881,26 @@ class MyAgentWebApp {
                     <div class="surface-eyebrow">Positioning</div>
                     <div class="welcome-panel-title">MyAgent 的收敛方向</div>
                     <div class="positioning-card-desc">强调“能计划、能执行、能审查”的任务闭环，而不是只有聊天与工具输出。</div>
+                </div>
+            </div>
+            <div class="welcome-demo-path">
+                <div class="welcome-panel-title">推荐演示路径</div>
+                <div class="demo-path-grid">
+                    <div class="demo-path-card surface-card surface-card-soft" data-demo-view="chat" data-demo-prompt="解释这个项目的核心架构与关键模块">
+                        <div class="demo-path-kicker">Step 1</div>
+                        <div class="quickstart-step-title">先讲清楚定位</div>
+                        <div class="quickstart-step-desc">回到聊天视图，直接预填“解释核心架构”作为第一步演示。</div>
+                    </div>
+                    <div class="demo-path-card surface-card surface-card-soft" data-demo-view="tasks" data-demo-prompt="/plan 分析当前代码库结构">
+                        <div class="demo-path-kicker">Step 2</div>
+                        <div class="quickstart-step-title">再展示任务流</div>
+                        <div class="quickstart-step-desc">切到任务视图，并预备 `/plan` 请求来展示 Task、Team、Review 主线。</div>
+                    </div>
+                    <div class="demo-path-card surface-card surface-card-soft" data-demo-view="workspace" data-demo-prompt="">
+                        <div class="demo-path-kicker">Step 3</div>
+                        <div class="quickstart-step-title">最后看工作台</div>
+                        <div class="quickstart-step-desc">进入 Workspace 视图，串起文件、工具结果和详情侧栏的统一体验。</div>
+                    </div>
                 </div>
             </div>
             <div class="welcome-grid">
@@ -928,6 +966,7 @@ class MyAgentWebApp {
             </div>
         `;
         this.bindQuickCards();
+        this.bindDemoPathCards();
         this.applyWelcomeMotion();
     }
 

@@ -52,6 +52,7 @@
 ### 推荐演示路径
 
 - 截图首选场景：停留在 Web 工作台欢迎页，展示 `3 步 Quickstart`、产品定位、推荐动作和文档入口卡片
+- 首屏导览场景：直接点击欢迎页中的 `推荐演示路径`，依次进入 `Chat -> Tasks -> Workspace`
 - 任务展示场景：创建 `/plan` 任务并批准执行，在 `Tasks` 视图展示 `Task -> Team -> Review`、执行时间线与结构化审查结果
 - 会话展示场景：使用 Header 中的会话控制条切换 `agent` 与 `model`，确认会话摘要与状态反馈会即时同步
 
@@ -83,7 +84,7 @@ myagent web --port 8000
 
 推荐首次导览：
 1. 先停留在 Web 欢迎页，查看 `3 步 Quickstart`
-2. 通过推荐动作卡片或 `Ctrl+K` 进入工作台主流程
+2. 点击 `推荐演示路径`，按 `Chat -> Tasks -> Workspace` 跳转查看主流程
 3. 在会话控制条中切换 `agent` 或 `model`，确认会话反馈实时更新
 4. 执行 `/plan <需求>`，完整体验 `Task -> Team -> Review` 工作流
 

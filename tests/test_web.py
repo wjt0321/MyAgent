@@ -359,6 +359,24 @@ class TestWebServer:
         assert ".surface-eyebrow" in css
         assert ".surface-card:hover" in css
 
+    def test_static_app_contains_phase5_demo_path_hooks(self, client):
+        """Phase 5 第十批应补齐欢迎页中的统一演示路径。"""
+        js_response = client.get("/static/app.js")
+        css_response = client.get("/static/style.css")
+        assert js_response.status_code == 200
+        assert css_response.status_code == 200
+        js = js_response.text
+        css = css_response.text
+        assert "bindDemoPathCards(" in js
+        assert "welcome-demo-path" in js
+        assert "demo-path-card" in js
+        assert "data-demo-view" in js
+        assert "data-demo-prompt" in js
+        assert ".welcome-demo-path" in css
+        assert ".demo-path-grid" in css
+        assert ".demo-path-card" in css
+        assert ".demo-path-kicker" in css
+
     def test_current_task_endpoint_returns_task_snapshot_and_team(self):
         """当前任务接口应返回任务快照与团队概览。"""
         app = create_app()

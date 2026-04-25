@@ -3095,7 +3095,16 @@ body {
   box-shadow: var(--panel-glow);
 }
 
+.welcome-demo-path {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.82), rgba(30, 41, 59, 0.62));
+}
+
 .welcome-quickstart-grid,
+.demo-path-grid,
 .welcome-positioning-grid,
 .welcome-docs-grid {
   display: grid;
@@ -3106,6 +3115,10 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
+.demo-path-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 .quickstart-step,
 .positioning-card,
 .docs-entry-card {
@@ -3113,6 +3126,21 @@ body {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-default);
   background: rgba(15, 23, 42, 0.58);
+}
+
+.demo-path-card {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.demo-path-kicker {
+  margin-bottom: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 .quickstart-step-index {
