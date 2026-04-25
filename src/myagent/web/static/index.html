@@ -43,28 +43,6 @@
             </div>
 
             <div class="sidebar-nav">
-                <nav class="workbench-nav" id="workbench-nav">
-                    <button class="workbench-nav-btn active" data-view="chat">
-                        <span class="workbench-nav-title">聊天</span>
-                        <span class="workbench-nav-desc">对话与工具流</span>
-                    </button>
-                    <button class="workbench-nav-btn" data-view="tasks">
-                        <span class="workbench-nav-title">任务</span>
-                        <span class="workbench-nav-desc">计划与执行状态</span>
-                    </button>
-                    <button class="workbench-nav-btn" data-view="files">
-                        <span class="workbench-nav-title">文件</span>
-                        <span class="workbench-nav-desc">代码与预览</span>
-                    </button>
-                    <button class="workbench-nav-btn" data-view="workspace">
-                        <span class="workbench-nav-title">Workspace</span>
-                        <span class="workbench-nav-desc">记忆与资料</span>
-                    </button>
-                    <button class="workbench-nav-btn" data-view="team">
-                        <span class="workbench-nav-title">团队</span>
-                        <span class="workbench-nav-desc">成员与协作状态</span>
-                    </button>
-                </nav>
                 <div class="nav-section">
                     <div class="nav-label">会话</div>
                     <div class="session-toolbar">
@@ -79,29 +57,27 @@
                     </div>
                     <div class="session-list" id="session-list"></div>
                 </div>
-                <div class="sidebar-stack">
-                    <div class="nav-section" data-panel="tasks">
-                        <div class="nav-label">任务</div>
-                        <div class="task-panel" id="task-panel">
-                            <div class="task-empty">暂无任务</div>
-                        </div>
+                <div class="nav-section">
+                    <div class="nav-label">任务</div>
+                    <div class="task-panel" id="task-panel">
+                        <div class="task-empty">暂无任务</div>
                     </div>
-                    <div class="nav-section" data-panel="team">
-                        <div class="nav-label">团队</div>
-                        <div class="team-panel" id="team-panel">
-                            <div class="team-loading">加载中...</div>
-                        </div>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-label">团队</div>
+                    <div class="team-panel" id="team-panel">
+                        <div class="team-loading">加载中...</div>
                     </div>
-                    <div class="nav-section" data-panel="workspace">
-                        <div class="nav-label">Workspace</div>
-                        <div class="workspace-info" id="workspace-info">
-                            <div class="workspace-loading">加载中...</div>
-                        </div>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-label">Workspace</div>
+                    <div class="workspace-info" id="workspace-info">
+                        <div class="workspace-loading">加载中...</div>
                     </div>
-                    <div class="nav-section" data-panel="files">
-                        <div class="nav-label">文件</div>
-                        <div class="file-tree" id="file-tree"></div>
-                    </div>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-label">文件</div>
+                    <div class="file-tree" id="file-tree"></div>
                 </div>
             </div>
 
@@ -143,12 +119,7 @@
             <!-- Header -->
             <header class="chat-header">
                 <div class="header-info">
-                    <div class="session-status-chip" id="session-status-chip">
-                        <span class="session-status-dot"></span>
-                        <span id="session-status-label">等待连接</span>
-                    </div>
                     <div class="agent-badge" id="current-agent">general</div>
-                    <div class="model-badge" id="current-model">default</div>
                     <div class="model-selector">
                         <select id="model-select">
                             <optgroup label="Anthropic">
@@ -296,12 +267,6 @@
                             <option value="reviewer">reviewer</option>
                         </select>
                     </div>
-                    <button class="icon-btn" id="command-palette-btn" title="命令面板">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 18l6-6-6-6"/>
-                            <path d="M5 18l6-6-6-6"/>
-                        </svg>
-                    </button>
                     <button class="icon-btn" id="search-toggle" title="搜索">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="11" cy="11" r="8"/>
@@ -328,142 +293,61 @@
                 </button>
             </div>
 
-            <div class="workbench-main">
-                <section class="workbench-view active" data-view="chat">
-                    <div class="messages" id="messages">
-                        <div class="welcome-screen" id="welcome-screen">
-                            <div class="welcome-logo">
-                                <img src="/images/logo.svg" alt="MyAgent Logo" style="max-width: 400px; width: 100%; filter: drop-shadow(0 0 20px rgba(121, 40, 255, 0.4));">
-                            </div>
-                            <h1>Welcome to MyAgent</h1>
-                            <p>Production-ready hybrid autonomous AI agent.</p>
-                            <div class="welcome-grid">
-                                <div class="welcome-panel">
-                                    <div class="welcome-panel-title">快捷操作</div>
-                                    <div class="quick-actions">
-                                        <div class="quick-card" data-prompt="/plan 分析当前代码库结构">
-                                            <div class="quick-icon">📊</div>
-                                            <div class="quick-title">分析代码库</div>
-                                            <div class="quick-desc">了解项目结构和关键文件</div>
-                                        </div>
-                                        <div class="quick-card" data-prompt="帮我写一个 Python 函数">
-                                            <div class="quick-icon">✨</div>
-                                            <div class="quick-title">编写代码</div>
-                                            <div class="quick-desc">根据需求生成代码实现</div>
-                                        </div>
-                                        <div class="quick-card" data-prompt="解释这个项目的架构">
-                                            <div class="quick-icon">🏗️</div>
-                                            <div class="quick-title">解释架构</div>
-                                            <div class="quick-desc">深入理解系统设计</div>
-                                        </div>
-                                        <div class="quick-card" data-prompt="搜索关于 WebSocket 的代码">
-                                            <div class="quick-icon">🔍</div>
-                                            <div class="quick-title">代码搜索</div>
-                                            <div class="quick-desc">在代码库中查找相关内容</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="welcome-panel">
-                                    <div class="welcome-panel-title">最近会话</div>
-                                    <div class="recent-sessions" id="welcome-recent-sessions">
-                                        <div class="recent-session-empty">暂无最近会话</div>
-                                    </div>
-                                </div>
-                                <div class="welcome-panel">
-                                    <div class="welcome-panel-title">当前能力</div>
-                                    <div class="capability-list">
-                                        <div class="tool-card">
-                                            <div class="tool-card-title">Slash Commands</div>
-                                            <div class="tool-card-desc">支持 `/plan`、`/agent`、`/model`、`/session` 等快捷命令。</div>
-                                        </div>
-                                        <div class="tool-card">
-                                            <div class="tool-card-title">Tool Cards</div>
-                                            <div class="tool-card-desc">把工具调用与结果收敛为可折叠卡片，减少聊天区噪音。</div>
-                                        </div>
-                                        <div class="tool-card">
-                                            <div class="tool-card-title">Workbench Views</div>
-                                            <div class="tool-card-desc">快速切换聊天、任务、文件、Workspace 与团队视图。</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+            <!-- Messages -->
+            <div class="messages" id="messages">
+                <div class="welcome-screen" id="welcome-screen">
+                    <div class="welcome-logo">
+                        <img src="/images/logo.svg" alt="MyAgent Logo" style="max-width: 400px; width: 100%; filter: drop-shadow(0 0 20px rgba(121, ৪০, 255, 0.4));">
+                    </div>
+                    <h1>Welcome to MyAgent</h1>
+                    <p>Production-ready hybrid autonomous AI agent.</p>
+                    <div class="quick-actions">
+                        <div class="quick-card" data-prompt="/plan 分析当前代码库结构">
+                            <div class="quick-icon">📊</div>
+                            <div class="quick-title">分析代码库</div>
+                            <div class="quick-desc">了解项目结构和关键文件</div>
+                        </div>
+                        <div class="quick-card" data-prompt="帮我写一个 Python 函数">
+                            <div class="quick-icon">✨</div>
+                            <div class="quick-title">编写代码</div>
+                            <div class="quick-desc">根据需求生成代码实现</div>
+                        </div>
+                        <div class="quick-card" data-prompt="解释这个项目的架构">
+                            <div class="quick-icon">🏗️</div>
+                            <div class="quick-title">解释架构</div>
+                            <div class="quick-desc">深入理解系统设计</div>
+                        </div>
+                        <div class="quick-card" data-prompt="搜索关于 WebSocket 的代码">
+                            <div class="quick-icon">🔍</div>
+                            <div class="quick-title">代码搜索</div>
+                            <div class="quick-desc">在代码库中查找相关内容</div>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="composer">
-                        <div class="composer-inner">
-                            <textarea
-                                id="message-input"
-                                placeholder="输入消息... Shift+Enter 换行，Ctrl+K 打开命令面板"
-                                rows="1"
-                            ></textarea>
-                            <button id="send-btn" class="send-btn">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="22" y1="2" x2="11" y2="13"/>
-                                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="workbench-view" data-view="tasks">
-                    <div class="view-shell">
-                        <div class="view-shell-header">
-                            <h2>任务流</h2>
-                            <p>查看当前任务、计划步骤和执行进度。</p>
-                        </div>
-                        <div class="task-stream" id="task-stream">
-                            <div class="task-empty">暂无任务</div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="workbench-view" data-view="files">
-                    <div class="view-shell">
-                        <div class="view-shell-header">
-                            <h2>文件视图</h2>
-                            <p>浏览当前代码树，并在右侧查看文件详情。</p>
-                        </div>
-                        <div class="file-browser-view" id="file-browser-view">
-                            <div class="workspace-empty">正在加载文件树...</div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="workbench-view" data-view="workspace">
-                    <div class="view-shell">
-                        <div class="view-shell-header">
-                            <h2>Workspace</h2>
-                            <p>查看用户画像、记忆与项目上下文。</p>
-                        </div>
-                        <div class="workspace-overview" id="workspace-overview">
-                            <div class="workspace-empty">正在加载 Workspace...</div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="workbench-view" data-view="team">
-                    <div class="view-shell">
-                        <div class="view-shell-header">
-                            <h2>团队面板</h2>
-                            <p>查看当前成员分工与协作状态。</p>
-                        </div>
-                        <div class="team-overview" id="team-overview">
-                            <div class="team-empty">正在加载团队信息...</div>
-                        </div>
-                    </div>
-                </section>
+            <!-- Composer -->
+            <div class="composer">
+                <div class="composer-inner">
+                    <textarea
+                        id="message-input"
+                        placeholder="输入消息... Shift+Enter 换行"
+                        rows="1"
+                    ></textarea>
+                    <button id="send-btn" class="send-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </main>
 
-        <!-- Detail Sidebar -->
-        <aside class="preview-panel detail-sidebar" id="detail-sidebar">
+        <!-- File Preview Panel -->
+        <aside class="preview-panel" id="file-preview-panel">
             <div class="preview-header">
-                <div class="detail-sidebar-heading">
-                    <span class="preview-filename" id="preview-filename">详情侧栏</span>
-                    <span class="detail-sidebar-meta" id="detail-sidebar-meta">选择一个会话、任务或工具卡片查看详情</span>
-                </div>
+                <span class="preview-filename" id="preview-filename"></span>
                 <button class="icon-btn" id="close-preview">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -472,39 +356,9 @@
                 </button>
             </div>
             <div class="preview-body">
-                <div class="detail-sidebar-content" id="detail-sidebar-content">
-                    <div class="detail-card">
-                        <div class="detail-card-title">工作台提示</div>
-                        <div class="detail-card-body">聊天中的工具调用、文件预览、任务信息和会话摘要都会显示在这里。</div>
-                    </div>
-                </div>
                 <pre><code id="preview-content"></code></pre>
             </div>
         </aside>
-    </div>
-
-    <div class="modal-overlay" id="command-palette-modal">
-        <div class="modal-dialog command-palette-dialog">
-            <div class="modal-header">
-                <h2>命令面板</h2>
-                <button class="icon-btn" id="close-command-palette">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="search-input-wrap command-palette-input">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <circle cx="11" cy="11" r="8"/>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                    <input type="text" id="command-palette-input" placeholder="输入命令或操作...">
-                </div>
-                <div class="command-palette-list" id="command-palette-list"></div>
-            </div>
-        </div>
     </div>
 
     <!-- Settings Modal -->

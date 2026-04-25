@@ -34,21 +34,6 @@ myagent --version         # 显示版本
 | 命令 | 功能 |
 |------|------|
 | `/plan <request>` | 创建任务计划 |
-| `/agent <name>` | 切换 Agent |
-| `/model <name>` | 切换模型 |
-| `/session` | 查看当前会话摘要 |
-| `/setup` | 打开设置面板 |
-| `/doctor` | 查看当前 Web 工作台状态 |
-
-### 1.4 Web Command Palette
-
-| 触发方式 | 功能 |
-|---------|------|
-| `Ctrl+K` | 打开命令面板 |
-| `chat/tasks/files/workspace/team` | 切换工作台视图 |
-| `settings` | 打开设置 |
-| `input` | 聚焦消息输入框 |
-| `/help` | 查看支持的 Slash Commands |
 
 ---
 
@@ -69,12 +54,6 @@ Agent: I'll read the file for you.
 [Tool Result] file content...
 Agent: Based on the file content...
 ```
-
-Web 工作台中的对应形态：
-
-1. 聊天流中展示可折叠工具卡片
-2. 点击卡片后，在右侧详情侧栏查看参数与结果
-3. 长输出保留在详情侧栏中，减少主聊天流噪音
 
 ### 2.3 权限审批模式
 
@@ -102,23 +81,6 @@ Agent: [Executing...]
 Agent: [Review] All tasks completed successfully.
 ```
 
-### 2.5 工作台视图切换
-
-```
-User: Click "Tasks" in workbench nav
-UI: Main view switches from chat flow to task stream
-UI: Detail sidebar remains available for current task / session context
-```
-
-### 2.6 会话详情模式
-
-```
-User: Click a recent session card
-UI: Session becomes active
-UI: Header updates agent/model/status
-UI: Detail sidebar shows session summary
-```
-
 ---
 
 ## 3. 状态指示
@@ -131,8 +93,6 @@ UI: Detail sidebar shows session summary
 | Thinking | 处理中... |
 | Tool Call | 调用工具... |
 | Permission | 等待审批 |
-| Connected | WebSocket 已连接 |
-| Disconnected | WebSocket 未连接 |
 
 ### 3.2 任务状态
 

@@ -27,28 +27,22 @@ class TestWebFileBrowser:
         assert "entries" in data
         assert isinstance(data["entries"], list)
 
-    def test_list_files_with_path(self, client, monkeypatch):
+    def test_list_files_with_path(self, client):
         """Should list files in specified path."""
-        original_cwd = Path.cwd()
         with tempfile.TemporaryDirectory() as tmpdir:
             Path(tmpdir, "test.txt").write_text("hello")
-            monkeypatch.chdir(tmpdir)
             response = client.get(f"/api/files?path={tmpdir}")
             assert response.status_code == 200
             data = response.json()
             names = [e["name"] for e in data["entries"]]
             assert "test.txt" in names
-            monkeypatch.chdir(original_cwd)
 
-    def test_read_file(self, client, monkeypatch):
+    def test_read_file(self, client):
         """Should read file content."""
-        original_cwd = Path.cwd()
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir, "test.txt")
             test_file.write_text("hello world")
-            monkeypatch.chdir(tmpdir)
             response = client.get(f"/api/files/read?path={test_file}")
             assert response.status_code == 200
             data = response.json()
             assert data["content"] == "hello world"
-            monkeypatch.chdir(original_cwd)
