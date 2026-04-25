@@ -836,6 +836,25 @@ body {
   animation: fadeInUp 0.5s ease;
 }
 
+.welcome-hero {
+  width: min(760px, 100%);
+  display: grid;
+  gap: 12px;
+  padding: 28px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, var(--bg-secondary), rgba(22, 25, 36, 0.35));
+  box-shadow: var(--panel-glow);
+}
+
+.welcome-eyebrow {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -855,17 +874,17 @@ body {
 
 .welcome-screen p {
   font-size: 0.9rem;
-  max-width: 300px;
+  max-width: 620px;
 }
 
 /* Quick Action Cards */
-.quick-actions {
+.quick-actions,
+.welcome-action-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  max-width: 480px;
+  max-width: 100%;
   width: 100%;
-  margin-top: 24px;
 }
 
 .quick-card {
@@ -883,6 +902,10 @@ body {
   border-color: var(--accent-glow);
   transform: translateY(-2px);
   box-shadow: var(--shadow-glow);
+}
+
+.welcome-action-card {
+  min-height: 120px;
 }
 
 .quick-card .quick-icon {
@@ -2283,10 +2306,41 @@ body {
 }
 
 .task-empty {
-  padding: 12px;
-  text-align: center;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  text-align: left;
   color: var(--text-muted);
   font-size: 0.8rem;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.task-empty-title {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.task-empty-desc {
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.task-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.task-empty-primary {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--brand-gradient);
+  color: var(--text-inverse);
+  cursor: pointer;
 }
 
 .task-card {
@@ -2872,6 +2926,24 @@ body {
   font-size: 0.78rem;
   color: var(--text-secondary);
   line-height: 1.5;
+}
+
+.welcome-help-list {
+  display: grid;
+  gap: 10px;
+}
+
+.welcome-help-item {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.welcome-help-item strong {
+  color: var(--text-primary);
 }
 
 .detail-sidebar {

@@ -228,6 +228,24 @@ class TestWebServer:
         assert "--brand-gradient" in css
         assert "--panel-glow" in css
 
+    def test_static_app_contains_phase5_welcome_and_empty_states(self, client):
+        """Phase 5 第二批应重做欢迎页与任务空状态。"""
+        js_response = client.get("/static/app.js")
+        css_response = client.get("/static/style.css")
+        assert js_response.status_code == 200
+        assert css_response.status_code == 200
+        js = js_response.text
+        css = css_response.text
+        assert "welcome-hero" in js
+        assert "welcome-action-card" in js
+        assert "welcome-help-list" in js
+        assert "task-empty-title" in js
+        assert "task-empty-desc" in js
+        assert "task-empty-actions" in js
+        assert ".welcome-hero" in css
+        assert ".welcome-action-card" in css
+        assert ".task-empty-actions" in css
+
     def test_current_task_endpoint_returns_task_snapshot_and_team(self):
         """当前任务接口应返回任务快照与团队概览。"""
         app = create_app()

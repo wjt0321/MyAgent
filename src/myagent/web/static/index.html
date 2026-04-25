@@ -332,34 +332,34 @@
                 <section class="workbench-view active" data-view="chat">
                     <div class="messages" id="messages">
                         <div class="welcome-screen" id="welcome-screen">
-                            <div class="welcome-logo">
-                                <img src="/images/logo.svg" alt="MyAgent Logo" style="max-width: 400px; width: 100%; filter: drop-shadow(0 0 20px rgba(121, 40, 255, 0.4));">
+                            <div class="welcome-hero">
+                                <div class="welcome-eyebrow">MyAgent Workbench</div>
+                                <h1>从对话式助手，进入可执行工作台</h1>
+                                <p>把聊天、任务、团队和文件操作收敛到同一个 Workbench，让第一次进入也能快速知道下一步该做什么。</p>
                             </div>
-                            <h1>Welcome to MyAgent</h1>
-                            <p>Production-ready hybrid autonomous AI agent.</p>
                             <div class="welcome-grid">
                                 <div class="welcome-panel">
-                                    <div class="welcome-panel-title">快捷操作</div>
-                                    <div class="quick-actions">
-                                        <div class="quick-card" data-prompt="/plan 分析当前代码库结构">
+                                    <div class="welcome-panel-title">推荐动作</div>
+                                    <div class="welcome-action-grid">
+                                        <div class="quick-card welcome-action-card" data-prompt="/plan 分析当前代码库结构">
                                             <div class="quick-icon">📊</div>
                                             <div class="quick-title">分析代码库</div>
-                                            <div class="quick-desc">了解项目结构和关键文件</div>
+                                            <div class="quick-desc">快速生成任务计划，了解结构与关键文件。</div>
                                         </div>
-                                        <div class="quick-card" data-prompt="帮我写一个 Python 函数">
-                                            <div class="quick-icon">✨</div>
-                                            <div class="quick-title">编写代码</div>
-                                            <div class="quick-desc">根据需求生成代码实现</div>
+                                        <div class="quick-card welcome-action-card" data-prompt="解释这个项目的核心架构与关键模块">
+                                            <div class="quick-icon">🧭</div>
+                                            <div class="quick-title">理解架构</div>
+                                            <div class="quick-desc">先看系统边界、模块关系和主流程。</div>
                                         </div>
-                                        <div class="quick-card" data-prompt="解释这个项目的架构">
-                                            <div class="quick-icon">🏗️</div>
-                                            <div class="quick-title">解释架构</div>
-                                            <div class="quick-desc">深入理解系统设计</div>
-                                        </div>
-                                        <div class="quick-card" data-prompt="搜索关于 WebSocket 的代码">
+                                        <div class="quick-card welcome-action-card" data-prompt="搜索关于 WebSocket 的代码">
                                             <div class="quick-icon">🔍</div>
-                                            <div class="quick-title">代码搜索</div>
-                                            <div class="quick-desc">在代码库中查找相关内容</div>
+                                            <div class="quick-title">搜索代码</div>
+                                            <div class="quick-desc">定位接口、事件和实现入口。</div>
+                                        </div>
+                                        <div class="quick-card welcome-action-card" data-prompt="帮我写一个 Python 函数">
+                                            <div class="quick-icon">✨</div>
+                                            <div class="quick-title">开始实现</div>
+                                            <div class="quick-desc">直接进入编码、修改或重构任务。</div>
                                         </div>
                                     </div>
                                 </div>
@@ -370,20 +370,11 @@
                                     </div>
                                 </div>
                                 <div class="welcome-panel">
-                                    <div class="welcome-panel-title">当前能力</div>
-                                    <div class="capability-list">
-                                        <div class="tool-card">
-                                            <div class="tool-card-title">Slash Commands</div>
-                                            <div class="tool-card-desc">支持 `/plan`、`/agent`、`/model`、`/session` 等快捷命令。</div>
-                                        </div>
-                                        <div class="tool-card">
-                                            <div class="tool-card-title">Tool Cards</div>
-                                            <div class="tool-card-desc">把工具调用与结果收敛为可折叠卡片，减少聊天区噪音。</div>
-                                        </div>
-                                        <div class="tool-card">
-                                            <div class="tool-card-title">Workbench Views</div>
-                                            <div class="tool-card-desc">快速切换聊天、任务、文件、Workspace 与团队视图。</div>
-                                        </div>
+                                    <div class="welcome-panel-title">开始提示</div>
+                                    <div class="welcome-help-list">
+                                        <div class="welcome-help-item"><strong>/plan</strong> 先生成任务计划，再决定是否执行</div>
+                                        <div class="welcome-help-item"><strong>Ctrl+K</strong> 打开 Command Palette，快速跳转高频动作</div>
+                                        <div class="welcome-help-item"><strong>任务视图</strong> 查看 Task、Team、Review 与执行时间线</div>
                                     </div>
                                 </div>
                             </div>

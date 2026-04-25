@@ -35,6 +35,7 @@ class MyAgentWebApp {
             meta: '准备就绪',
             body: '选择一个会话、任务、文件或工具卡片查看更详细的信息。',
         });
+        this.renderWelcomeLanding();
         this.loadSessions();
         this.loadFileTree('.');
         this.loadWorkspace();
@@ -317,16 +318,7 @@ class MyAgentWebApp {
             if (e.target === this.settingsModal) this.closeSettings();
         });
 
-        // Quick action cards
-        document.querySelectorAll('.quick-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const prompt = card.dataset.prompt;
-                if (prompt) {
-                    this.messageInput.value = prompt;
-                    this.sendMessage();
-                }
-            });
-        });
+        this.bindQuickCards();
 
         // Settings tabs
         this.tabBtns.forEach(btn => {
@@ -722,6 +714,72 @@ class MyAgentWebApp {
         `;
     }
 
+    bindQuickCards() {
+        document.querySelectorAll('.quick-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const prompt = card.dataset.prompt;
+                if (prompt) {
+                    this.messageInput.value = prompt;
+                    this.sendMessage();
+                }
+            });
+        });
+    }
+
+    renderWelcomeLanding() {
+        if (!this.welcomeScreen || !this.setupReady) return;
+        this.welcomeScreen.style.display = 'flex';
+        this.welcomeScreen.innerHTML = `
+            <div class="welcome-hero">
+                <div class="welcome-eyebrow">MyAgent Workbench</div>
+                <h1>从对话式助手，进入可执行工作台</h1>
+                <p>把聊天、任务、团队和文件操作收敛到同一个 Workbench，让第一次进入也能快速知道下一步该做什么。</p>
+            </div>
+            <div class="welcome-grid">
+                <div class="welcome-panel">
+                    <div class="welcome-panel-title">推荐动作</div>
+                    <div class="welcome-action-grid">
+                        <div class="quick-card welcome-action-card" data-prompt="/plan 分析当前代码库结构">
+                            <div class="quick-icon">📊</div>
+                            <div class="quick-title">分析代码库</div>
+                            <div class="quick-desc">快速生成任务计划，了解结构与关键文件。</div>
+                        </div>
+                        <div class="quick-card welcome-action-card" data-prompt="解释这个项目的核心架构与关键模块">
+                            <div class="quick-icon">🧭</div>
+                            <div class="quick-title">理解架构</div>
+                            <div class="quick-desc">先看系统边界、模块关系和主流程。</div>
+                        </div>
+                        <div class="quick-card welcome-action-card" data-prompt="搜索关于 WebSocket 的代码">
+                            <div class="quick-icon">🔍</div>
+                            <div class="quick-title">搜索代码</div>
+                            <div class="quick-desc">定位接口、事件和实现入口。</div>
+                        </div>
+                        <div class="quick-card welcome-action-card" data-prompt="帮我写一个 Python 函数">
+                            <div class="quick-icon">✨</div>
+                            <div class="quick-title">开始实现</div>
+                            <div class="quick-desc">直接进入编码、修改或重构任务。</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="welcome-panel">
+                    <div class="welcome-panel-title">最近会话</div>
+                    <div class="recent-sessions" id="welcome-recent-sessions">
+                        <div class="recent-session-empty">暂无最近会话</div>
+                    </div>
+                </div>
+                <div class="welcome-panel">
+                    <div class="welcome-panel-title">开始提示</div>
+                    <div class="welcome-help-list">
+                        <div class="welcome-help-item"><strong>/plan</strong> 先生成任务计划，再决定是否执行</div>
+                        <div class="welcome-help-item"><strong>Ctrl+K</strong> 打开 Command Palette，快速跳转高频动作</div>
+                        <div class="welcome-help-item"><strong>任务视图</strong> 查看 Task、Team、Review 与执行时间线</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        this.bindQuickCards();
+    }
+
     async loadWorkspace() {
         try {
             const response = await fetch('/api/workspace');
@@ -972,6 +1030,8 @@ class MyAgentWebApp {
 
             if (this.sessions.length > 0 && !this.currentSessionId) {
                 this.selectSession(this.sessions[0].id);
+            } else if (!this.currentSessionId) {
+                this.renderWelcomeLanding();
             }
         } catch (error) {
             console.error('Failed to load sessions:', error);
@@ -1219,7 +1279,7 @@ class MyAgentWebApp {
                 body: `会话 ID：${session.id}\n消息数：${session.messages?.length || 0}\n最近更新：${this.formatDate(session.updated_at)}`,
             });
         } else {
-            this.welcomeScreen.style.display = 'flex';
+            this.renderWelcomeLanding();
         }
 
         if (!this.setupReady) {
@@ -1691,11 +1751,8 @@ class MyAgentWebApp {
         if (!this.taskPanel) return;
 
         if (!this.currentTask) {
-            this.taskPanel.innerHTML = `
-                <div class="task-empty">暂无任务</div>
-                ${this.restoreAvailable ? '<button class="task-restore-btn">恢复最近任务</button>' : ''}
-            `;
-            this.taskPanel.querySelector('.task-restore-btn')?.addEventListener('click', () => this.restoreTask());
+            this.taskPanel.innerHTML = this.renderTaskEmptyState();
+            this.bindTaskEmptyActions(this.taskPanel);
             this.renderTaskStream();
             return;
         }
@@ -1780,6 +1837,28 @@ class MyAgentWebApp {
                 <ul>${listItems}</ul>
             </div>
         `;
+    }
+
+    renderTaskEmptyState() {
+        return `
+            <div class="task-empty">
+                <div class="task-empty-title">还没有进行中的任务</div>
+                <div class="task-empty-desc">你可以先创建一个计划任务，或者把最近一次任务快照恢复回工作台。</div>
+                <div class="task-empty-actions">
+                    <button class="task-empty-primary">创建计划任务</button>
+                    ${this.restoreAvailable ? '<button class="task-restore-btn">恢复最近任务</button>' : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    bindTaskEmptyActions(container) {
+        container.querySelector('.task-empty-primary')?.addEventListener('click', () => {
+            this.setActiveView('chat');
+            this.messageInput.value = '/plan ';
+            this.messageInput.focus();
+        });
+        container.querySelector('.task-restore-btn')?.addEventListener('click', () => this.restoreTask());
     }
 
     renderTaskTimeline(events) {
@@ -1881,11 +1960,8 @@ class MyAgentWebApp {
     renderTaskStream() {
         if (!this.taskStream) return;
         if (!this.currentTask) {
-            this.taskStream.innerHTML = `
-                <div class="task-empty">暂无任务</div>
-                ${this.restoreAvailable ? '<button class="task-restore-btn">恢复最近任务</button>' : ''}
-            `;
-            this.taskStream.querySelector('.task-restore-btn')?.addEventListener('click', () => this.restoreTask());
+            this.taskStream.innerHTML = this.renderTaskEmptyState();
+            this.bindTaskEmptyActions(this.taskStream);
             return;
         }
 

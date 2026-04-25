@@ -89,6 +89,7 @@ Notes:
 - Task snapshots now include an execution timeline so member assignment, tool activity, and review transitions stay visible
 - The TUI task panel can now consume task snapshots and surface progress, active agents, latest timeline event, and review summary
 - Phase 5 branding begins with shared workbench naming and brand theme tokens across the Web shell and TUI header
+- Phase 5 batch 2 upgrades the welcome screen and empty states with a clearer hero, recommended actions, and stronger task-entry guidance
 
 ## Documentation
 
