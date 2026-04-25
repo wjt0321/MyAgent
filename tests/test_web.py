@@ -246,6 +246,24 @@ class TestWebServer:
         assert ".welcome-action-card" in css
         assert ".task-empty-actions" in css
 
+    def test_static_app_contains_phase5_tool_event_cards(self, client):
+        """Phase 5 第三批应提供统一的新版工具卡片系统。"""
+        js_response = client.get("/static/app.js")
+        css_response = client.get("/static/style.css")
+        assert js_response.status_code == 200
+        assert css_response.status_code == 200
+        js = js_response.text
+        css = css_response.text
+        assert "renderToolEventCard(" in js
+        assert "summarizeToolResult(" in js
+        assert "tool-status-chip" in js
+        assert "tool-event-summary" in js
+        assert "this.toolCallRegistry" in js
+        assert ".tool-event-card-v2" in css
+        assert ".tool-status-chip" in css
+        assert ".tool-event-summary" in css
+        assert ".tool-event-meta" in css
+
     def test_current_task_endpoint_returns_task_snapshot_and_team(self):
         """当前任务接口应返回任务快照与团队概览。"""
         app = create_app()

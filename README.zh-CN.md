@@ -90,6 +90,7 @@ myagent web --port 8000
 - TUI 任务面板现在也能消费任务快照，并显示进度、参与 agent、最近事件与审查摘要
 - Phase 5 第一批先统一了 Web 壳层与 TUI Header 的 Workbench 品牌命名与主题 token
 - Phase 5 第二批进一步重做欢迎页与空状态，让首屏推荐动作、帮助提示与任务入口更清楚
+- Phase 5 第三批把工具执行升级为统一卡片系统，按 `tool_use_id` 串联调用与结果，并补充摘要与状态芯片
 
 ## 文档
 

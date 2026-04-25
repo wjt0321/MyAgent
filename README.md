@@ -90,6 +90,7 @@ Notes:
 - The TUI task panel can now consume task snapshots and surface progress, active agents, latest timeline event, and review summary
 - Phase 5 branding begins with shared workbench naming and brand theme tokens across the Web shell and TUI header
 - Phase 5 batch 2 upgrades the welcome screen and empty states with a clearer hero, recommended actions, and stronger task-entry guidance
+- Phase 5 batch 3 upgrades tool execution into a unified card system with summaries, status chips, and linked result cards by `tool_use_id`
 
 ## Documentation
 

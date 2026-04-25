@@ -24,6 +24,7 @@ class MyAgentWebApp {
         this.commandPaletteIndex = 0;
         this.taskPollingTimer = null;
         this.restoreAvailable = false;
+        this.toolCallRegistry = new Map();
 
         this.initTheme();
         this.initElements();
@@ -1382,11 +1383,11 @@ class MyAgentWebApp {
                 break;
 
             case 'tool_call':
-                this.addToolCall(data.tool_name, data.arguments);
+                this.addToolCall(data.tool_name, data.arguments, data.tool_use_id);
                 break;
 
             case 'tool_result':
-                this.addToolResult(data.result, data.is_error);
+                this.addToolResult(data.result, data.is_error, data.tool_use_id);
                 break;
 
             case 'error':
@@ -1404,8 +1405,7 @@ class MyAgentWebApp {
                 break;
 
             case 'permission_result':
-                const status = data.approved ? 'approved' : 'denied';
-                this.addMessage('tool-result', `Permission ${status}: ${data.reason}`, false);
+                this.addPermissionResult(data.approved, data.reason);
                 break;
 
             case 'token_usage':
@@ -2237,26 +2237,94 @@ class MyAgentWebApp {
         this.scrollToBottom();
     }
 
-    addToolCall(toolName, args) {
+    summarizeToolArguments(args) {
+        if (!args || Object.keys(args).length === 0) {
+            return '无参数';
+        }
+        if (typeof args.command === 'string' && args.command.trim()) {
+            return args.command.trim();
+        }
+        const firstPair = Object.entries(args)[0];
+        if (!firstPair) {
+            return '无参数';
+        }
+        return `${firstPair[0]}: ${String(firstPair[1])}`.slice(0, 96);
+    }
+
+    summarizeToolResult(result, isError = false) {
+        const text = String(result || '').trim();
+        if (!text) {
+            return isError ? '工具调用失败，暂无输出。' : '工具调用完成，暂无输出。';
+        }
+        const firstLine = text.split('\n')[0].trim();
+        const summary = firstLine.length > 96 ? `${firstLine.slice(0, 96)}...` : firstLine;
+        return summary;
+    }
+
+    renderToolEventCard({
+        kind,
+        title,
+        toolUseId = '',
+        summary,
+        payload,
+        icon,
+        statusLabel,
+        statusTone,
+        meta,
+    }) {
+        const payloadText = typeof payload === 'string'
+            ? payload
+            : JSON.stringify(payload || {}, null, 2);
+        return `
+            <details class="tool-collapsible tool-event-card tool-event-card-v2 ${statusTone}" ${kind === 'tool-result' ? 'open' : ''}>
+                <summary>
+                    <span class="tool-icon">${icon}</span>
+                    <span class="tool-event-heading">
+                        <span class="tool-name">${this.escapeHtml(title)}</span>
+                        <span class="tool-event-summary">${this.escapeHtml(summary)}</span>
+                    </span>
+                    <span class="tool-status-chip ${statusTone}">${this.escapeHtml(statusLabel)}</span>
+                    <span class="tool-toggle">▶</span>
+                </summary>
+                <div class="tool-event-meta">
+                    <span>${this.escapeHtml(meta)}</span>
+                    ${toolUseId ? `<span>Use ID: ${this.escapeHtml(toolUseId)}</span>` : ''}
+                </div>
+                <pre><code>${this.escapeHtml(payloadText)}</code></pre>
+            </details>
+        `;
+    }
+
+    addToolCall(toolName, args, toolUseId = '') {
+        if (toolUseId) {
+            this.toolCallRegistry.set(toolUseId, {
+                toolName,
+                arguments: args,
+            });
+        }
         const div = document.createElement('div');
         div.className = 'message tool-call';
+        const summary = this.summarizeToolArguments(args);
         div.innerHTML = `
             <div class="role-label">Tool</div>
             <div class="content">
-                <details class="tool-collapsible tool-event-card">
-                    <summary>
-                        <span class="tool-icon">🔧</span>
-                        <span class="tool-name">${this.escapeHtml(toolName)}</span>
-                        <span class="tool-toggle">▶</span>
-                    </summary>
-                    <pre><code>${this.escapeHtml(JSON.stringify(args, null, 2))}</code></pre>
-                </details>
+                ${this.renderToolEventCard({
+                    kind: 'tool-call',
+                    title: toolName,
+                    toolUseId,
+                    summary,
+                    payload: args,
+                    icon: '🔧',
+                    statusLabel: '运行中',
+                    statusTone: 'pending',
+                    meta: 'Tool Call',
+                })}
             </div>
         `;
         div.addEventListener('click', () => {
             this.renderDetailSidebar('tool', {
                 title: toolName,
-                meta: 'Tool Call',
+                meta: toolUseId ? `Tool Call · ${toolUseId}` : 'Tool Call',
                 body: JSON.stringify(args, null, 2),
             });
         });
@@ -2264,29 +2332,62 @@ class MyAgentWebApp {
         this.scrollToBottom();
     }
 
-    addToolResult(result, isError) {
+    addToolResult(result, isError, toolUseId = '') {
         const div = document.createElement('div');
         div.className = `message tool-result ${isError ? 'error' : ''}`;
-        const icon = isError ? '❌' : '✅';
-        const label = isError ? 'Error' : 'Result';
+        const registry = toolUseId ? this.toolCallRegistry.get(toolUseId) : null;
+        const toolName = registry?.toolName || '工具调用';
+        const summary = this.summarizeToolResult(result, isError);
         div.innerHTML = `
-            <div class="role-label">${label}</div>
+            <div class="role-label">${isError ? 'Error' : 'Result'}</div>
             <div class="content">
-                <details class="tool-collapsible tool-event-card">
-                    <summary>
-                        <span class="tool-icon">${icon}</span>
-                        <span class="tool-name">${isError ? 'Execution Failed' : 'Execution Complete'}</span>
-                        <span class="tool-toggle">▶</span>
-                    </summary>
-                    <pre><code>${this.escapeHtml(result)}</code></pre>
-                </details>
+                ${this.renderToolEventCard({
+                    kind: 'tool-result',
+                    title: toolName,
+                    toolUseId,
+                    summary,
+                    payload: result,
+                    icon: isError ? '❌' : '✅',
+                    statusLabel: isError ? '失败' : '完成',
+                    statusTone: isError ? 'error' : 'success',
+                    meta: isError ? 'Tool Result · Error' : 'Tool Result',
+                })}
             </div>
         `;
         div.addEventListener('click', () => {
             this.renderDetailSidebar('tool-result', {
-                title: isError ? 'Execution Failed' : 'Execution Complete',
+                title: toolName,
                 meta: isError ? '错误结果' : '成功结果',
-                body: result,
+                body: String(result),
+            });
+        });
+        this.messagesContainer.appendChild(div);
+        this.scrollToBottom();
+    }
+
+    addPermissionResult(approved, reason) {
+        const div = document.createElement('div');
+        div.className = `message tool-result ${approved ? '' : 'error'}`;
+        div.innerHTML = `
+            <div class="role-label">Result</div>
+            <div class="content">
+                ${this.renderToolEventCard({
+                    kind: 'permission-result',
+                    title: 'Permission Request',
+                    summary: reason || (approved ? '已批准执行。' : '已拒绝执行。'),
+                    payload: reason || '',
+                    icon: approved ? '🟢' : '🛑',
+                    statusLabel: approved ? '已批准' : '已拒绝',
+                    statusTone: approved ? 'success' : 'error',
+                    meta: 'Permission Result',
+                })}
+            </div>
+        `;
+        div.addEventListener('click', () => {
+            this.renderDetailSidebar('tool-result', {
+                title: 'Permission Request',
+                meta: approved ? '已批准' : '已拒绝',
+                body: reason || '',
             });
         });
         this.messagesContainer.appendChild(div);

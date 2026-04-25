@@ -1258,7 +1258,7 @@ body {
 .tool-collapsible summary {
   cursor: pointer;
   font-weight: 500;
-  padding: 6px 10px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
   outline: none;
   display: flex;
@@ -1281,6 +1281,21 @@ body {
   font-size: 13px;
 }
 
+.tool-event-heading {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.tool-event-summary {
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .tool-collapsible .tool-toggle {
   font-size: 10px;
   transition: transform 0.2s ease;
@@ -1298,6 +1313,65 @@ body {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-default);
   overflow-x: auto;
+}
+
+.tool-event-card-v2 {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, var(--bg-secondary), var(--bg-tertiary));
+  overflow: hidden;
+}
+
+.tool-event-card-v2.pending {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border-default));
+}
+
+.tool-event-card-v2.success {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--border-default));
+}
+
+.tool-event-card-v2.error {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border-default));
+}
+
+.tool-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+.tool-status-chip.pending {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 36%, transparent);
+}
+
+.tool-status-chip.success {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  border-color: color-mix(in srgb, var(--success) 36%, transparent);
+}
+
+.tool-status-chip.error {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 36%, transparent);
+}
+
+.tool-event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 12px 2px;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .message.tool-call .tool-collapsible summary {
