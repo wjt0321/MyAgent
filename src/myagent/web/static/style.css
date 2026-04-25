@@ -3004,6 +3004,23 @@ body {
   cursor: pointer;
 }
 
+.task-retry-btn {
+  margin-top: 0.65rem;
+  margin-left: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.task-team-summary {
+  margin-top: 0.65rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
 .task-step-item {
   display: flex;
   gap: 10px;

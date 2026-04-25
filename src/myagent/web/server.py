@@ -406,6 +406,31 @@ def create_app() -> FastAPI:
 
         return {"status": "cancelled", "task": task.to_dict()}
 
+    @app.post("/api/tasks/{task_id}/retry")
+    async def retry_task(task_id: str) -> dict[str, Any]:
+        """Reset a failed or cancelled task so it can be executed again."""
+        task_engine: TaskEngine = app.state.task_engine
+        task = task_engine.get_current_task()
+        if task is None or task.id != task_id:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Task not found")
+        if task.status not in {TaskStatus.FAILED, TaskStatus.CANCELLED}:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="Task is not retryable")
+
+        task.result = None
+        task.review_passed = False
+        task.plan_approved = False
+        task.update_status(TaskStatus.PLANNED)
+        for subtask in task.subtasks:
+            subtask.status = TaskStatus.PENDING
+            subtask.error = None
+            subtask.result = ""
+            subtask.started_at = None
+            subtask.completed_at = None
+
+        return {"status": "retried", "task": task.to_dict()}
+
     async def _run_task_execution(
         task_engine: TaskEngine,
         orchestrator: TeamOrchestrator,

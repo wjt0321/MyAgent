@@ -15,6 +15,7 @@ from myagent.engine.stream_events import (
     ToolExecutionStarted,
 )
 from myagent.tasks.models import SubTask, Task, TaskStatus
+from myagent.tasks.models import TaskResult
 from myagent.web.engine_manager import WebEngineManager
 from myagent.web.server import create_app
 from myagent.web.session import SessionStore
@@ -201,6 +202,8 @@ class TestWebServer:
         assert "renderDetailSidebar(" in content
         assert "startTaskPolling(" in content
         assert "cancelTask(" in content
+        assert "retryTask(" in content
+        assert "task-team-summary" in content
         assert "task-review-card" in content
         assert "result.summary" in content
         assert "<<<<<<<" not in content
@@ -243,3 +246,48 @@ class TestWebServer:
         data = response.json()
         assert data["status"] == "cancelled"
         assert data["task"]["status"] == "cancelled"
+
+    def test_retry_task_endpoint_resets_failed_task(self):
+        """重试接口应重置失败任务并重新进入待执行状态。"""
+        app = create_app()
+        task = Task(
+            title="实现 Phase 4",
+            description="让任务流对用户可见",
+            status=TaskStatus.FAILED,
+            subtasks=[
+                SubTask(
+                    description="失败的子任务",
+                    status=TaskStatus.FAILED,
+                    error="boom",
+                    result="old result",
+                )
+            ],
+        )
+        task.result = TaskResult(summary="old review")
+
+        with TestClient(app) as client:
+            app.state.task_engine._current_task = task
+            response = client.post(f"/api/tasks/{task.id}/retry")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "retried"
+        assert data["task"]["status"] == "planned"
+        assert data["task"]["subtasks"][0]["status"] == "pending"
+        assert data["task"]["subtasks"][0]["error"] is None
+
+    def test_retry_task_endpoint_rejects_non_retryable_status(self):
+        """只有 failed 或 cancelled 的任务才能重试。"""
+        app = create_app()
+        task = Task(
+            title="实现 Phase 4",
+            description="让任务流对用户可见",
+            status=TaskStatus.EXECUTING,
+            subtasks=[SubTask(description="执行中的子任务", status=TaskStatus.EXECUTING)],
+        )
+
+        with TestClient(app) as client:
+            app.state.task_engine._current_task = task
+            response = client.post(f"/api/tasks/{task.id}/retry")
+
+        assert response.status_code == 400

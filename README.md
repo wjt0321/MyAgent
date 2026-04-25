@@ -82,6 +82,8 @@ Notes:
 - Use slash commands like `/plan`, `/agent`, `/model`, `/session`, `/setup`, and `/doctor`
 - Click tool cards, tasks, sessions, or files to inspect details in the right sidebar
 - Approving a task now enters the visible `Task -> Team -> Review` workflow, with live snapshot polling and review summary cards
+- Failed or cancelled tasks can be reset with a retry action, then approved again for a fresh execution pass
+- The task view now includes a lightweight team summary so execution load and completion counts stay visible
 
 ## Documentation
 

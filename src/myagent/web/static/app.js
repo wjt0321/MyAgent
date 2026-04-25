@@ -1602,6 +1602,26 @@ class MyAgentWebApp {
         }
     }
 
+    async retryTask() {
+        if (!this.currentTask) return;
+
+        try {
+            const response = await fetch(`/api/tasks/${this.currentTask.id}/retry`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.currentTask = data.task;
+                this.renderTaskPanel();
+                this.addMessage('assistant', `任务 "${this.currentTask.title}" 已重置，可重新批准执行。`, false);
+            }
+        } catch (error) {
+            console.error('Failed to retry task:', error);
+        }
+    }
+
     async loadCurrentTask() {
         try {
             const response = await fetch('/api/tasks/current');
@@ -1674,6 +1694,11 @@ class MyAgentWebApp {
         const reviewSummary = task.result?.summary
             ? `<div class="task-card-summary">${this.escapeHtml(task.result.summary)}</div>`
             : '';
+        const teamSummary = this.teamData
+            ? `<div class="task-team-summary">Team: ${this.escapeHtml(String(this.teamData.busy_members || 0))} busy / ${this.escapeHtml(String(this.teamData.total_completed || 0))} completed</div>`
+            : '';
+        const canCancel = ['planning', 'planned', 'executing', 'executed', 'reviewing'].includes(task.status);
+        const canRetry = ['failed', 'cancelled'].includes(task.status);
 
         this.taskPanel.innerHTML = `
             <div class="task-card" data-task-id="${task.id}">
@@ -1682,8 +1707,10 @@ class MyAgentWebApp {
                 <div class="task-progress">
                     <div class="task-progress-bar" style="width: ${progress}%"></div>
                 </div>
+                ${teamSummary}
                 ${reviewSummary}
-                ${['planning', 'planned', 'executing', 'executed', 'reviewing'].includes(task.status) ? '<button class="task-cancel-btn">取消任务</button>' : ''}
+                ${canCancel ? '<button class="task-cancel-btn">取消任务</button>' : ''}
+                ${canRetry ? '<button class="task-retry-btn">重新执行</button>' : ''}
             </div>
         `;
 
@@ -1704,6 +1731,10 @@ class MyAgentWebApp {
         this.taskPanel.querySelector('.task-cancel-btn')?.addEventListener('click', (event) => {
             event.stopPropagation();
             this.cancelTask();
+        });
+        this.taskPanel.querySelector('.task-retry-btn')?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            this.retryTask();
         });
 
         this.renderTaskStream();
@@ -1819,17 +1850,29 @@ class MyAgentWebApp {
                 ` : ''}
             </div>
         ` : '';
+        const teamSummary = this.teamData ? `
+            <div class="task-team-summary">
+                Team: ${this.escapeHtml(String(this.teamData.idle_members || 0))} idle /
+                ${this.escapeHtml(String(this.teamData.busy_members || 0))} busy /
+                ${this.escapeHtml(String(this.teamData.total_completed || 0))} completed
+            </div>
+        ` : '';
+        const canCancel = ['planning', 'planned', 'executing', 'executed', 'reviewing'].includes(task.status);
+        const canRetry = ['failed', 'cancelled'].includes(task.status);
 
         this.taskStream.innerHTML = `
             <div class="task-stream-card">
                 <div class="task-stream-title">${this.escapeHtml(task.title)}</div>
                 <div class="task-stream-meta">状态：${this.escapeHtml(task.status || 'pending')}</div>
-                ${['planning', 'planned', 'executing', 'executed', 'reviewing'].includes(task.status) ? '<button class="task-cancel-btn">取消任务</button>' : ''}
+                ${teamSummary}
+                ${canCancel ? '<button class="task-cancel-btn">取消任务</button>' : ''}
+                ${canRetry ? '<button class="task-retry-btn">重新执行</button>' : ''}
                 <div class="task-step-list">${steps || '<div class="task-empty">暂无步骤</div>'}</div>
                 ${reviewCard}
             </div>
         `;
         this.taskStream.querySelector('.task-cancel-btn')?.addEventListener('click', () => this.cancelTask());
+        this.taskStream.querySelector('.task-retry-btn')?.addEventListener('click', () => this.retryTask());
     }
 
     renderWorkspaceOverview() {
