@@ -10,6 +10,7 @@
 
 ```bash
 myagent init              # 初始化 Workspace
+myagent init --quick      # 生成最小可用配置
 myagent web               # 启动 Web UI
 myagent gateway           # 启动 Gateway
 myagent doctor            # 诊断系统
@@ -23,11 +24,15 @@ myagent --version         # 显示版本
 |------|------|
 | `/exit` | 退出 |
 | `/clear` | 清屏 |
+| `/help` | 打开帮助浮层 |
 | `/agent <name>` | 切换 Agent |
 | `/provider <name>` | 切换 Provider |
 | `/model <name>` | 切换模型 |
 | `/memory` | 查看记忆 |
 | `/plan <request>` | 创建任务计划 |
+| `/setup` | 打开 setup handoff 浮层 |
+| `/doctor` | 打开 setup 健康摘要浮层 |
+| `/session` | 打开当前会话摘要浮层 |
 
 ### 1.3 Web UI 命令
 
@@ -62,7 +67,29 @@ Agent: I need to write to src/main.py. Approve?
 [Approve] [Reject]
 ```
 
-### 2.4 任务工作流模式
+### 2.4 Setup Handoff 模式
+
+```text
+App: Setup Required
+  - Workspace 尚未初始化
+  - 未检测到可用的 API Key
+  - Next: myagent init --quick
+[Close]
+```
+
+### 2.5 Command Palette 模式
+
+```text
+Ctrl+K
+┌ Command Palette ──────────────────────┐
+│ /help     查看帮助与快捷键             │
+│ /setup    查看初始化与修复建议         │
+│ /session  查看当前会话摘要             │
+│ /plan     查看规划入口说明             │
+└───────────────────────────────────────┘
+```
+
+### 2.6 任务工作流模式
 
 ```
 User: /plan Implement user authentication
@@ -93,6 +120,7 @@ Agent: [Review] All tasks completed successfully.
 | Thinking | 处理中... |
 | Tool Call | 调用工具... |
 | Permission | 等待审批 |
+| Setup Required | 配置未完成，需进入初始化 |
 
 ### 3.2 任务状态
 
@@ -108,7 +136,16 @@ Agent: [Review] All tasks completed successfully.
 | Failed | 红色 |
 | Cancelled | 灰色 |
 
-### 3.3 团队成员状态
+### 3.3 TUI 侧栏状态
+
+| 区域 | 内容 |
+|------|------|
+| 状态概览 | Agent、Model、Workspace、Setup 状态 |
+| 任务状态 | 当前任务状态、最近请求、说明 |
+| 活动轨迹 | 最近工具、`tool_use_id`、执行状态、详情摘要 |
+| 当前响应 | 最新流式内容 |
+
+### 3.4 团队成员状态
 
 | 状态 | 颜色 |
 |------|------|

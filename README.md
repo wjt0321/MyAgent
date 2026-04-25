@@ -23,16 +23,16 @@ Supported platforms: **Feishu/Lark, Slack, Discord, Telegram, DingTalk, WeCom, W
 
 ## Features
 
-- **Multi-Channel Gateway** — Unified inbox for all messaging platforms (Telegram, Discord, Slack, Feishu, etc.)
-- **TUI Interface** — Rich terminal UI with ASCII art logo
-- **Web UI** — Real-time WebSocket chat with JWT authentication and multi-user session isolation
+- **Multi-Channel Gateway Foundation** — Platform adapters, session isolation, and permission hooks for Telegram, Discord, Slack, Feishu, and more
+- **TUI Workbench** — Setup-aware terminal UI with status sidebar, command palette, slash commands, and modal approvals
+- **Web UI** — Real-time WebSocket chat with JWT authentication, multi-user session isolation, and setup-status gating
 - **Multi-LLM Support** — 40+ Providers (Intl + China): Anthropic (Claude 4.6/4.5), OpenAI (GPT-5.5/5/4.5), DeepSeek (V4 Pro/V4 Flash/V3/R1), Gemini (3.1 Pro/3 Flash/2.5 Pro), xAI (Grok 4/3), Qwen 3.6, Ollama, OpenRouter, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Baidu ERNIE, iFlytek Spark, ByteDance Doubao, Tencent Hunyuan, Cohere, SiliconFlow
 - **Context Compression** — Automatic conversation compaction with AutoCompactor
 - **Session Management** — Per-user, per-group, per-thread sessions with persistent bindings
 - **Tool Calling** — Bash, Code Interpreter (Python sandbox), file edit, web search, image analysis, Git operations
 - **Permission System** — Inline approval requests in Telegram and Web UI with tool_use_id tracking
 - **GitHub Integration** — Webhook-based PR/Issue analysis and auto-comments with server-side secret validation
-- **Production Ready** — Docker, health checks, Prometheus metrics, structured JSON logging, config hot-reload, LLM exponential backoff retry, Grafana Dashboard, Helm Chart
+- **Deployment Toolkit** — Docker image, compose stack, health checks, Prometheus metrics, structured JSON logging, and Helm Chart
 - **Security** — JWT authentication for Web UI, path-restricted file access, WebSocket session isolation, webhook signature verification
 
 ## Screenshots
@@ -55,21 +55,25 @@ Supported platforms: **Feishu/Lark, Slack, Discord, Telegram, DingTalk, WeCom, W
 # Install
 pip install myagent
 
-# Initialize (interactive wizard)
-myagent init
+# Quick setup for first boot
+myagent init --quick
 
-# Verify setup
+# Verify missing pieces and next step
 myagent doctor
 
-# Start services
-myagent gateway --port 18789    # Gateway server
-myagent web --port 8000          # Web UI
-
-# Or use the TUI
+# Recommended local entry: TUI
 myagent --tui
+
+# Or launch the Web UI
+myagent web --port 8000
 ```
 
 Open http://localhost:8000 in your browser.
+
+Notes:
+- `myagent init` remains the full interactive wizard.
+- `myagent init --quick` creates the base workspace, config templates, and `.env` scaffold.
+- When setup is incomplete, both TUI and Web show `Setup Required` with the next suggested action.
 
 ## Documentation
 
@@ -81,10 +85,10 @@ Open http://localhost:8000 in your browser.
 
 ```bash
 myagent init              # Interactive setup wizard
-myagent doctor            # Diagnose configuration
+myagent init --quick      # Generate a minimal local-ready setup
+myagent doctor            # Diagnose setup status and suggest next action
 myagent web               # Start Web UI server
-myagent gateway           # Start Gateway server
-myagent --tui             # Start TUI interface
+myagent --tui             # Start TUI workbench
 myagent --version         # Show version
 ```
 
@@ -149,13 +153,15 @@ MYAGENT_MODEL_DEFAULT=anthropic/claude-sonnet-4
 docker build -t myagent .
 docker run -d \
   -p 8000:8000 \
-  -p 18789:18789 \
-  -v ~/.myagent:/app/.myagent \
+  -v myagent-data:/app/data \
   -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
   myagent
 ```
 
-Or use `docker-compose up -d`.
+Notes:
+- The default image entrypoint runs the Web UI only.
+- TUI is intended for local terminal use, not as a container default process.
+- For multi-service local deployment, use `docker compose up -d web` or `docker compose --profile bot up -d`.
 
 ### Kubernetes (Helm)
 

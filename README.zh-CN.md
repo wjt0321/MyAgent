@@ -23,16 +23,16 @@
 
 ## 功能特性
 
-- **多渠道网关** — 统一管理所有消息平台的收件箱（Telegram、Discord、Slack、飞书等）
-- **TUI 界面** — 带有 ASCII 艺术 Logo 的富终端界面
-- **Web UI** — 基于 WebSocket 的实时聊天，支持 JWT 认证与多用户会话隔离
+- **多渠道网关底座** — 提供 Telegram、Discord、Slack、飞书等平台适配器、会话隔离和权限审批钩子
+- **TUI 工作台** — 具备 setup 感知、状态侧栏、Command Palette、Slash Commands 与浮层审批的终端主界面
+- **Web UI** — 基于 WebSocket 的实时聊天，支持 JWT 认证、多用户会话隔离，以及 setup 状态兜底
 - **多 LLM 支持** — 40+ Provider（含国内/国际版）：Anthropic（Claude 4.6/4.5）、OpenAI（GPT-5.5/5/4.5）、DeepSeek（V4 Pro/V4 Flash/V3/R1）、Gemini（3.1 Pro/3 Flash/2.5 Pro）、xAI（Grok 4/3）、Qwen 3.6、Ollama、OpenRouter、智谱/智谱-CN、Moonshot/Moonshot-CN、MiniMax/MiniMax-CN、阿里云/阿里云-CN、HuggingFace、NVIDIA、Arcee、Xiaomi、百度文心一言、讯飞星火、字节豆包、腾讯混元、Cohere、SiliconFlow
 - **上下文压缩** — 自动压缩对话历史，支持 AutoCompactor
 - **会话管理** — 支持按用户、按群组、按话题的会话隔离，支持持久化绑定
 - **工具调用** — Bash、代码解释器（Python 沙箱）、文件编辑、网页搜索、图像分析、Git 操作
 - **权限系统** — Telegram 内联键盘审批与 Web UI 权限请求，支持 tool_use_id 追踪
 - **GitHub 集成** — Webhook 驱动的 PR/Issue 分析与自动评论，服务端密钥验证
-- **生产就绪** — Docker、健康检查、Prometheus 指标、结构化 JSON 日志、配置热重载、LLM 指数退避重试、Grafana Dashboard、Helm Chart
+- **部署工具链** — Docker 镜像、compose 编排、健康检查、Prometheus 指标、结构化 JSON 日志和 Helm Chart
 - **安全增强** — Web UI JWT 认证、文件访问路径限制、WebSocket 会话隔离、Webhook 签名验证
 
 ## 界面截图
@@ -55,21 +55,25 @@
 # 安装
 pip install myagent
 
-# 初始化（交互式向导）
-myagent init
+# 首次快速初始化
+myagent init --quick
 
-# 验证配置
+# 检查缺失项与下一步动作
 myagent doctor
 
-# 启动服务
-myagent gateway --port 18789    # 网关服务
-myagent web --port 8000          # Web UI
-
-# 或使用 TUI
+# 推荐本地入口：TUI
 myagent --tui
+
+# 或启动 Web UI
+myagent web --port 8000
 ```
 
 在浏览器中打开 http://localhost:8000。
+
+说明：
+- `myagent init` 仍然是完整的交互式向导。
+- `myagent init --quick` 会生成基础目录、配置模板和 `.env` 脚手架。
+- 当配置未完成时，TUI 与 Web 都会进入 `Setup Required` 状态，并提示下一步命令。
 
 ## 文档
 
@@ -81,10 +85,10 @@ myagent --tui
 
 ```bash
 myagent init              # 交互式配置向导
-myagent doctor            # 诊断配置问题
+myagent init --quick      # 生成最小可用的本地配置
+myagent doctor            # 诊断 setup 状态并给出下一步建议
 myagent web               # 启动 Web UI 服务
-myagent gateway           # 启动网关服务
-myagent --tui             # 启动 TUI 界面
+myagent --tui             # 启动 TUI 工作台
 myagent --version         # 显示版本
 ```
 
@@ -149,13 +153,15 @@ MYAGENT_MODEL_DEFAULT=anthropic/claude-sonnet-4
 docker build -t myagent .
 docker run -d \
   -p 8000:8000 \
-  -p 18789:18789 \
-  -v ~/.myagent:/app/.myagent \
+  -v myagent-data:/app/data \
   -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
   myagent
 ```
 
-或使用 `docker-compose up -d`。
+说明：
+- 默认镜像入口只启动 Web UI。
+- TUI 适合本地终端直接运行，不建议作为容器默认进程。
+- 如需多服务编排，请使用 `docker compose up -d web` 或 `docker compose --profile bot up -d`。
 
 ### Kubernetes (Helm)
 

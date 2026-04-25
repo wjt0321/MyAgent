@@ -23,7 +23,8 @@ docs/
 ├── design/                           # 设计文档 — 交互设计与 UI 规范
 │   ├── 01-tui-design.md             # TUI 终端界面设计
 │   ├── 02-web-ui-design.md          # Web UI 设计规范
-│   └── 03-interaction-patterns.md   # 交互模式与命令规范
+│   ├── 03-interaction-patterns.md   # 交互模式与命令规范
+│   └── 05-tui-experience.md         # Phase 2 TUI 体验基线
 ├── reference/                        # 参考文档 — 配置、API、使用指南
 │   ├── 01-getting-started.md        # 快速入门
 │   ├── 02-configuration.md          # 配置参考
@@ -65,6 +66,7 @@ docs/
 | 安全边界 | [08-security-boundary.md](architecture/08-security-boundary.md) |
 | UI 事件契约 | [09-ui-state-and-event-contract.md](architecture/09-ui-state-and-event-contract.md) |
 | TUI | [01-tui-design.md](design/01-tui-design.md) |
+| TUI 体验基线 | [05-tui-experience.md](design/05-tui-experience.md) |
 | Web UI | [02-web-ui-design.md](design/02-web-ui-design.md) |
 | Web API 接口 | [05-web-api-contract.md](reference/05-web-api-contract.md) |
 | 配置 | [02-configuration.md](reference/02-configuration.md) |
@@ -94,9 +96,10 @@ docs/
 | architecture/07-gateway.md | ✅ | Gateway 框架完成，Telegram/GitHub 适配器已就绪，Discord/Slack/Feishu 增强完成 |
 | architecture/08-security-boundary.md | ✅ | 安全边界文档，Web UI/文件/GitHub Webhook 安全规则 |
 | architecture/09-ui-state-and-event-contract.md | ✅ | Phase 0 UI 状态与事件契约基线 |
-| design/01-tui-design.md | ✅ | TUI 设计规范 |
+| design/01-tui-design.md | ✅ | TUI 结构与命令基线已同步到 Phase 2 |
 | design/02-web-ui-design.md | ✅ | Web UI 已重构，JWT 认证、模型选择、主题切换、导出已添加 |
-| design/03-interaction-patterns.md | ✅ | 基础交互模式，TUI Ctrl+R 重生成、Token 统计已添加 |
+| design/03-interaction-patterns.md | ✅ | 交互模式已补齐 setup handoff、Command Palette、TUI 侧栏状态 |
+| design/05-tui-experience.md | ✅ | Phase 2 TUI 体验基线文档 |
 | reference/01-getting-started.md | ✅ | 快速入门指南 |
 | reference/02-configuration.md | ✅ | 配置参考 |
 | reference/03-production.md | ✅ | 生产部署指南，Helm Chart、Grafana Dashboard、Prometheus 告警已添加 |
@@ -118,6 +121,7 @@ docs/
 | `design-doc/DESIGN.md` | [architecture/01-overview.md](architecture/01-overview.md) | 架构总览 |
 | `design-doc/ROADMAP.md` | [architecture/01-overview.md#路线图](architecture/01-overview.md) | 路线图 |
 | `design-doc/TUI-DESIGN.md` | [design/01-tui-design.md](design/01-tui-design.md) | TUI 设计 |
+| `docs/design/05-tui-experience.md` | [design/05-tui-experience.md](design/05-tui-experience.md) | Phase 2 TUI 体验基线 |
 | `design-doc/PLAN-next-iteration.md` | [plans/v0.11.0-redesign.md](plans/v0.11.0-redesign.md) | 迭代计划 |
 | `design-doc/PLAN-tui-queryengine-integration.md` | [design/01-tui-design.md](design/01-tui-design.md) | TUI 集成计划 |
 | `design-doc/PLAN-v0.5.0-next-iteration.md` | [plans/v0.11.0-redesign.md](plans/v0.11.0-redesign.md) | 早期迭代计划 |

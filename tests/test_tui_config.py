@@ -5,8 +5,6 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from myagent.tui.app import MyAgentApp
 
 
@@ -16,16 +14,15 @@ class TestTUIConfigPersistence:
         app = MyAgentApp()
         assert app._config is not None
 
-    def test_config_has_default_values(self):
-        """Config should have default values."""
+    def test_config_is_empty_when_file_missing(self):
+        """Missing config file should leave config empty until setup completes."""
         import tempfile
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = Path(tmpdir) / "config.yaml"
             app = MyAgentApp()
             app._config_path = config_path
             app._load_config()
-            assert app._config.get("agent") == "general"
-            assert app._config.get("model") == "glm-4.7"
+            assert app._config == {}
 
     def test_save_and_load_config(self):
         """Config should be saved and loaded correctly."""
