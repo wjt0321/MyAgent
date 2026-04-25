@@ -35,7 +35,8 @@ docs/
     ├── v0.11.0-redesign.md          # v0.11.0 架构整改方案
     ├── 2026-04-24-iteration-review.md  # 迭代审查与建议
     ├── 2026-04-24-production-optimization.md  # 生产优化建议
-    └── 2026-04-24-web-ui-enhancement.md  # Web UI 增强方案
+    ├── 2026-04-24-web-ui-enhancement.md  # Web UI 增强方案
+    └── 2026-04-25-experience-convergence-plan.md  # 体验收敛与平台化迭代计划
 ```
 
 ---
@@ -109,6 +110,7 @@ docs/
 | plans/2026-04-24-iteration-review.md | ✅ | 迭代审查与安全加固建议 |
 | plans/2026-04-24-production-optimization.md | ✅ | 生产环境优化建议 |
 | plans/2026-04-24-web-ui-enhancement.md | ✅ | Web UI 增强方案 |
+| plans/2026-04-25-experience-convergence-plan.md | 📋 | 体验收敛与平台化迭代计划 |
 
 ---
 
