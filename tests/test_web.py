@@ -79,7 +79,6 @@ class TestWebServer:
         assert "id" in data
         assert data["agent"] == "general"
 
-<<<<<<< HEAD
     def test_update_system_prompt_persists_session(self, tmp_path: Path):
         """更新 system prompt 后应持久化到磁盘。"""
         app = create_app()
@@ -189,7 +188,7 @@ class TestWebServer:
                 "reason": "需要危险命令审批",
             },
         ]
-=======
+
     def test_static_app_contains_workbench_behaviors(self, client):
         """Static app bundle should include workbench interaction hooks."""
         response = client.get("/static/app.js")
@@ -199,4 +198,3 @@ class TestWebServer:
         assert "showCommandPalette(" in content
         assert "executeSlashCommand(" in content
         assert "renderDetailSidebar(" in content
->>>>>>> ddf8ea0 (完成Phase3Web工作台重构)
