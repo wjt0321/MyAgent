@@ -25,18 +25,22 @@ pip install -e ".[dev]"
 
 ### 2. Initialize
 
-Run the interactive setup wizard:
+Recommended first boot:
+
+```bash
+myagent init --quick
+```
+
+This will:
+- Create the base `~/.myagent/` directory structure
+- Generate `config.yaml`, `gateway.yaml`, and `.env`
+- Prepare the workspace so TUI and Web can enter a recoverable `Setup Required` state
+
+When you want the full onboarding wizard, use:
 
 ```bash
 myagent init
 ```
-
-This will:
-- Create `~/.myagent/` directory structure (Workspace)
-- Set up your user profile for personalized responses
-- Configure your LLM provider (OpenAI, Anthropic, DeepSeek, etc.)
-- Set up Gateway platforms (Feishu, Slack, Discord, etc.)
-- Generate `config.yaml`, `gateway.yaml`, and `.env` files
 
 ### 3. Verify
 
@@ -44,22 +48,24 @@ This will:
 myagent doctor
 ```
 
-Checks that all configs, API keys, and directories are in place.
+Checks the current setup status, missing directories, missing config files, and missing LLM keys, then prints the next recommended action.
 
 ### 4. Start
 
 ```bash
-# Terminal 1: Start the Gateway
-myagent gateway --port 18789
-
-# Terminal 2: Start the Web UI
-myagent web --port 8000
-
-# Or use the TUI
+# Recommended local entry
 myagent --tui
+
+# Or launch the Web UI
+myagent web --port 8000
 ```
 
 Open http://localhost:8000 in your browser.
+
+If setup is incomplete:
+- TUI shows `Setup Required` in the transcript and via modal handoff
+- Web shows a setup gate before it starts a chat session
+- `myagent doctor` tells you the exact next command
 
 ---
 
@@ -109,7 +115,7 @@ MYAGENT_MODEL_DEFAULT=anthropic/claude-sonnet-4
 | Anthropic | `ANTHROPIC_API_KEY` | `claude-sonnet-4-20250514` |
 | DeepSeek | `DEEPSEEK_API_KEY` | `deepseek-chat` |
 | Google Gemini | `GEMINI_API_KEY` | `gemini-1.5-pro` |
-| Alibaba Qwen | `QWEN_API_KEY` | `qwen-max` |
+| Alibaba Qwen | `DASHSCOPE_API_KEY` | `qwen-max` |
 | SiliconFlow | `SILICONFLOW_API_KEY` | `deepseek-ai/DeepSeek-V3` |
 | Ollama (local) | None | `llama3.2` |
 | Azure OpenAI | `AZURE_OPENAI_API_KEY` | `gpt-4o` |

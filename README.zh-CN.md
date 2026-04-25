@@ -23,16 +23,16 @@
 
 ## 功能特性
 
-- **多渠道网关** — 统一管理所有消息平台的收件箱（Telegram、Discord、Slack、飞书等）
-- **TUI 界面** — 带有 ASCII 艺术 Logo 的富终端界面
-- **Web UI** — 基于 WebSocket 的实时聊天，支持 JWT 认证与多用户会话隔离
+- **多渠道网关底座** — 提供 Telegram、Discord、Slack、飞书等平台适配器、会话隔离和权限审批钩子
+- **TUI 工作台** — 具备 setup 感知、状态侧栏、Command Palette、Slash Commands 与浮层审批的终端主界面
+- **Web UI** — 工作台式浏览器界面，提供分组导航、命令面板、工具详情侧栏、任务/团队快照、审查结果卡片与基于 WebSocket 的实时聊天
 - **多 LLM 支持** — 40+ Provider（含国内/国际版）：Anthropic（Claude 4.6/4.5）、OpenAI（GPT-5.5/5/4.5）、DeepSeek（V4 Pro/V4 Flash/V3/R1）、Gemini（3.1 Pro/3 Flash/2.5 Pro）、xAI（Grok 4/3）、Qwen 3.6、Ollama、OpenRouter、智谱/智谱-CN、Moonshot/Moonshot-CN、MiniMax/MiniMax-CN、阿里云/阿里云-CN、HuggingFace、NVIDIA、Arcee、Xiaomi、百度文心一言、讯飞星火、字节豆包、腾讯混元、Cohere、SiliconFlow
 - **上下文压缩** — 自动压缩对话历史，支持 AutoCompactor
 - **会话管理** — 支持按用户、按群组、按话题的会话隔离，支持持久化绑定
 - **工具调用** — Bash、代码解释器（Python 沙箱）、文件编辑、网页搜索、图像分析、Git 操作
 - **权限系统** — Telegram 内联键盘审批与 Web UI 权限请求，支持 tool_use_id 追踪
 - **GitHub 集成** — Webhook 驱动的 PR/Issue 分析与自动评论，服务端密钥验证
-- **生产就绪** — Docker、健康检查、Prometheus 指标、结构化 JSON 日志、配置热重载、LLM 指数退避重试、Grafana Dashboard、Helm Chart
+- **部署工具链** — Docker 镜像、compose 编排、健康检查、Prometheus 指标、结构化 JSON 日志和 Helm Chart
 - **安全增强** — Web UI JWT 认证、文件访问路径限制、WebSocket 会话隔离、Webhook 签名验证
 
 ## 界面截图
@@ -49,27 +49,69 @@
 
 ![记忆标签页](images/webui-memory-tab-2026-04-23T04-10-30-994Z.png)
 
+### 推荐演示路径
+
+- 截图首选场景：停留在 Web 工作台欢迎页，展示 `3 步 Quickstart`、产品定位、推荐动作和文档入口卡片
+- 首屏导览场景：直接点击欢迎页中的 `推荐演示路径`，依次进入 `Chat -> Tasks -> Workspace`
+- 文档导览场景：点击欢迎页中的文档入口卡片，直接在 `Files` 视图预览 `README`、`GETTING_STARTED` 与交互设计文档
+- 任务展示场景：创建 `/plan` 任务并批准执行，在 `Tasks` 视图展示 `Task -> Team -> Review`、执行时间线与结构化审查结果
+- 会话展示场景：使用 Header 中的会话控制条切换 `agent` 与 `model`，确认会话摘要与状态反馈会即时同步
+
 ## 快速开始
 
 ```bash
 # 安装
 pip install myagent
 
-# 初始化（交互式向导）
-myagent init
+# 首次快速初始化
+myagent init --quick
 
-# 验证配置
+# 检查缺失项与下一步动作
 myagent doctor
 
-# 启动服务
-myagent gateway --port 18789    # 网关服务
-myagent web --port 8000          # Web UI
-
-# 或使用 TUI
+# 推荐本地入口：TUI
 myagent --tui
+
+# 或启动 Web UI
+myagent web --port 8000
 ```
 
 在浏览器中打开 http://localhost:8000。
+
+说明：
+- `myagent init` 仍然是完整的交互式向导。
+- `myagent init --quick` 会生成基础目录、配置模板和 `.env` 脚手架。
+- 当配置未完成时，TUI 与 Web 都会进入 `Setup Required` 状态，并提示下一步命令。
+
+推荐首次导览：
+1. 先停留在 Web 欢迎页，查看 `3 步 Quickstart`
+2. 点击 `推荐演示路径`，按 `Chat -> Tasks -> Workspace` 跳转查看主流程
+3. 在会话控制条中切换 `agent` 或 `model`，确认会话反馈实时更新
+4. 执行 `/plan <需求>`，完整体验 `Task -> Team -> Review` 工作流
+
+### Web 工作台亮点
+
+- 使用左侧工作台导航在 `Chat`、`Tasks`、`Files`、`Workspace`、`Team` 之间切换
+- 按 `Ctrl+K` 打开命令面板，快速跳转到常用操作
+- 支持 `/plan`、`/agent`、`/model`、`/session`、`/setup`、`/doctor` 等 Slash Commands
+- 点击工具卡片、任务、会话或文件后，可在右侧详情侧栏查看上下文
+- 任务批准后会进入可见的 `Task -> Team -> Review` 流程，并持续刷新当前任务与审查摘要
+- 失败或取消后的任务可通过重试动作重置，再次批准后重新执行
+- 当任务面板为空时，可通过恢复动作把最近一次任务快照重新挂回工作台
+- 审查卡片现在会按 `deliverables`、`issues`、`suggestions` 分区展示，便于快速检查结果
+- 任务视图会同步显示轻量 Team 摘要，便于快速判断当前执行负载与完成数
+- 任务快照现在会附带执行时间线，成员接手、工具进展与审查切换都能持续可见
+- TUI 任务面板现在也能消费任务快照，并显示进度、参与 agent、最近事件与审查摘要
+- Phase 5 第一批先统一了 Web 壳层与 TUI Header 的 Workbench 品牌命名与主题 token
+- Phase 5 第二批进一步重做欢迎页与空状态，让首屏推荐动作、帮助提示与任务入口更清楚
+- Phase 5 第三批把工具执行升级为统一卡片系统，按 `tool_use_id` 串联调用与结果，并补充摘要与状态芯片
+- Phase 5 第四批进一步收口窄屏体验，补充移动端视图 chip、横向工作台导航与全宽详情侧栏
+- Phase 5 第五批补齐会话控制条，增加 agent/model 即时切换反馈、会话摘要行，以及保持当前会话状态同步的重连路径
+- Phase 5 第六批把欢迎页升级为可截图的 Quickstart 首屏，补齐上手步骤、产品定位与文档入口卡片
+- Phase 5 第七批继续统一 TUI 视觉语言，把侧栏分区标题和会话摘要术语向 Web Workbench 收口
+- Phase 5 第八批补齐欢迎页、工具卡片与会话切换的轻量微交互，让工作台反馈更灵敏但不改变主流程
+- Phase 5 第九批补齐共享的 surface 表面系统，把任务卡片、工具卡片与文档入口卡片统一到同一家族化主题层级
+- Phase 5 第十二批在 Header 中补齐随视图变化的 `Next Step` 上下文帮助提示条，明确每个工作台视图的下一步动作
 
 ## 文档
 
@@ -81,10 +123,10 @@ myagent --tui
 
 ```bash
 myagent init              # 交互式配置向导
-myagent doctor            # 诊断配置问题
+myagent init --quick      # 生成最小可用的本地配置
+myagent doctor            # 诊断 setup 状态并给出下一步建议
 myagent web               # 启动 Web UI 服务
-myagent gateway           # 启动网关服务
-myagent --tui             # 启动 TUI 界面
+myagent --tui             # 启动 TUI 工作台
 myagent --version         # 显示版本
 ```
 
@@ -149,13 +191,15 @@ MYAGENT_MODEL_DEFAULT=anthropic/claude-sonnet-4
 docker build -t myagent .
 docker run -d \
   -p 8000:8000 \
-  -p 18789:18789 \
-  -v ~/.myagent:/app/.myagent \
+  -v myagent-data:/app/data \
   -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
   myagent
 ```
 
-或使用 `docker-compose up -d`。
+说明：
+- 默认镜像入口只启动 Web UI。
+- TUI 适合本地终端直接运行，不建议作为容器默认进程。
+- 如需多服务编排，请使用 `docker compose up -d web` 或 `docker compose --profile bot up -d`。
 
 ### Kubernetes (Helm)
 

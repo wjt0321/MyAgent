@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import Any
 
 import yaml
@@ -15,8 +14,7 @@ from textual.widgets import Footer, RichLog, Static, TextArea
 
 from myagent.agents.loader import AgentLoader
 from myagent.cost.tracker import CostTracker
-from myagent.memory.manager import MemoryManager
-from myagent.engine.messages import ConversationMessage, TextBlock
+from myagent.engine.messages import ConversationMessage
 from myagent.engine.query_engine import QueryEngine
 from myagent.engine.stream_events import (
     AssistantTextDelta,
@@ -24,11 +22,12 @@ from myagent.engine.stream_events import (
     ErrorEvent,
     PermissionRequestEvent,
     PermissionResultEvent,
-    StreamEvent,
     ToolExecutionCompleted,
     ToolExecutionStarted,
 )
+from myagent.init.status import SetupStatus, get_myagent_home, get_setup_status
 from myagent.llm.providers.anthropic import AnthropicProvider
+from myagent.memory.manager import MemoryManager
 from myagent.security.checker import PermissionChecker
 from myagent.tools.bash import Bash
 from myagent.tools.edit import Edit
@@ -38,7 +37,7 @@ from myagent.tools.read import Read
 from myagent.tools.registry import ToolRegistry
 from myagent.tools.write import Write
 from myagent.tui.logo import get_logo
-from myagent.tui.screens import PermissionModalScreen
+from myagent.tui.screens import CommandPaletteScreen, InfoModalScreen, PermissionModalScreen
 
 
 def _get_env_or_prompt(key: str, default: str | None = None) -> str | None:
@@ -90,6 +89,28 @@ class MyAgentApp(App[None]):
         padding: 0 1;
     }
 
+    #main-content {
+        height: 1fr;
+    }
+
+    #side-panel {
+        width: 36;
+        border: solid $primary;
+        background: $surface-darken-1;
+        padding: 0 1;
+    }
+
+    .panel-title {
+        text-style: bold;
+        color: $accent;
+        margin: 1 0 0 0;
+    }
+
+    .panel-body {
+        color: $text-muted;
+        margin: 0 0 1 0;
+    }
+
     #transcript {
         height: 100%;
         background: $surface;
@@ -121,6 +142,7 @@ class MyAgentApp(App[None]):
 
     BINDINGS = [
         ("ctrl+l", "clear", "Clear"),
+        ("ctrl+k", "command_palette", "Palette"),
         ("ctrl+d", "quit", "Exit"),
         ("ctrl+r", "regenerate", "Regenerate"),
         ("enter", "submit_message", "Send"),
@@ -145,10 +167,24 @@ class MyAgentApp(App[None]):
         self._last_user_message = ""
         self._current_agent_def = self._agents.get("general")
         self._memory_manager = MemoryManager(
-            memory_dir=Path.home() / ".myagent" / "memory"
+            memory_dir=get_myagent_home() / "memory"
         )
-        self._config_path = Path.home() / ".myagent" / "config.yaml"
+        self._config_path = get_myagent_home() / "config.yaml"
         self._config: dict[str, Any] = {}
+        self.setup_status: SetupStatus = get_setup_status()
+        self._workspace_path = str(get_myagent_home())
+        self._activity_state: dict[str, str] = {
+            "status": "idle",
+            "tool_name": "none",
+            "tool_use_id": "-",
+            "detail": "暂无工具执行",
+        }
+        self._task_status: dict[str, str] = {
+            "state": "idle",
+            "request": "",
+            "detail": "暂无任务",
+        }
+        self.current_model = "unconfigured"
         self._load_config()
         self._init_provider()
 
@@ -170,6 +206,7 @@ class MyAgentApp(App[None]):
                 base_url=base_url,
             )
             self.current_provider = f"zhipu/{model}"
+            self.current_model = model
             self._query_engine = QueryEngine(
                 tool_registry=self._tool_registry,
                 llm_client=self._provider,
@@ -178,17 +215,32 @@ class MyAgentApp(App[None]):
             )
         else:
             self.current_provider = "none (set ZHIPU_API_KEY)"
+            self.current_model = self._config.get("model", "unconfigured")
 
     def compose(self) -> ComposeResult:
+        """Compose the TUI layout."""
         yield Static(
-            f"MyAgent v0.2.0 | Agent: {self.current_agent} | Provider: {self.current_provider}",
+            (
+                "MyAgent Workbench v0.2.0 | "
+                f"Agent: {self.current_agent} | Model: {self.current_model} | "
+                f"Provider: {self.current_provider}"
+            ),
             id="header",
         )
 
-        with Vertical(id="transcript-container"):
-            yield RichLog(id="transcript", highlight=True, markup=True)
+        with Horizontal(id="main-content"):
+            with Vertical(id="transcript-container"):
+                yield RichLog(id="transcript", highlight=True, markup=True)
 
-        yield Static("", id="current-response")
+            with Vertical(id="side-panel"):
+                yield Static("Workbench 概览", classes="panel-title")
+                yield Static("", id="status-panel", classes="panel-body")
+                yield Static("Task Flow", classes="panel-title")
+                yield Static("", id="task-panel", classes="panel-body")
+                yield Static("Tool Activity", classes="panel-title")
+                yield Static("", id="activity-panel", classes="panel-body")
+                yield Static("Live Draft", classes="panel-title")
+                yield Static("", id="current-response", classes="panel-body")
 
         with Horizontal(id="composer-container"):
             yield TextArea(
@@ -200,7 +252,9 @@ class MyAgentApp(App[None]):
         yield Footer(id="footer")
 
     def on_mount(self) -> None:
+        """Initialize focus and startup messages."""
         self.query_one("#composer", TextArea).focus()
+        self._refresh_side_panel()
 
         # Display ASCII logo on startup
         import shutil
@@ -208,7 +262,9 @@ class MyAgentApp(App[None]):
         logo = get_logo(term_width)
         self.add_assistant_message(f"[dim]{logo}[/dim]")
 
-        if self._query_engine is None:
+        if not self.setup_status.overall_ready:
+            self.add_assistant_message(self._get_setup_required_text())
+        elif self._query_engine is None:
             self.add_assistant_message(
                 "[yellow]Warning: No API key configured.[/yellow] "
                 "Set ZHIPU_API_KEY environment variable to enable LLM responses.\n"
@@ -268,9 +324,13 @@ class MyAgentApp(App[None]):
                 self.add_assistant_message("[dim]Regenerating response...[/dim]")
                 self.run_worker(self._handle_user_message(self._last_user_message))
             else:
-                self.add_assistant_message("[yellow]Could not find previous message to regenerate.[/yellow]")
+                self.add_assistant_message(
+                    "[yellow]Could not find previous message to regenerate.[/yellow]"
+                )
         else:
-            self.add_assistant_message("[yellow]Not enough conversation history to regenerate.[/yellow]")
+            self.add_assistant_message(
+                "[yellow]Not enough conversation history to regenerate.[/yellow]"
+            )
 
     def _handle_command(self, command: str) -> None:
         """Handle slash commands."""
@@ -282,7 +342,7 @@ class MyAgentApp(App[None]):
         elif cmd == "/clear":
             self.clear_transcript()
         elif cmd == "/help":
-            self.add_assistant_message(self._get_help_text())
+            self._open_info_modal("Help", self._get_help_text())
         elif cmd == "/agent":
             if len(parts) > 1:
                 self._switch_agent(parts[1])
@@ -300,13 +360,38 @@ class MyAgentApp(App[None]):
             if len(parts) > 1:
                 self._switch_model(parts[1])
             else:
-                self.add_assistant_message("Usage: /model <name> (e.g., glm-4.7, glm-5.1)")
+                self.add_assistant_message(
+                    "Usage: /model <name> (e.g., glm-4.7, glm-5.1)"
+                )
         elif cmd == "/memory":
             self._show_memory()
         elif cmd == "/tokens":
             self._show_token_stats()
+        elif cmd == "/plan":
+            request = " ".join(parts[1:]).strip()
+            if request:
+                self._start_plan_flow(request)
+            else:
+                self._open_info_modal("Plan", "用法：/plan <任务描述>")
+        elif cmd == "/setup":
+            self.setup_status = get_setup_status()
+            self._open_info_modal("Setup Required", self._get_setup_required_text())
+        elif cmd == "/doctor":
+            self.setup_status = get_setup_status()
+            self._open_info_modal(
+                "Doctor Summary",
+                "[bold]Doctor Summary[/bold]\n"
+                f"Workspace: {'OK' if self.setup_status.workspace_ready else 'FAIL'}\n"
+                f"Config: {'OK' if self.setup_status.config_ready else 'FAIL'}\n"
+                f"LLM: {'OK' if self.setup_status.llm_ready else 'FAIL'}\n"
+                f"Next: {self.setup_status.next_action}",
+            )
+        elif cmd == "/session":
+            self._open_info_modal("Session Summary", self._get_session_summary())
         else:
-            self.add_assistant_message(f"Unknown command: {cmd}. Type /help for available commands.")
+            self.add_assistant_message(
+                f"Unknown command: {cmd}. Type /help for available commands."
+            )
 
     def _show_token_stats(self) -> None:
         """Show token usage statistics."""
@@ -327,6 +412,10 @@ class MyAgentApp(App[None]):
 
     async def _handle_user_message(self, message: str) -> None:
         """Process user message with QueryEngine event loop."""
+        self.setup_status = get_setup_status()
+        if not self.setup_status.overall_ready:
+            self.add_assistant_message(self._get_setup_required_text())
+            return
         if self._query_engine is None:
             self.add_assistant_message(
                 "[red]Error: No LLM provider configured.[/red]\n"
@@ -335,6 +424,9 @@ class MyAgentApp(App[None]):
             return
 
         self.update_current_response("Thinking...")
+        self._activity_state["status"] = "thinking"
+        self._activity_state["detail"] = "正在等待模型响应"
+        self._refresh_side_panel()
         self._turn_count += 1
         self._update_header()
 
@@ -354,7 +446,11 @@ class MyAgentApp(App[None]):
 
                 elif isinstance(event, ToolExecutionStarted):
                     self.update_current_response("")
-                    self.add_tool_call(event.tool_name, event.arguments)
+                    self.add_tool_call(
+                        event.tool_name,
+                        event.arguments,
+                        tool_use_id=event.tool_use_id,
+                    )
 
                 elif isinstance(event, ToolExecutionCompleted):
                     self.add_tool_result(event.result, event.is_error)
@@ -367,6 +463,15 @@ class MyAgentApp(App[None]):
 
                 elif isinstance(event, PermissionRequestEvent):
                     self.update_current_response("")
+                    self._activity_state.update(
+                        {
+                            "status": "approval",
+                            "tool_name": event.tool_name,
+                            "tool_use_id": event.tool_use_id,
+                            "detail": event.reason,
+                        }
+                    )
+                    self._refresh_side_panel()
                     await self._handle_permission_request(event)
                     return
 
@@ -462,9 +567,14 @@ class MyAgentApp(App[None]):
 
         self._turn_count = 0
         self._update_header()
+        tools = (
+            ", ".join(t.name for t in self._query_engine.tool_registry.list_tools())
+            if self._query_engine is not None
+            else "未加载"
+        )
         self.add_assistant_message(
             f"Switched to agent: {agent_name}\n"
-            f"[dim]Tools: {', '.join(t.name for t in self._query_engine.tool_registry.list_tools())}[/dim]"
+            f"[dim]Tools: {tools}[/dim]"
         )
 
     def _switch_model(self, model_name: str) -> None:
@@ -475,6 +585,7 @@ class MyAgentApp(App[None]):
 
         self._provider.model = model_name
         self.current_provider = f"zhipu/{model_name}"
+        self.current_model = model_name
         self._config["model"] = model_name
         self._save_config()
         self._update_header()
@@ -482,31 +593,26 @@ class MyAgentApp(App[None]):
 
     def _show_memory(self) -> None:
         """Show memory entries."""
-        entries = self._memory_manager.list_entries()
+        entries = self._memory_manager.list_memories()
         if not entries:
             self.add_assistant_message("No memory entries yet.")
             return
 
         lines = ["[bold]Memory Entries:[/bold]"]
         for entry in entries:
-            lines.append(f"  - {entry.title}")
+            lines.append(f"  - {entry.name}")
         self.add_assistant_message("\n".join(lines))
 
     def _load_config(self) -> None:
         """Load configuration from file."""
         if self._config_path.exists():
             try:
-                with open(self._config_path, "r", encoding="utf-8") as f:
+                with open(self._config_path, encoding="utf-8") as f:
                     self._config = yaml.safe_load(f) or {}
             except Exception:
                 self._config = {}
         else:
-            self._config = {
-                "agent": "general",
-                "model": "glm-4.7",
-                "provider": "zhipu",
-            }
-            self._save_config()
+            self._config = {}
 
     def _save_config(self) -> None:
         """Save configuration to file."""
@@ -519,16 +625,23 @@ class MyAgentApp(App[None]):
 
     def _update_header(self) -> None:
         """Update header text."""
-        cost = f"${self._cost_tracker.total_cost:.4f}" if self._cost_tracker.total_cost > 0 else "$0.0000"
+        cost = (
+            f"${self._cost_tracker.total_cost:.4f}"
+            if self._cost_tracker.total_cost > 0
+            else "$0.0000"
+        )
         header_text = (
-            f"MyAgent v0.2.0 | Agent: {self.current_agent} | "
-            f"Turns: {self._turn_count} | Cost: {cost} | Provider: {self.current_provider}"
+            "MyAgent Workbench v0.2.0 | "
+            f"Agent: {self.current_agent} | Model: {self.current_model} | "
+            f"Turns: {self._turn_count} | Task: {self._task_status['state']} | "
+            f"Cost: {cost} | Provider: {self.current_provider}"
         )
         try:
             header = self.query_one("#header", Static)
             header.update(header_text)
         except Exception:
             pass
+        self._refresh_side_panel()
 
     def add_user_message(self, message: str) -> None:
         """Add a user message to the transcript."""
@@ -538,21 +651,39 @@ class MyAgentApp(App[None]):
         """Add an assistant message to the transcript."""
         self._add_line(f"[bold green]Agent:[/bold green] {message}")
 
-    def add_tool_call(self, tool_name: str, arguments: dict[str, Any]) -> None:
+    def add_tool_call(
+        self,
+        tool_name: str,
+        arguments: dict[str, Any],
+        tool_use_id: str = "-",
+    ) -> None:
         """Add a tool call to the transcript with formatted display."""
         args_lines = "\n".join(f"    [dim]{k}:[/dim] {v}" for k, v in arguments.items())
+        self._activity_state.update(
+            {
+                "status": "running",
+                "tool_name": tool_name,
+                "tool_use_id": tool_use_id,
+                "detail": args_lines or "无参数",
+            }
+        )
+        self._refresh_side_panel()
         self._add_line(
-            f"[bold yellow]╭─ Tool: {tool_name} ─╮[/bold yellow]\n"
+            f"[bold yellow]╭─ Tool: {tool_name} [{tool_use_id}] ─╮[/bold yellow]\n"
             f"{args_lines}\n"
             f"[bold yellow]╰───────────────────╯[/bold yellow]"
         )
 
     def add_tool_result(self, result: str, is_error: bool = False) -> None:
         """Add a tool result to the transcript with formatted display."""
-        if is_error:
-            prefix = "[bold red]Error:[/bold red]"
-        else:
-            prefix = "[bold cyan]Result:[/bold cyan]"
+        prefix = (
+            "[bold red]Error:[/bold red]"
+            if is_error
+            else "[bold cyan]Result:[/bold cyan]"
+        )
+        self._activity_state["status"] = "error" if is_error else "completed"
+        self._activity_state["detail"] = result[:160] if result else "无输出"
+        self._refresh_side_panel()
 
         preview = result[:500] + "..." if len(result) > 500 else result
         lines = preview.split("\n")
@@ -569,6 +700,7 @@ class MyAgentApp(App[None]):
             response_widget.update(Text(text))
         except Exception:
             pass
+        self._refresh_side_panel()
 
     def clear_transcript(self) -> None:
         """Clear the transcript and conversation history."""
@@ -595,8 +727,15 @@ class MyAgentApp(App[None]):
             pass
 
     def action_clear(self) -> None:
-        """Action handler for Ctrl+L."""
+        """Clear the transcript via keyboard shortcut."""
         self.clear_transcript()
+
+    def action_command_palette(self) -> None:
+        """Open the command palette."""
+        self.push_screen(
+            CommandPaletteScreen(),
+            callback=self._handle_palette_selection,
+        )
 
     def _get_help_text(self) -> str:
         """Get help text for commands."""
@@ -608,6 +747,8 @@ class MyAgentApp(App[None]):
   /provider <n> - Switch LLM provider
   /model <name> - Switch LLM model (e.g., glm-4.7, glm-5.1)
   /memory       - Show memory entries
+  /setup        - Show setup required guidance
+  /doctor       - Show setup health summary
   /tokens       - Show token usage statistics
 
 Keyboard shortcuts:
@@ -616,6 +757,123 @@ Keyboard shortcuts:
   Ctrl+L     - Clear transcript
   Ctrl+R     - Regenerate last response
   Ctrl+D     - Exit"""
+
+    def _get_setup_required_text(self) -> str:
+        """Render setup guidance in the transcript."""
+        issues = "\n".join(
+            f"- {issue.summary} -> {issue.fix}"
+            for issue in self.setup_status.issues
+        )
+        if not issues:
+            issues = "- 当前配置尚未完成，请先运行初始化。"
+        return (
+            "[bold yellow]Setup Required[/bold yellow]\n"
+            f"MyAgent Home: {self.setup_status.home}\n"
+            f"Next: {self.setup_status.next_action}\n"
+            f"{issues}"
+        )
+
+    def _get_session_summary(self) -> str:
+        """Build the current session summary for modal display."""
+        return (
+            f"Agent: {self.current_agent}\n"
+            f"Model: {self.current_model}\n"
+            f"Provider: {self.current_provider}\n"
+            f"Workspace: {self._workspace_path}\n"
+            f"Turns: {self._turn_count}\n"
+            f"Task: {self._task_status['state']}"
+        )
+
+    def _open_info_modal(self, title: str, body: str) -> None:
+        """Show a simple informational modal."""
+        self.push_screen(InfoModalScreen(title=title, body=body))
+
+    def _handle_palette_selection(self, command: str | None) -> None:
+        """Run the selected command from the command palette."""
+        if not command:
+            return
+        if command == "/plan":
+            self._open_info_modal("Plan", "使用 `/plan <任务描述>` 开始规划。")
+            return
+        self._handle_command(command)
+
+    def _start_plan_flow(self, request: str) -> None:
+        """Record a lightweight plan task and switch to the planner agent."""
+        self._task_status = {
+            "state": "planning",
+            "request": request,
+            "detail": "已切换到 plan agent，等待生成计划。",
+        }
+        self._switch_agent("plan")
+        self._refresh_side_panel()
+        self.add_assistant_message(
+            "已进入规划模式。\n"
+            f"[dim]Task: {request}[/dim]"
+        )
+
+    def apply_task_snapshot(self, snapshot: dict[str, Any]) -> None:
+        """Apply a task snapshot so TUI can mirror the current workflow state."""
+        subtasks = snapshot.get("subtasks", [])
+        completed = sum(1 for item in subtasks if item.get("status") == "done")
+        total = len(subtasks)
+        agents = sorted(
+            {
+                str(item.get("agent")).strip()
+                for item in subtasks
+                if item.get("agent")
+            }
+        )
+        latest_event = "-"
+        if snapshot.get("events"):
+            latest_event = snapshot["events"][-1].get("message", "-")
+        review_summary = "-"
+        if snapshot.get("result"):
+            review_summary = snapshot["result"].get("summary") or "-"
+
+        detail_lines = [
+            f"Progress: {completed}/{total}",
+            f"Agents: {', '.join(agents) if agents else '-'}",
+            f"Timeline: {latest_event}",
+            f"Review: {review_summary}",
+        ]
+        self._task_status = {
+            "state": snapshot.get("status", "idle"),
+            "request": snapshot.get("title")
+            or snapshot.get("description")
+            or "",
+            "detail": "\n".join(detail_lines),
+        }
+        self._update_header()
+
+    def _refresh_side_panel(self) -> None:
+        """Refresh the structured side panel widgets."""
+        status_text = (
+            f"Session: {self.current_agent} / {self.current_model}\n"
+            f"Agent: {self.current_agent}\n"
+            f"Model: {self.current_model}\n"
+            f"Workspace: {self._workspace_path}\n"
+            f"Setup: {'ready' if self.setup_status.overall_ready else 'required'}"
+        )
+        task_text = (
+            f"State: {self._task_status['state']}\n"
+            f"Request: {self._task_status['request'] or '-'}\n"
+            f"Detail: {self._task_status['detail']}"
+        )
+        activity_text = (
+            f"Status: {self._activity_state['status']}\n"
+            f"Tool: {self._activity_state['tool_name']}\n"
+            f"Use ID: {self._activity_state['tool_use_id']}\n"
+            f"Detail: {self._activity_state['detail']}"
+        )
+        for widget_id, value in {
+            "#status-panel": status_text,
+            "#task-panel": task_text,
+            "#activity-panel": activity_text,
+        }.items():
+            try:
+                self.query_one(widget_id, Static).update(value)
+            except Exception:
+                continue
 
 
 def run_tui() -> None:

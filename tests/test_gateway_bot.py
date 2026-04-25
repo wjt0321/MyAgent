@@ -2,12 +2,20 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock
+
 import pytest
 
-from myagent.gateway.base import MessageEvent, MessageType, Platform, SessionSource
+from myagent.config.settings import Settings
+from myagent.engine.messages import ConversationMessage
+from myagent.engine.stream_events import (
+    AssistantTextDelta,
+    AssistantTurnComplete,
+    PermissionRequestEvent,
+)
+from myagent.gateway.base import MessageEvent, Platform, SessionSource
 from myagent.gateway.bot import GatewayBot
 from myagent.gateway.config import GatewayConfig
-from myagent.config.settings import Settings
 
 
 class TestGatewayBot:
@@ -72,3 +80,35 @@ class TestGatewayBot:
 
         result = await bot._busy_handler(event, "telegram:123:u1")
         assert result is False  # Default lets base adapter handle it
+
+    @pytest.mark.asyncio
+    async def test_permission_resume_uses_event_tool_use_id(self):
+        """权限恢复时应使用事件上的 tool_use_id。"""
+        bot = GatewayBot(config=GatewayConfig(), settings=Settings())
+        source = SessionSource(platform=Platform.TELEGRAM, chat_id="123", user_id="u1")
+        event = MessageEvent(text="hello", source=source)
+        captured: list[tuple[str, bool]] = []
+
+        class FakeEngine:
+            async def submit_message(self, prompt: str):
+                yield PermissionRequestEvent(
+                    tool_name="bash",
+                    tool_use_id="tool-456",
+                    arguments={"command": "rm -rf ."},
+                    reason="需要审批",
+                )
+
+            async def continue_with_permission(self, tool_use_id: str, approved: bool):
+                captured.append((tool_use_id, approved))
+                yield AssistantTextDelta(text="继续执行")
+                yield AssistantTurnComplete(
+                    message=ConversationMessage.from_assistant_text("继续执行"),
+                )
+
+        bot._get_or_create_session = lambda *args, **kwargs: FakeEngine()
+        bot._handle_permission_request = AsyncMock(return_value=True)
+
+        response = await bot._handle_message(event)
+
+        assert response == "继续执行"
+        assert captured == [("tool-456", True)]

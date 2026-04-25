@@ -20,17 +20,19 @@ pip install -e ".[dev]"
 
 ### 2. Initialize
 
-Run the interactive setup wizard:
+Recommended first boot:
+
+```bash
+myagent init --quick
+```
+
+This creates the base workspace, config templates, and `.env` scaffold.
+
+If you want the full interactive onboarding wizard, run:
 
 ```bash
 myagent init
 ```
-
-This will:
-- Create `~/.myagent/` directory structure
-- Configure your LLM provider (OpenAI, Anthropic, DeepSeek, etc.)
-- Set up Gateway platforms (Feishu, Slack, Discord, etc.)
-- Generate `config.yaml`, `gateway.yaml`, and `.env` files
 
 ### 3. Verify
 
@@ -38,22 +40,26 @@ This will:
 myagent doctor
 ```
 
-Checks that all configs, API keys, and directories are in place.
+Checks the current setup status and prints the next recommended action.
 
 ### 4. Start
 
 ```bash
-# Terminal 1: Start the Gateway
-myagent gateway --port 18789
-
-# Terminal 2: Start the Web UI
-myagent web --port 8000
-
-# Or use the TUI
+# Recommended local entry
 myagent --tui
+
+# Or launch the Web UI
+myagent web --port 8000
 ```
 
 Open http://localhost:8000 in your browser.
+
+### 5. First Tour
+
+1. Stay on the Web welcome screen and review the `3-step Quickstart`
+2. Use the recommended action cards or `Ctrl+K` to jump into common tasks
+3. Switch `agent` or `model` from the header session control bar and verify the session summary updates immediately
+4. Run `/plan <request>` to see the full `Task -> Team -> Review` workflow
 
 ---
 

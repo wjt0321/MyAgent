@@ -1,0 +1,42 @@
+name: phase0-smoke
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - phase0-quality
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Ruff smoke check
+        run: >
+          python -m ruff check
+          tests/test_web.py
+          tests/test_web_files.py
+          tests/test_memory.py
+          tests/test_gateway_bot.py
+
+      - name: Web and gateway smoke tests
+        run: >
+          python -m pytest
+          tests/test_web.py
+          tests/test_web_files.py
+          tests/test_memory.py
+          tests/test_gateway_bot.py
+          -q

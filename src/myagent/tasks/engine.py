@@ -74,6 +74,13 @@ class TaskEngine:
     def __init__(self, engine_manager: WebEngineManager) -> None:
         self.engine_manager = engine_manager
         self._current_task: Task | None = None
+        self._last_task_snapshot: Task | None = None
+
+    def set_current_task(self, task: Task | None) -> None:
+        """Set current task and keep the latest snapshot for restore."""
+        self._current_task = task
+        if task is not None:
+            self._last_task_snapshot = task
 
     async def create_plan(self, request: str) -> Task:
         """Create a plan for a user request.
@@ -85,7 +92,7 @@ class TaskEngine:
             description=request,
             status=TaskStatus.PLANNING,
         )
-        self._current_task = task
+        self.set_current_task(task)
 
         if not self.engine_manager.is_configured():
             task.update_status(TaskStatus.FAILED)
@@ -213,6 +220,7 @@ class TaskEngine:
         Returns a TaskResult with review findings.
         """
         task.update_status(TaskStatus.REVIEWING)
+        task.add_event("review_start", "开始审查任务结果", status=task.status.value)
 
         if not self.engine_manager.is_configured():
             result = TaskResult(
@@ -277,6 +285,11 @@ class TaskEngine:
             task.update_status(TaskStatus.DONE)
         else:
             task.update_status(TaskStatus.FAILED)
+        task.add_event(
+            "review_complete",
+            result.summary or "审查完成",
+            status=task.status.value,
+        )
 
         return result
 
@@ -300,4 +313,15 @@ class TaskEngine:
 
     def get_current_task(self) -> Task | None:
         """Get the currently active task."""
+        return self._current_task
+
+    def get_restore_candidate(self) -> Task | None:
+        """Get the latest task snapshot that can be restored into the workbench."""
+        return self._current_task or self._last_task_snapshot
+
+    def restore_last_task(self) -> Task | None:
+        """Restore the latest known task snapshot as the current task."""
+        if self._last_task_snapshot is None:
+            return None
+        self._current_task = self._last_task_snapshot
         return self._current_task

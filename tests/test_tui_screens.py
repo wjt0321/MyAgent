@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-from textual.widgets import Button, Label, Static
-
-from myagent.tui.screens import PermissionModalScreen
+from myagent.tui.screens import CommandPaletteScreen, InfoModalScreen, PermissionModalScreen
 
 
 class TestPermissionModalScreen:
@@ -29,3 +26,19 @@ class TestPermissionModalScreen:
         )
         assert screen.arguments["path"] == "test.txt"
         assert screen.arguments["content"] == "hello"
+
+
+class TestInfoModalScreen:
+    def test_screen_creation(self):
+        screen = InfoModalScreen(title="Setup Required", body="请先完成初始化")
+
+        assert screen.title_text == "Setup Required"
+        assert "初始化" in screen.body
+
+
+class TestCommandPaletteScreen:
+    def test_screen_creation(self):
+        screen = CommandPaletteScreen()
+
+        assert screen.command_items
+        assert any(item["command"] == "/setup" for item in screen.command_items)

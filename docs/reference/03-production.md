@@ -1,266 +1,163 @@
 # Production Deployment Guide
 
-> 本文档描述 MyAgent 的生产环境部署方案。
+> 本文档描述当前仓库中 `Dockerfile`、`docker-compose.yml` 与运行时行为一致的生产部署方式。
 
 ---
 
-## 1. 部署架构
+## 1. 部署模型
 
-```
-┌─────────────────────────────────────────┐
-│              Load Balancer               │
-└─────────────────────────────────────────┘
-                   │
-    ┌──────────────┼──────────────┐
-    │              │              │
-┌───┴───┐    ┌────┴────┐   ┌────┴────┐
-│ Web UI │    │ Gateway │   │  TUI    │
-│ :8000  │    │ :18789  │   │ (CLI)   │
-└───┬───┘    └────┬────┘   └─────────┘
-    │              │
-    └──────────────┘
-                   │
-         ┌─────────┴──────────┐
-         │   MyAgent Core     │
-         │  ┌──────────────┐  │
-         │  │  QueryEngine │  │
-         │  │  AgentLoader │  │
-         │  │  ToolRegistry│  │
-         │  └──────────────┘  │
-         └────────────────────┘
-                   │
-    ┌──────────────┼──────────────┐
-    │              │              │
-┌───┴───┐    ┌────┴────┐   ┌────┴────┐
-│ LLM   │    │ Memory  │   │Workspace│
-│ API   │    │ Store   │   │  Files  │
-└───────┘    └─────────┘   └─────────┘
+当前仓库的部署模型是：
+
+- `Web UI`：默认的容器入口，监听 `8000`
+- `Gateway Bot`：通过 compose profile 单独启动
+- `TUI`：本地终端入口，不作为容器默认常驻进程
+- `MYAGENT_HOME`：容器内默认目录为 `/app/data`
+
+推荐理解为：
+
+```text
+browser -> Web UI -> MyAgent Core -> LLM / Workspace / Memory
+gateway -> Bot    -> MyAgent Core -> LLM / Workspace / Memory
+terminal -> TUI   -> MyAgent Core -> LLM / Workspace / Memory
 ```
 
 ---
 
-## 2. Docker 部署
+## 2. Docker 镜像
 
-### 2.1 Dockerfile
+当前 `Dockerfile` 的关键行为：
 
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY . .
-RUN pip install -e ".[dev]"
-
-EXPOSE 8000 18789
-
-CMD ["myagent", "web", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-### 2.2 docker-compose.yml
-
-```yaml
-version: '3.8'
-
-services:
-  myagent:
-    build: .
-    ports:
-      - "8000:8000"
-      - "18789:18789"
-    volumes:
-      - ~/.myagent:/app/.myagent
-    environment:
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - FEISHU_APP_ID=${FEISHU_APP_ID}
-      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET}
-    restart: unless-stopped
-```
-
-### 2.3 启动
+- 使用多阶段构建
+- 运行镜像基于 `python:3.12-slim`
+- 依赖安装包含 `.[web,gateway]`
+- 默认命令：
 
 ```bash
-docker-compose up -d
+myagent web --host 0.0.0.0 --port 8000 --json-log
+```
+
+- 健康检查默认执行：
+
+```bash
+myagent --version
+```
+
+因此，镜像默认适合提供 `Web UI`，而不是直接跑 `TUI`。
+
+---
+
+## 3. Docker Compose
+
+当前 `docker-compose.yml` 的服务结构如下：
+
+| 服务 | 作用 | 默认启用 |
+|------|------|----------|
+| `web` | Web UI | 是 |
+| `bot` | Gateway Bot | 否，需要 `bot` profile |
+| `redis` | 可选缓存/外部依赖 | 否，需要 `full` profile |
+
+推荐命令：
+
+```bash
+# 仅启动 Web UI
+docker compose up -d web
+
+# 启动 Web UI + Bot
+docker compose --profile bot up -d
+
+# 启动完整栈
+docker compose --profile bot --profile full up -d
+```
+
+数据卷：
+
+- `myagent-data:/app/data`
+- `redis-data:/data`
+
+---
+
+## 4. 初始化与配置
+
+首次部署后，建议先完成初始化：
+
+```bash
+myagent init --quick
+myagent doctor
+```
+
+如果需要完整向导：
+
+```bash
+myagent init
+```
+
+关键环境变量示例：
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+DEEPSEEK_API_KEY=sk-...
+ZHIPU_API_KEY=...
+DASHSCOPE_API_KEY=...
+GITHUB_WEBHOOK_SECRET=...
+MYAGENT_HOME=/app/data
 ```
 
 ---
 
-## 3. 安全建议
+## 5. 运行与健康检查
 
-### 3.1 API Key 管理
-
-- 使用环境变量或 secrets 管理
-- 定期轮换
-- 最小权限原则
-
-### 3.2 访问控制
-
-- 启用 pairing_required
-- 配置 allowed_users
-- 使用 HTTPS
-
-### 3.3 日志管理
-
-```yaml
-logging:
-  level: INFO
-  file: ~/.myagent/logs/myagent.log
-  max_size: 10MB
-  backup_count: 5
-```
-
----
-
-## 4. 监控
-
-### 4.1 健康检查
+Web 相关检查：
 
 ```bash
 curl http://localhost:8000/api/health
 curl http://localhost:8000/health/live
 curl http://localhost:8000/health/ready
 curl http://localhost:8000/health/metrics
+curl http://localhost:8000/api/setup/status
 ```
 
-### 4.2 Prometheus 指标
+说明：
 
-MyAgent 内置 Prometheus 风格的指标采集，通过 `/health/metrics` 暴露：
-
-| 指标名 | 类型 | 说明 |
-|--------|------|------|
-| `llm_request_duration_seconds` | Histogram | LLM 请求延迟 |
-| `tool_execution_duration_seconds` | Histogram | 工具执行延迟 |
-| `query_turns_total` | Counter | 总对话轮数 |
-| `tool_executions_total` | Counter | 总工具执行次数 |
-| `tool_errors_total` | Counter | 工具执行错误次数 |
-| `query_errors_total` | Counter | 查询错误次数 |
-
-### 4.3 Grafana 配置示例
-
-```yaml
-# prometheus.yml
-scrape_configs:
-  - job_name: 'myagent'
-    static_configs:
-      - targets: ['localhost:8000']
-    metrics_path: '/health/metrics'
-```
+- `/api/setup/status` 用于确认当前容器是否已完成 setup
+- 当 setup 未完成时，Web UI 会显示 `Setup Required`
 
 ---
 
-## 5. 结构化日志
+## 6. 日志与监控
 
-### 5.1 启用 JSON 日志
+生产环境建议使用：
 
 ```bash
 myagent web --json-log --log-level INFO
 ```
 
-日志输出示例：
+当前监控能力包括：
 
-```json
-{"timestamp": "2026-04-24T10:30:00", "level": "INFO", "logger": "myagent.web", "message": "Request GET /api/sessions", "request_id": "a1b2c3d4", "method": "GET", "path": "/api/sessions"}
-```
-
-### 5.2 日志文件
-
-默认日志路径：`~/.myagent/logs/myagent.log`
-
-- 自动轮转：单文件 10MB，保留 5 个备份
-- 支持 JSON 格式（生产环境推荐）
-- 支持彩色控制台输出（开发环境）
+- `/health/metrics` 暴露 Prometheus 指标
+- `deploy/grafana/dashboard.json` 提供 Grafana Dashboard
+- `deploy/prometheus/alerts.yaml` 提供告警规则
 
 ---
 
-## 6. 配置热重载
+## 7. 安全基线
 
-### 6.1 启用热重载
+建议至少启用以下策略：
 
-修改 `~/.myagent/config.yaml` 后，MyAgent 会自动检测并重新加载配置，无需重启服务。
-
-### 6.2 查看热重载状态
-
-```bash
-curl http://localhost:8000/api/config/status
-```
-
-响应：
-
-```json
-{"hot_reload_enabled": true, "watched_files": ["/home/user/.myagent/config.yaml"]}
-```
+- 为 Web UI 启用认证
+- 仅在受控环境中暴露 Web 端口
+- 使用服务端 `GITHUB_WEBHOOK_SECRET`
+- 通过 `myagent doctor` 定期检查 setup 与配置缺口
+- 不要将 `.env` 或真实密钥提交到仓库
 
 ---
 
-## 7. LLM 重试机制
+## 8. 说明
 
-MyAgent 内置指数退避重试，自动处理以下网络异常：
+如果你要容器化部署：
 
-- `asyncio.TimeoutError` — 请求超时
-- `ConnectionError` — 连接失败
-- `httpx.HTTPStatusError` — HTTP 5xx 错误
-- `httpx.ConnectError` — 连接错误
-- `httpx.ReadTimeout` — 读取超时
+- 把 `Web UI` 当成默认入口
+- 把 `Bot` 当成可选附加服务
+- 把 `TUI` 当成本地运维/开发入口
 
-重试策略：
-- 最大重试次数：3 次
-- 初始延迟：1 秒
-- 退避倍数：2x（1s, 2s, 4s）
-- 最大延迟：60 秒
-
----
-
-## 8. Gateway 会话管理
-
-### 8.1 会话持久化
-
-Gateway 自动将用户会话映射持久化到 `~/.myagent/gateway_sessions.yaml`，重启后自动恢复。
-
-### 8.2 LRU 缓存与 TTL 驱逐
-
-```python
-from myagent.gateway.session_store import GatewaySessionStore
-
-# 默认配置: 最大 1000 个会话, 7 天 TTL
-store = GatewaySessionStore()
-
-# 自定义配置
-store = GatewaySessionStore(
-    max_sessions=500,      # 最多保留 500 个会话
-    ttl_seconds=86400,     # 1 天 TTL
-)
-```
-
-- **LRU 驱逐**: 当会话数超过 `max_sessions` 时，自动移除最久未使用的会话
-- **TTL 驱逐**: 超过 `ttl_seconds` 未活跃的会话自动过期
-- **启动清理**: 每次启动时自动清理过期会话
-
-### 8.3 适配器状态
-
-| 适配器 | 状态 | 特性 |
-|--------|------|------|
-| Telegram | ✅ 完整 | 长轮询、权限内联、消息去重 |
-| Discord | ✅ 完整 | Gateway WebSocket、心跳、自动重连、Session Resume |
-| Slack | ✅ 完整 | Socket Mode、自动重连、指数退避 |
-| Feishu | ✅ 完整 | Webhook、签名验证、Token 刷新、多认证模式 |
-| GitHub | ✅ 完整 | Webhook、PR/Issue 分析 |
-
----
-
-## 9. 备份
-
-### 9.1 备份内容
-
-```bash
-# Workspace
-tar czf myagent-backup.tar.gz ~/.myagent/
-
-# 或仅备份配置
-cp ~/.myagent/config.yaml backup/
-cp ~/.myagent/gateway.yaml backup/
-cp ~/.myagent/.env backup/
-```
-
-### 9.2 恢复
-
-```bash
-tar xzf myagent-backup.tar.gz -C ~/
-```
+这样才与当前仓库中的 `Dockerfile` 和 `docker-compose.yml` 保持一致。

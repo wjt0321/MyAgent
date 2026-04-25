@@ -23,16 +23,16 @@ Supported platforms: **Feishu/Lark, Slack, Discord, Telegram, DingTalk, WeCom, W
 
 ## Features
 
-- **Multi-Channel Gateway** — Unified inbox for all messaging platforms (Telegram, Discord, Slack, Feishu, etc.)
-- **TUI Interface** — Rich terminal UI with ASCII art logo
-- **Web UI** — Real-time WebSocket chat with JWT authentication and multi-user session isolation
+- **Multi-Channel Gateway Foundation** — Platform adapters, session isolation, and permission hooks for Telegram, Discord, Slack, Feishu, and more
+- **TUI Workbench** — Setup-aware terminal UI with status sidebar, command palette, slash commands, and modal approvals
+- **Web UI** — Workbench-style browser UI with grouped navigation, command palette, tool detail sidebar, task/team snapshots, review cards, and real-time WebSocket chat
 - **Multi-LLM Support** — 40+ Providers (Intl + China): Anthropic (Claude 4.6/4.5), OpenAI (GPT-5.5/5/4.5), DeepSeek (V4 Pro/V4 Flash/V3/R1), Gemini (3.1 Pro/3 Flash/2.5 Pro), xAI (Grok 4/3), Qwen 3.6, Ollama, OpenRouter, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Baidu ERNIE, iFlytek Spark, ByteDance Doubao, Tencent Hunyuan, Cohere, SiliconFlow
 - **Context Compression** — Automatic conversation compaction with AutoCompactor
 - **Session Management** — Per-user, per-group, per-thread sessions with persistent bindings
 - **Tool Calling** — Bash, Code Interpreter (Python sandbox), file edit, web search, image analysis, Git operations
 - **Permission System** — Inline approval requests in Telegram and Web UI with tool_use_id tracking
 - **GitHub Integration** — Webhook-based PR/Issue analysis and auto-comments with server-side secret validation
-- **Production Ready** — Docker, health checks, Prometheus metrics, structured JSON logging, config hot-reload, LLM exponential backoff retry, Grafana Dashboard, Helm Chart
+- **Deployment Toolkit** — Docker image, compose stack, health checks, Prometheus metrics, structured JSON logging, and Helm Chart
 - **Security** — JWT authentication for Web UI, path-restricted file access, WebSocket session isolation, webhook signature verification
 
 ## Screenshots
@@ -49,27 +49,69 @@ Supported platforms: **Feishu/Lark, Slack, Discord, Telegram, DingTalk, WeCom, W
 
 ![Memory Tab](images/webui-memory-tab-2026-04-23T04-10-30-994Z.png)
 
+### Recommended Demo Path
+
+- Screenshot-ready landing: open the Web workbench and stay on the welcome screen to show the `3-step Quickstart`, product positioning, recommended actions, and docs entry cards
+- Guided landing tour: click the welcome screen `Recommended Demo Path` cards and walk through `Chat -> Tasks -> Workspace`
+- Docs walkthrough: click the welcome docs cards to open `README`, `GETTING_STARTED`, and the interaction design doc directly in the `Files` view
+- Task showcase: create a `/plan` task, approve it, then switch to `Tasks` to show `Task -> Team -> Review` with timeline and structured review cards
+- Session showcase: use the header session control bar to switch `agent` and `model` and watch the live session summary stay in sync
+
 ## Quick Start
 
 ```bash
 # Install
 pip install myagent
 
-# Initialize (interactive wizard)
-myagent init
+# Quick setup for first boot
+myagent init --quick
 
-# Verify setup
+# Verify missing pieces and next step
 myagent doctor
 
-# Start services
-myagent gateway --port 18789    # Gateway server
-myagent web --port 8000          # Web UI
-
-# Or use the TUI
+# Recommended local entry: TUI
 myagent --tui
+
+# Or launch the Web UI
+myagent web --port 8000
 ```
 
 Open http://localhost:8000 in your browser.
+
+Notes:
+- `myagent init` remains the full interactive wizard.
+- `myagent init --quick` creates the base workspace, config templates, and `.env` scaffold.
+- When setup is incomplete, both TUI and Web show `Setup Required` with the next suggested action.
+
+Recommended first tour:
+1. Land on the Web welcome screen and review the `3-step Quickstart`
+2. Click the `Recommended Demo Path` cards to walk through `Chat -> Tasks -> Workspace`
+3. Switch `agent` or `model` from the session control bar to verify live session feedback
+4. Run `/plan <request>` to inspect the full `Task -> Team -> Review` workflow
+
+### Web Workbench Highlights
+
+- Use the left-side workbench navigation to switch between `Chat`, `Tasks`, `Files`, `Workspace`, and `Team`
+- Press `Ctrl+K` to open the command palette and jump to common actions
+- Use slash commands like `/plan`, `/agent`, `/model`, `/session`, `/setup`, and `/doctor`
+- Click tool cards, tasks, sessions, or files to inspect details in the right sidebar
+- Approving a task now enters the visible `Task -> Team -> Review` workflow, with live snapshot polling and review summary cards
+- Failed or cancelled tasks can be reset with a retry action, then approved again for a fresh execution pass
+- When the task pane is empty, the latest task snapshot can be restored back into the workbench with a restore action
+- Review cards now split `deliverables`, `issues`, and `suggestions` into separate sections for faster inspection
+- The task view now includes a lightweight team summary so execution load and completion counts stay visible
+- Task snapshots now include an execution timeline so member assignment, tool activity, and review transitions stay visible
+- The TUI task panel can now consume task snapshots and surface progress, active agents, latest timeline event, and review summary
+- Phase 5 branding begins with shared workbench naming and brand theme tokens across the Web shell and TUI header
+- Phase 5 batch 2 upgrades the welcome screen and empty states with a clearer hero, recommended actions, and stronger task-entry guidance
+- Phase 5 batch 3 upgrades tool execution into a unified card system with summaries, status chips, and linked result cards by `tool_use_id`
+- Phase 5 batch 4 improves narrow-screen usability with a mobile view chip, horizontal workbench navigation, and clearer full-width detail sidebars
+- Phase 5 batch 5 upgrades the session control bar with instant agent/model switching feedback, a live session summary line, and a reconnect path that keeps the active session state in sync
+- Phase 5 batch 6 upgrades the welcome screen into a screenshot-ready Quickstart showcase with onboarding steps, product positioning, and clearer docs entry cards
+- Phase 5 batch 7 aligns the TUI side panel with the Web Workbench vocabulary through clearer section titles and a concise session summary line
+- Phase 5 batch 8 adds lightweight micro-interactions for the welcome screen, tool event cards, and session switching states so the workbench feels more responsive without changing core flows
+- Phase 5 batch 9 introduces a shared surface family for task cards, tool cards, and docs entry cards so the workbench reads like one product instead of separate panels
+- Phase 5 batch 12 adds a contextual `Next Step` help strip in the header so each workbench view explains the most useful follow-up action
 
 ## Documentation
 
@@ -81,10 +123,10 @@ Open http://localhost:8000 in your browser.
 
 ```bash
 myagent init              # Interactive setup wizard
-myagent doctor            # Diagnose configuration
+myagent init --quick      # Generate a minimal local-ready setup
+myagent doctor            # Diagnose setup status and suggest next action
 myagent web               # Start Web UI server
-myagent gateway           # Start Gateway server
-myagent --tui             # Start TUI interface
+myagent --tui             # Start TUI workbench
 myagent --version         # Show version
 ```
 
@@ -149,13 +191,15 @@ MYAGENT_MODEL_DEFAULT=anthropic/claude-sonnet-4
 docker build -t myagent .
 docker run -d \
   -p 8000:8000 \
-  -p 18789:18789 \
-  -v ~/.myagent:/app/.myagent \
+  -v myagent-data:/app/data \
   -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
   myagent
 ```
 
-Or use `docker-compose up -d`.
+Notes:
+- The default image entrypoint runs the Web UI only.
+- TUI is intended for local terminal use, not as a container default process.
+- For multi-service local deployment, use `docker compose up -d web` or `docker compose --profile bot up -d`.
 
 ### Kubernetes (Helm)
 

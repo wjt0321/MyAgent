@@ -330,12 +330,14 @@ class WebEngineManager:
                 await send_callback({
                     "type": "tool_call",
                     "tool_name": event.tool_name,
+                    "tool_use_id": event.tool_use_id,
                     "arguments": event.arguments,
                 })
 
             elif isinstance(event, ToolExecutionCompleted):
                 await send_callback({
                     "type": "tool_result",
+                    "tool_use_id": event.tool_use_id,
                     "result": event.result,
                     "is_error": event.is_error,
                 })
@@ -347,6 +349,7 @@ class WebEngineManager:
                 await send_callback({
                     "type": "permission_request",
                     "tool_name": event.tool_name,
+                    "tool_use_id": event.tool_use_id,
                     "arguments": event.arguments,
                     "reason": event.reason,
                 })

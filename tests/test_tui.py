@@ -1,7 +1,10 @@
 """Tests for MyAgent TUI."""
 
+from __future__ import annotations
+
+from pathlib import Path
+
 import pytest
-from textual.pilot import Pilot
 
 from myagent.tui.app import MyAgentApp
 
@@ -26,6 +29,30 @@ async def test_header_exists():
     async with app.run_test() as pilot:
         header = pilot.app.query_one("#header")
         assert header is not None
+        assert "MyAgent Workbench" in str(header.render())
+
+
+@pytest.mark.asyncio
+async def test_side_panel_exists():
+    app = MyAgentApp()
+    async with app.run_test() as pilot:
+        side_panel = pilot.app.query_one("#side-panel")
+        assert side_panel is not None
+
+
+@pytest.mark.asyncio
+async def test_phase5_tui_panel_titles_and_summary_are_workbench_aligned():
+    app = MyAgentApp()
+    async with app.run_test() as pilot:
+        titles = [str(widget.render()) for widget in pilot.app.query(".panel-title")]
+        status_panel = pilot.app.query_one("#status-panel")
+        rendered_status = str(status_panel.render())
+        assert any("Workbench 概览" in title for title in titles)
+        assert any("Task Flow" in title for title in titles)
+        assert any("Tool Activity" in title for title in titles)
+        assert any("Live Draft" in title for title in titles)
+        assert "Session:" in rendered_status
+        assert "Setup:" in rendered_status
 
 
 @pytest.mark.asyncio
@@ -68,7 +95,7 @@ async def test_add_user_message():
 @pytest.mark.asyncio
 async def test_add_assistant_message():
     app = MyAgentApp()
-    async with app.run_test() as pilot:
+    async with app.run_test():
         app.add_assistant_message("Hi there!")
         # Logo + welcome + assistant msg = 3 lines
         assert len(app._transcript_lines) == 3
@@ -78,7 +105,7 @@ async def test_add_assistant_message():
 @pytest.mark.asyncio
 async def test_add_tool_call():
     app = MyAgentApp()
-    async with app.run_test() as pilot:
+    async with app.run_test():
         app.add_tool_call("Read", {"path": "test.py"})
         # Logo + welcome + tool call = 3 lines
         assert len(app._transcript_lines) == 3
@@ -88,7 +115,7 @@ async def test_add_tool_call():
 @pytest.mark.asyncio
 async def test_clear_transcript():
     app = MyAgentApp()
-    async with app.run_test() as pilot:
+    async with app.run_test():
         app.add_user_message("Hello")
         app.clear_transcript()
         assert len(app._transcript_lines) == 0
@@ -111,3 +138,94 @@ async def test_current_response_update():
         assert app._current_response_text == "Thinking..."
         response = pilot.app.query_one("#current-response")
         assert response is not None
+
+
+@pytest.mark.asyncio
+async def test_setup_required_message_for_incomplete_setup(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("MYAGENT_HOME", str(tmp_path))
+
+    app = MyAgentApp()
+    async with app.run_test():
+        assert app.setup_status.overall_ready is False
+        assert any("Setup Required" in line for line in app._transcript_lines)
+
+
+@pytest.mark.asyncio
+async def test_command_palette_action_opens_modal():
+    app = MyAgentApp()
+    async with app.run_test() as pilot:
+        app.action_command_palette()
+        await pilot.pause()
+        assert pilot.app.screen.__class__.__name__ == "CommandPaletteScreen"
+
+
+@pytest.mark.asyncio
+async def test_setup_command_opens_info_modal():
+    app = MyAgentApp()
+    async with app.run_test() as pilot:
+        app._handle_command("/setup")
+        await pilot.pause()
+        assert pilot.app.screen.__class__.__name__ == "InfoModalScreen"
+
+
+@pytest.mark.asyncio
+async def test_session_command_opens_info_modal():
+    app = MyAgentApp()
+    async with app.run_test() as pilot:
+        app._handle_command("/session")
+        await pilot.pause()
+        assert pilot.app.screen.__class__.__name__ == "InfoModalScreen"
+
+
+@pytest.mark.asyncio
+async def test_plan_command_updates_header_and_task_panel():
+    app = MyAgentApp()
+    async with app.run_test() as pilot:
+        app._handle_command("/plan 设计新的任务流")
+        await pilot.pause()
+        header = pilot.app.query_one("#header")
+        task_panel = pilot.app.query_one("#task-panel")
+        assert "Task: planning" in str(header.render())
+        assert "State: planning" in str(task_panel.render())
+        assert "设计新的任务流" in str(task_panel.render())
+
+
+@pytest.mark.asyncio
+async def test_apply_task_snapshot_updates_tui_task_panel_with_timeline():
+    app = MyAgentApp()
+    async with app.run_test() as pilot:
+        app.apply_task_snapshot(
+            {
+                "status": "reviewing",
+                "title": "实现执行时间线",
+                "description": "把时间线同步到 TUI",
+                "subtasks": [
+                    {"status": "done", "agent": "planner"},
+                    {"status": "executing", "agent": "worker"},
+                ],
+                "events": [
+                    {"type": "member_assigned", "message": "planner 已接手规划"},
+                    {"type": "member_progress", "message": "worker 正在使用工具：Read"},
+                ],
+                "result": {"summary": "审查进行中"},
+            }
+        )
+        await pilot.pause()
+        header = pilot.app.query_one("#header")
+        task_panel = pilot.app.query_one("#task-panel")
+        rendered = str(task_panel.render())
+        assert "Task: reviewing" in str(header.render())
+        assert "State: reviewing" in rendered
+        assert "Progress: 1/2" in rendered
+        assert "Agents: planner, worker" in rendered
+        assert "Timeline: worker 正在使用工具：Read" in rendered
+        assert "Review: 审查进行中" in rendered
+
+
+def test_plan_command_updates_task_state():
+    app = MyAgentApp()
+    app._handle_command("/plan 设计新的任务流")
+
+    assert app.current_agent == "plan"
+    assert app._task_status["state"] == "planning"
+    assert app._task_status["request"] == "设计新的任务流"

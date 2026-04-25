@@ -5,41 +5,43 @@ from __future__ import annotations
 import logging
 import os
 import uuid
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from collections.abc import AsyncIterator
 
 from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 
-from myagent.web.auth import verify_token, create_token, get_auth_config, JWT_AVAILABLE
-from myagent.web.engine_manager import WebEngineManager
-from myagent.web.health import router as health_router
-from myagent.web.session import SessionStore
+from myagent.codebase.indexer import CodebaseIndexer
+from myagent.codebase.search import CodebaseSearch
+from myagent.config.hot_reload import get_watcher
+from myagent.config.settings import Settings
+from myagent.init.status import get_setup_status
 from myagent.memory.manager import MemoryEntry, MemoryManager, MemoryType
+from myagent.plugins.discovery import discover_plugins
+from myagent.plugins.registry import PluginRegistry
 from myagent.tasks.engine import TaskEngine
 from myagent.tasks.models import TaskStatus
 from myagent.teams.orchestrator import TeamOrchestrator
-from myagent.codebase.indexer import CodebaseIndexer
-from myagent.codebase.search import CodebaseSearch
+from myagent.web.auth import JWT_AVAILABLE, create_token, get_auth_config, verify_token
+from myagent.web.engine_manager import WebEngineManager
+from myagent.web.health import router as health_router
+from myagent.web.session import SessionStore
 from myagent.workspace.manager import WorkspaceManager, get_workspace_dir
-from myagent.config.settings import Settings
-from myagent.config.hot_reload import get_watcher
-from myagent.plugins.registry import PluginRegistry
-from myagent.plugins.discovery import discover_plugins
 
 logger = logging.getLogger(__name__)
 
 
 security = HTTPBearer(auto_error=False)
+security_dependency = Depends(security)
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = security_dependency,
 ) -> str:
     """Get current user from JWT token or default to 'default'."""
     if not JWT_AVAILABLE:
@@ -154,6 +156,11 @@ def create_app() -> FastAPI:
             "watched_files": [str(p) for p in watcher._watched_files],
         }
 
+    @app.get("/api/setup/status")
+    async def setup_status() -> dict[str, Any]:
+        """Get unified setup readiness for Web, TUI, and CLI."""
+        return get_setup_status().model_dump()
+
     @app.get("/api/auth/status")
     async def auth_status() -> dict[str, Any]:
         """Check if authentication is enabled."""
@@ -172,9 +179,8 @@ def create_app() -> FastAPI:
         auth_config = get_auth_config()
         password = request.get("password", "")
 
-        if auth_config.enabled:
-            if not auth_config.verify_password(password):
-                raise HTTPException(status_code=401, detail="Invalid password")
+        if auth_config.enabled and not auth_config.verify_password(password):
+            raise HTTPException(status_code=401, detail="Invalid password")
 
         token = create_token(user_id="user")
         return {"token": token, "message": "Login successful"}
@@ -356,16 +362,22 @@ def create_app() -> FastAPI:
         return task.to_dict()
 
     @app.get("/api/tasks/current")
-    async def get_current_task() -> dict[str, Any] | None:
-        """Get the currently active task."""
+    async def get_current_task() -> dict[str, Any]:
+        """Get the current task snapshot and team status."""
         task_engine: TaskEngine = app.state.task_engine
+        orchestrator: TeamOrchestrator = app.state.team_orchestrator
         task = task_engine.get_current_task()
-        return task.to_dict() if task else None
+        return {
+            "task": task.to_dict() if task else None,
+            "team": orchestrator.get_team_status(),
+            "restore_available": task_engine.get_restore_candidate() is not None,
+        }
 
     @app.post("/api/tasks/{task_id}/approve")
     async def approve_task_plan(task_id: str) -> dict[str, Any]:
         """Approve a task plan and start execution."""
         task_engine: TaskEngine = app.state.task_engine
+        orchestrator: TeamOrchestrator = app.state.team_orchestrator
         task = task_engine.get_current_task()
         if task is None or task.id != task_id:
             from fastapi import HTTPException
@@ -375,15 +387,69 @@ def create_app() -> FastAPI:
 
         # Start execution in background and return immediately
         import asyncio
-        asyncio.create_task(_run_task_execution(task_engine, task))
+        asyncio.create_task(_run_task_execution(task_engine, orchestrator, task))
 
         return {"status": "approved", "task": task.to_dict()}
 
-    async def _run_task_execution(task_engine: TaskEngine, task: Any) -> None:
+    @app.post("/api/tasks/{task_id}/cancel")
+    async def cancel_task(task_id: str) -> dict[str, Any]:
+        """Cancel the current task."""
+        task_engine: TaskEngine = app.state.task_engine
+        task = task_engine.get_current_task()
+        if task is None or task.id != task_id:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        task.update_status(TaskStatus.CANCELLED)
+        for subtask in task.subtasks:
+            if subtask.status == TaskStatus.EXECUTING:
+                subtask.status = TaskStatus.CANCELLED
+
+        return {"status": "cancelled", "task": task.to_dict()}
+
+    @app.post("/api/tasks/{task_id}/retry")
+    async def retry_task(task_id: str) -> dict[str, Any]:
+        """Reset a failed or cancelled task so it can be executed again."""
+        task_engine: TaskEngine = app.state.task_engine
+        task = task_engine.get_current_task()
+        if task is None or task.id != task_id:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Task not found")
+        if task.status not in {TaskStatus.FAILED, TaskStatus.CANCELLED}:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="Task is not retryable")
+
+        task.result = None
+        task.review_passed = False
+        task.plan_approved = False
+        task.update_status(TaskStatus.PLANNED)
+        for subtask in task.subtasks:
+            subtask.status = TaskStatus.PENDING
+            subtask.error = None
+            subtask.result = ""
+            subtask.started_at = None
+            subtask.completed_at = None
+
+        return {"status": "retried", "task": task.to_dict()}
+
+    @app.post("/api/tasks/restore")
+    async def restore_task() -> dict[str, Any]:
+        """Restore the latest task snapshot into the current workbench."""
+        task_engine: TaskEngine = app.state.task_engine
+        task = task_engine.restore_last_task()
+        if task is None:
+            raise HTTPException(status_code=404, detail="No task snapshot available")
+        return {"status": "restored", "task": task.to_dict()}
+
+    async def _run_task_execution(
+        task_engine: TaskEngine,
+        orchestrator: TeamOrchestrator,
+        task: Any,
+    ) -> None:
         """Run task execution and review in background."""
         try:
-            async for _ in task_engine.execute_task(task):
-                pass  # Progress could be streamed via WebSocket/SSE in future
+            async for _ in orchestrator.execute_with_team(task):
+                pass  # Progress is exposed through the current task snapshot.
             await task_engine.review_task(task)
         except Exception as e:
             logger.error("Task execution failed: %s", e, exc_info=True)
@@ -455,7 +521,8 @@ def create_app() -> FastAPI:
         session.system_prompt = system_prompt
         # Clear message history to apply new system prompt
         session.messages = []
-        session.save()
+        session.updated_at = datetime.now()
+        store.update(session)
 
         return session.to_dict()
 
@@ -481,7 +548,8 @@ def create_app() -> FastAPI:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
                 session.messages.append(msg)
 
-        session.save()
+        session.updated_at = datetime.now()
+        store.update(session)
         return session.to_dict()
 
     @app.get("/api/sessions/{session_id}")
@@ -625,7 +693,7 @@ def create_app() -> FastAPI:
                 })
         except PermissionError:
             from fastapi import HTTPException
-            raise HTTPException(status_code=403, detail="Permission denied")
+            raise HTTPException(status_code=403, detail="Permission denied") from None
 
         return {"path": str(target), "entries": entries}
 
@@ -657,7 +725,7 @@ def create_app() -> FastAPI:
             }
         except PermissionError:
             from fastapi import HTTPException
-            raise HTTPException(status_code=403, detail="Permission denied")
+            raise HTTPException(status_code=403, detail="Permission denied") from None
 
     @app.websocket("/ws/{session_id}")
     async def websocket_endpoint(websocket: WebSocket, session_id: str) -> None:
@@ -676,11 +744,10 @@ def create_app() -> FastAPI:
 
         # Check auth requirements
         auth_config = get_auth_config()
-        if auth_config.enabled and JWT_AVAILABLE:
-            if not token or not verify_token(token):
-                await websocket.send_json({"type": "error", "message": "Authentication required"})
-                await websocket.close()
-                return
+        if auth_config.enabled and JWT_AVAILABLE and (not token or not verify_token(token)):
+            await websocket.send_json({"type": "error", "message": "Authentication required"})
+            await websocket.close()
+            return
 
         session = store.get(session_id, user_id=user_id)
 
@@ -790,11 +857,13 @@ def create_app() -> FastAPI:
             await websocket.send_json({
                 "type": "tool_call",
                 "tool_name": event.tool_name,
+                "tool_use_id": event.tool_use_id,
                 "arguments": event.arguments,
             })
         elif isinstance(event, ToolExecutionCompleted):
             await websocket.send_json({
                 "type": "tool_result",
+                "tool_use_id": event.tool_use_id,
                 "result": event.result,
                 "is_error": event.is_error,
             })

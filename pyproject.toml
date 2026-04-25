@@ -66,6 +66,9 @@ line-length = 100
 select = ["E", "F", "W", "I", "N", "D", "UP", "B", "C4", "SIM"]
 ignore = ["D100", "D104", "D107"]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["D"]
+
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true

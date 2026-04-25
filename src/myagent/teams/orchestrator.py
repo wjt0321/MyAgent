@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, AsyncIterator
 
 from myagent.tasks.engine import TaskEngine
@@ -95,6 +96,7 @@ class TeamOrchestrator:
             - subtask: SubTask dict
         """
         task.update_status(TaskStatus.EXECUTING)
+        task.add_event("team_start", "团队开始执行任务", status=task.status.value)
 
         yield {
             "type": "team_start",
@@ -114,15 +116,29 @@ class TeamOrchestrator:
                     "type": "waiting",
                     "message": "等待可用团队成员...",
                 }
+                task.add_event("waiting", "等待可用团队成员...", status=task.status.value)
                 # Simple retry: try again
                 member = self.assign_subtask(subtask)
                 if member is None:
                     subtask.status = TaskStatus.FAILED
                     subtask.error = "No available team members"
+                    task.add_event(
+                        "member_complete",
+                        f"子任务失败：{subtask.description}",
+                        subtask_id=subtask.id,
+                        status=subtask.status.value,
+                    )
                     continue
 
             subtask.status = TaskStatus.EXECUTING
             subtask.started_at = datetime.now()
+            task.add_event(
+                "member_assigned",
+                f"{member.name} 已接手：{subtask.description}",
+                member=member.name,
+                subtask_id=subtask.id,
+                status=subtask.status.value,
+            )
 
             yield {
                 "type": "member_assigned",
@@ -136,6 +152,13 @@ class TeamOrchestrator:
                 subtask.status = TaskStatus.FAILED
                 subtask.error = "Failed to create engine"
                 self.release_member(member.name, success=False)
+                task.add_event(
+                    "member_complete",
+                    f"{member.name} 执行失败：无法创建引擎",
+                    member=member.name,
+                    subtask_id=subtask.id,
+                    status=subtask.status.value,
+                )
                 yield {
                     "type": "member_complete",
                     "member": member.to_dict(),
@@ -164,6 +187,13 @@ class TeamOrchestrator:
                             "delta": event.text,
                         }
                     elif isinstance(event, ToolExecutionStarted):
+                        task.add_event(
+                            "member_progress",
+                            f"{member.name} 正在使用工具：{event.tool_name}",
+                            member=member.name,
+                            subtask_id=subtask.id,
+                            status=subtask.status.value,
+                        )
                         yield {
                             "type": "member_progress",
                             "member": member.to_dict(),
@@ -171,6 +201,13 @@ class TeamOrchestrator:
                             "message": f"使用工具: {event.tool_name}",
                         }
                     elif isinstance(event, ToolExecutionCompleted):
+                        task.add_event(
+                            "member_progress",
+                            f"{member.name} 完成一次工具调用",
+                            member=member.name,
+                            subtask_id=subtask.id,
+                            status=subtask.status.value,
+                        )
                         yield {
                             "type": "member_progress",
                             "member": member.to_dict(),
@@ -186,6 +223,13 @@ class TeamOrchestrator:
                 subtask.completed_at = datetime.now()
 
                 self.release_member(member.name, success=success)
+                task.add_event(
+                    "member_complete",
+                    f"{member.name} {'完成' if success else '失败'}：{subtask.description}",
+                    member=member.name,
+                    subtask_id=subtask.id,
+                    status=subtask.status.value,
+                )
 
                 yield {
                     "type": "member_complete",
@@ -199,6 +243,13 @@ class TeamOrchestrator:
                 subtask.error = str(e)
                 subtask.completed_at = datetime.now()
                 self.release_member(member.name, success=False)
+                task.add_event(
+                    "member_complete",
+                    f"{member.name} 执行失败：{subtask.description}",
+                    member=member.name,
+                    subtask_id=subtask.id,
+                    status=subtask.status.value,
+                )
 
                 yield {
                     "type": "member_complete",
@@ -208,6 +259,7 @@ class TeamOrchestrator:
                 }
 
         task.update_status(TaskStatus.EXECUTED)
+        task.add_event("team_complete", "团队执行结束，等待审查", status=task.status.value)
 
         yield {
             "type": "team_complete",
