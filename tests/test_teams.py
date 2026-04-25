@@ -42,6 +42,8 @@ async def test_team_orchestrator_executes_task_and_updates_team_status():
     assert any(event["type"] == "member_assigned" for event in events)
     assert any(event["type"] == "member_complete" for event in events)
     assert events[-1]["type"] == "team_complete"
+    assert any(event["type"] == "member_assigned" for event in task.events)
+    assert any(event["type"] == "member_complete" for event in task.events)
     assert task.status == TaskStatus.EXECUTED
     assert task.subtasks[0].status == TaskStatus.DONE
     assert orchestrator.get_team_status()["total_completed"] >= 1

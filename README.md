@@ -86,6 +86,7 @@ Notes:
 - When the task pane is empty, the latest task snapshot can be restored back into the workbench with a restore action
 - Review cards now split `deliverables`, `issues`, and `suggestions` into separate sections for faster inspection
 - The task view now includes a lightweight team summary so execution load and completion counts stay visible
+- Task snapshots now include an execution timeline so member assignment, tool activity, and review transitions stay visible
 
 ## Documentation
 

@@ -3006,6 +3006,19 @@ body {
   padding-left: 1rem;
 }
 
+.task-timeline-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+}
+
+.task-timeline-item {
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
 .task-card-summary {
   margin-top: 0.65rem;
   color: var(--text-secondary);

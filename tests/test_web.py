@@ -206,6 +206,8 @@ class TestWebServer:
         assert "restoreTask(" in content
         assert "task-team-summary" in content
         assert "task-review-card" in content
+        assert "renderTaskTimeline(" in content
+        assert "task-timeline-list" in content
         assert "task-review-deliverables" in content
         assert "task-review-issues" in content
         assert "task-review-suggestions" in content
@@ -221,6 +223,13 @@ class TestWebServer:
             status=TaskStatus.EXECUTING,
             subtasks=[SubTask(description="接入任务快照", status=TaskStatus.EXECUTING)],
         )
+        task.events = [
+            {
+                "type": "member_assigned",
+                "message": "Planner 已接手任务",
+                "timestamp": "2026-04-25T12:00:00",
+            }
+        ]
 
         with TestClient(app) as client:
             app.state.task_engine._current_task = task
@@ -230,6 +239,8 @@ class TestWebServer:
         data = response.json()
         assert data["task"]["id"] == task.id
         assert data["task"]["status"] == "executing"
+        assert data["task"]["events"][0]["type"] == "member_assigned"
+        assert "Planner" in data["task"]["events"][0]["message"]
         assert data["team"]["total_members"] >= 1
         assert data["restore_available"] is True
 

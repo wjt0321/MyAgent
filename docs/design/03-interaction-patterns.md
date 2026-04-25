@@ -204,10 +204,12 @@ UI: Detail sidebar shows session summary
 5. 子任务执行完成后进入 `reviewing / done / failed / cancelled`
 6. 审查摘要、交付物、问题、建议在任务流与详情侧栏中按结构化分区可见
 7. 当前任务丢失时，可通过 `restore` 动作把最近任务快照恢复到工作台
+8. `task.events` 会累积执行时间线，供 Web 直接展示成员分配、工具进展与审查切换
 
 Web 当前支持：
 - Task 当前快照
 - Team 当前状态摘要
+- Task 执行时间线
 - Review 结果卡片
 - 取消当前任务
 - 对失败或已取消任务执行重试重置

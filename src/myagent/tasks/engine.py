@@ -220,6 +220,7 @@ class TaskEngine:
         Returns a TaskResult with review findings.
         """
         task.update_status(TaskStatus.REVIEWING)
+        task.add_event("review_start", "开始审查任务结果", status=task.status.value)
 
         if not self.engine_manager.is_configured():
             result = TaskResult(
@@ -284,6 +285,11 @@ class TaskEngine:
             task.update_status(TaskStatus.DONE)
         else:
             task.update_status(TaskStatus.FAILED)
+        task.add_event(
+            "review_complete",
+            result.summary or "审查完成",
+            status=task.status.value,
+        )
 
         return result
 

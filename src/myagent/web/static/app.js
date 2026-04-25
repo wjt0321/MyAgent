@@ -1782,6 +1782,27 @@ class MyAgentWebApp {
         `;
     }
 
+    renderTaskTimeline(events) {
+        if (!events || events.length === 0) {
+            return '<div class="task-empty">暂无执行事件</div>';
+        }
+        const recentEvents = events.slice(-8).reverse();
+        return `
+            <div class="task-timeline-list">
+                ${recentEvents.map(event => `
+                    <div class="task-timeline-item">
+                        <div class="task-stream-title">${this.escapeHtml(event.message || event.type || 'event')}</div>
+                        <div class="task-stream-meta">
+                            ${this.escapeHtml(event.type || 'event')}
+                            ${event.member ? ` · ${this.escapeHtml(event.member)}` : ''}
+                            ${event.status ? ` · ${this.escapeHtml(event.status)}` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
     // ========== Team Panel ==========
 
     async loadTeam() {
@@ -1887,6 +1908,12 @@ class MyAgentWebApp {
                 ${this.renderReviewListSection('task-review-suggestions', '建议', task.result.suggestions || [])}
             </div>
         ` : '';
+        const timelineCard = `
+            <div class="task-review-card">
+                <div class="task-stream-title">执行时间线</div>
+                ${this.renderTaskTimeline(task.events || [])}
+            </div>
+        `;
         const teamSummary = this.teamData ? `
             <div class="task-team-summary">
                 Team: ${this.escapeHtml(String(this.teamData.idle_members || 0))} idle /
@@ -1905,6 +1932,7 @@ class MyAgentWebApp {
                 ${canCancel ? '<button class="task-cancel-btn">取消任务</button>' : ''}
                 ${canRetry ? '<button class="task-retry-btn">重新执行</button>' : ''}
                 <div class="task-step-list">${steps || '<div class="task-empty">暂无步骤</div>'}</div>
+                ${timelineCard}
                 ${reviewCard}
             </div>
         `;

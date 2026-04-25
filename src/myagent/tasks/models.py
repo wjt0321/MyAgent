@@ -98,6 +98,7 @@ class Task:
     status: TaskStatus = TaskStatus.PENDING
     subtasks: list[SubTask] = field(default_factory=list)
     result: TaskResult | None = None
+    events: list[dict[str, Any]] = field(default_factory=list)
     plan_approved: bool = False   # User approved the plan
     review_passed: bool = False   # Review passed
     created_at: datetime = field(default_factory=datetime.now)
@@ -112,6 +113,7 @@ class Task:
             "status": self.status.value,
             "subtasks": [s.to_dict() for s in self.subtasks],
             "result": self.result.to_dict() if self.result else None,
+            "events": self.events,
             "plan_approved": self.plan_approved,
             "review_passed": self.review_passed,
             "created_at": self.created_at.isoformat(),
@@ -128,6 +130,7 @@ class Task:
             status=TaskStatus(data.get("status", "pending")),
             subtasks=[SubTask.from_dict(s) for s in data.get("subtasks", [])],
             result=TaskResult.from_dict(data["result"]) if data.get("result") else None,
+            events=data.get("events", []),
             plan_approved=data.get("plan_approved", False),
             review_passed=data.get("review_passed", False),
             created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now(),
@@ -139,6 +142,29 @@ class Task:
         """Update task status and timestamp."""
         self.status = status
         self.updated_at = datetime.now()
+
+    def add_event(
+        self,
+        event_type: str,
+        message: str,
+        *,
+        member: str | None = None,
+        subtask_id: str | None = None,
+        status: str | None = None,
+    ) -> None:
+        """Append a structured task timeline event."""
+        event = {
+            "type": event_type,
+            "message": message,
+            "timestamp": datetime.now().isoformat(),
+        }
+        if member is not None:
+            event["member"] = member
+        if subtask_id is not None:
+            event["subtask_id"] = subtask_id
+        if status is not None:
+            event["status"] = status
+        self.events.append(event)
 
     def get_progress(self) -> tuple[int, int]:
         """Return (completed, total) subtask counts."""
