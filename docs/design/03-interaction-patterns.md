@@ -202,7 +202,8 @@ UI: Detail sidebar shows session summary
 3. 用户批准后，后端进入 `TeamOrchestrator.execute_with_team()`，任务状态切到 `executing`
 4. Web 通过 `/api/tasks/current` 轮询当前 `task + team` 快照
 5. 子任务执行完成后进入 `reviewing / done / failed / cancelled`
-6. 审查摘要、问题、建议、交付物在任务流与详情侧栏中可见
+6. 审查摘要、交付物、问题、建议在任务流与详情侧栏中按结构化分区可见
+7. 当前任务丢失时，可通过 `restore` 动作把最近任务快照恢复到工作台
 
 Web 当前支持：
 - Task 当前快照
@@ -210,6 +211,7 @@ Web 当前支持：
 - Review 结果卡片
 - 取消当前任务
 - 对失败或已取消任务执行重试重置
+- 对最近任务快照执行恢复
 
 TUI 当前支持：
 - `/plan` 进入规划态

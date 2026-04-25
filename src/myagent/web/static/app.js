@@ -23,6 +23,7 @@ class MyAgentWebApp {
         this.commandPaletteItems = [];
         this.commandPaletteIndex = 0;
         this.taskPollingTimer = null;
+        this.restoreAvailable = false;
 
         this.initTheme();
         this.initElements();
@@ -1532,6 +1533,7 @@ class MyAgentWebApp {
 
             const task = await response.json();
             this.currentTask = task;
+            this.restoreAvailable = true;
             this.showTaskWorkflow(task);
             this.renderTaskPanel();
             return task;
@@ -1622,6 +1624,26 @@ class MyAgentWebApp {
         }
     }
 
+    async restoreTask() {
+        try {
+            const response = await fetch('/api/tasks/restore', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.currentTask = data.task;
+                this.restoreAvailable = !!data.task;
+                this.renderTaskPanel();
+                this.syncTaskPollingState();
+                this.addMessage('assistant', `已恢复任务 "${this.currentTask.title}" 的最近快照。`, false);
+            }
+        } catch (error) {
+            console.error('Failed to restore task:', error);
+        }
+    }
+
     async loadCurrentTask() {
         try {
             const response = await fetch('/api/tasks/current');
@@ -1629,6 +1651,7 @@ class MyAgentWebApp {
                 const snapshot = await response.json();
                 this.currentTask = snapshot.task;
                 this.teamData = snapshot.team || this.teamData;
+                this.restoreAvailable = !!snapshot.restore_available;
                 this.renderTaskPanel();
                 this.renderTeamPanel(this.teamData || {});
                 this.syncTaskPollingState();
@@ -1668,7 +1691,11 @@ class MyAgentWebApp {
         if (!this.taskPanel) return;
 
         if (!this.currentTask) {
-            this.taskPanel.innerHTML = '<div class="task-empty">暂无任务</div>';
+            this.taskPanel.innerHTML = `
+                <div class="task-empty">暂无任务</div>
+                ${this.restoreAvailable ? '<button class="task-restore-btn">恢复最近任务</button>' : ''}
+            `;
+            this.taskPanel.querySelector('.task-restore-btn')?.addEventListener('click', () => this.restoreTask());
             this.renderTaskStream();
             return;
         }
@@ -1738,6 +1765,21 @@ class MyAgentWebApp {
         });
 
         this.renderTaskStream();
+    }
+
+    renderReviewListSection(sectionClass, title, items) {
+        if (!items || items.length === 0) {
+            return '';
+        }
+        const listItems = items
+            .map(item => `<li>${this.escapeHtml(item)}</li>`)
+            .join('');
+        return `
+            <div class="task-review-section ${sectionClass}">
+                <div class="task-review-heading">${this.escapeHtml(title)}</div>
+                <ul>${listItems}</ul>
+            </div>
+        `;
     }
 
     // ========== Team Panel ==========
@@ -1818,7 +1860,11 @@ class MyAgentWebApp {
     renderTaskStream() {
         if (!this.taskStream) return;
         if (!this.currentTask) {
-            this.taskStream.innerHTML = '<div class="task-empty">暂无任务</div>';
+            this.taskStream.innerHTML = `
+                <div class="task-empty">暂无任务</div>
+                ${this.restoreAvailable ? '<button class="task-restore-btn">恢复最近任务</button>' : ''}
+            `;
+            this.taskStream.querySelector('.task-restore-btn')?.addEventListener('click', () => this.restoreTask());
             return;
         }
 
@@ -1836,18 +1882,9 @@ class MyAgentWebApp {
             <div class="task-review-card">
                 <div class="task-stream-title">审查结果</div>
                 <div class="task-stream-meta">${this.escapeHtml(task.result.summary || '暂无摘要')}</div>
-                ${(task.result.issues || []).length ? `
-                    <div class="task-review-section">
-                        <strong>问题</strong>
-                        <div>${this.escapeHtml(task.result.issues.join(' | '))}</div>
-                    </div>
-                ` : ''}
-                ${(task.result.suggestions || []).length ? `
-                    <div class="task-review-section">
-                        <strong>建议</strong>
-                        <div>${this.escapeHtml(task.result.suggestions.join(' | '))}</div>
-                    </div>
-                ` : ''}
+                ${this.renderReviewListSection('task-review-deliverables', '交付物', task.result.deliverables || [])}
+                ${this.renderReviewListSection('task-review-issues', '问题', task.result.issues || [])}
+                ${this.renderReviewListSection('task-review-suggestions', '建议', task.result.suggestions || [])}
             </div>
         ` : '';
         const teamSummary = this.teamData ? `
@@ -1873,6 +1910,7 @@ class MyAgentWebApp {
         `;
         this.taskStream.querySelector('.task-cancel-btn')?.addEventListener('click', () => this.cancelTask());
         this.taskStream.querySelector('.task-retry-btn')?.addEventListener('click', () => this.retryTask());
+        this.taskStream.querySelector('.task-restore-btn')?.addEventListener('click', () => this.restoreTask());
     }
 
     renderWorkspaceOverview() {

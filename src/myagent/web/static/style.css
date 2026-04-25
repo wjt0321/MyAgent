@@ -2987,6 +2987,25 @@ body {
   color: var(--text-secondary);
 }
 
+.task-review-heading {
+  margin-bottom: 0.4rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.task-review-deliverables,
+.task-review-issues,
+.task-review-suggestions {
+  padding-top: 0.1rem;
+}
+
+.task-review-deliverables ul,
+.task-review-issues ul,
+.task-review-suggestions ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
 .task-card-summary {
   margin-top: 0.65rem;
   color: var(--text-secondary);
@@ -3007,6 +3026,16 @@ body {
 .task-retry-btn {
   margin-top: 0.65rem;
   margin-left: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.task-restore-btn {
+  margin-top: 0.85rem;
   padding: 0.55rem 0.8rem;
   border: 1px solid var(--border-color);
   border-radius: 10px;

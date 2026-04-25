@@ -370,6 +370,7 @@ def create_app() -> FastAPI:
         return {
             "task": task.to_dict() if task else None,
             "team": orchestrator.get_team_status(),
+            "restore_available": task_engine.get_restore_candidate() is not None,
         }
 
     @app.post("/api/tasks/{task_id}/approve")
@@ -430,6 +431,15 @@ def create_app() -> FastAPI:
             subtask.completed_at = None
 
         return {"status": "retried", "task": task.to_dict()}
+
+    @app.post("/api/tasks/restore")
+    async def restore_task() -> dict[str, Any]:
+        """Restore the latest task snapshot into the current workbench."""
+        task_engine: TaskEngine = app.state.task_engine
+        task = task_engine.restore_last_task()
+        if task is None:
+            raise HTTPException(status_code=404, detail="No task snapshot available")
+        return {"status": "restored", "task": task.to_dict()}
 
     async def _run_task_execution(
         task_engine: TaskEngine,

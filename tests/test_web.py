@@ -203,8 +203,12 @@ class TestWebServer:
         assert "startTaskPolling(" in content
         assert "cancelTask(" in content
         assert "retryTask(" in content
+        assert "restoreTask(" in content
         assert "task-team-summary" in content
         assert "task-review-card" in content
+        assert "task-review-deliverables" in content
+        assert "task-review-issues" in content
+        assert "task-review-suggestions" in content
         assert "result.summary" in content
         assert "<<<<<<<" not in content
 
@@ -227,6 +231,7 @@ class TestWebServer:
         assert data["task"]["id"] == task.id
         assert data["task"]["status"] == "executing"
         assert data["team"]["total_members"] >= 1
+        assert data["restore_available"] is True
 
     def test_cancel_task_endpoint_marks_current_task_cancelled(self):
         """取消任务接口应将当前任务标记为 cancelled。"""
@@ -291,3 +296,24 @@ class TestWebServer:
             response = client.post(f"/api/tasks/{task.id}/retry")
 
         assert response.status_code == 400
+
+    def test_restore_task_endpoint_recovers_last_snapshot(self):
+        """恢复接口应把最近任务快照重新挂回当前任务。"""
+        app = create_app()
+        task = Task(
+            title="恢复任务快照",
+            description="验证 restore 流程",
+            status=TaskStatus.CANCELLED,
+            subtasks=[SubTask(description="恢复子任务", status=TaskStatus.CANCELLED)],
+        )
+
+        with TestClient(app) as client:
+            app.state.task_engine._current_task = None
+            app.state.task_engine._last_task_snapshot = task
+            response = client.post("/api/tasks/restore")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "restored"
+        assert data["task"]["title"] == "恢复任务快照"
+        assert data["task"]["status"] == "cancelled"
