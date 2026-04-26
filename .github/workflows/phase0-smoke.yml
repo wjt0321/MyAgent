@@ -40,3 +40,14 @@ jobs:
           tests/test_memory.py
           tests/test_gateway_bot.py
           -v --tb=long
+          --junitxml=pytest-report.xml
+          2>&1 | tee pytest-output.log
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-logs
+          path: |
+            pytest-output.log
+            pytest-report.xml
