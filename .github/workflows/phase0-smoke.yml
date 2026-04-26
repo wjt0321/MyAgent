@@ -39,4 +39,4 @@ jobs:
           tests/test_web_files.py
           tests/test_memory.py
           tests/test_gateway_bot.py
-          -q
+          -v --tb=long
