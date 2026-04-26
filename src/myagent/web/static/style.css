@@ -3665,3 +3665,17 @@ pre:hover .copy-btn {
 pre {
   position: relative;
 }
+
+/* ---------- Search Navigation ---------- */
+.search-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.search-count {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  min-width: 50px;
+  text-align: center;
+}

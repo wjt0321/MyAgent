@@ -126,7 +126,6 @@ class MyAgentWebApp {
         this.currentModel = document.getElementById('current-model');
         this.modelSelect = document.getElementById('model-select');
         this.fileTree = document.getElementById('file-tree');
-        this.filePreviewPanel = document.getElementById('file-preview-panel');
         this.previewFilename = document.getElementById('preview-filename');
         this.previewContent = document.getElementById('preview-content');
         this.closePreviewBtn = document.getElementById('close-preview');
@@ -161,7 +160,7 @@ class MyAgentWebApp {
         this.detailSidebar = document.getElementById('detail-sidebar');
         this.detailSidebarMeta = document.getElementById('detail-sidebar-meta');
         this.detailSidebarContent = document.getElementById('detail-sidebar-content');
-        this.filePreviewPanel = this.filePreviewPanel || this.detailSidebar;
+        this.filePreviewPanel = this.detailSidebar;
 
         // Settings modal
         this.settingsBtn = document.getElementById('settings-btn');
@@ -170,7 +169,7 @@ class MyAgentWebApp {
         this.saveSettingsBtn = document.getElementById('save-settings-btn');
         this.settingsAgentSelect = document.getElementById('settings-agent-select');
         this.settingsSystemPrompt = document.getElementById('settings-system-prompt');
-        this.settingsThemeSelect = document.getElementById('settings-theme-select');
+
         // Theme buttons in settings panel (new theme selector)
         this.settingsThemeBtns = document.querySelectorAll('.theme-btn');
         this.settingsSessionCount = document.getElementById('settings-session-count');
@@ -273,6 +272,13 @@ class MyAgentWebApp {
         this.closePreviewBtn.addEventListener('click', () => this.hideFilePreview());
         this.themeToggle.addEventListener('click', () => this.toggleTheme());
 
+        // Mobile detail sidebar: close when clicking outside
+        this.detailSidebar?.addEventListener('click', (e) => {
+            if (e.target === this.detailSidebar && window.innerWidth <= 768) {
+                this.hideFilePreview();
+            }
+        });
+
         // Mobile sidebar
         this.mobileSidebarToggle.addEventListener('click', () => this.openSidebar());
         this.sidebarOverlay.addEventListener('click', () => this.closeSidebar());
@@ -290,6 +296,8 @@ class MyAgentWebApp {
         this.searchToggle.addEventListener('click', () => this.toggleSearch());
         this.searchClose.addEventListener('click', () => this.toggleSearch());
         this.searchInput.addEventListener('input', (e) => this.performSearch(e.target.value));
+        document.getElementById('search-prev')?.addEventListener('click', () => this.prevSearchResult());
+        document.getElementById('search-next')?.addEventListener('click', () => this.nextSearchResult());
 
         this.workbenchNavBtns.forEach(btn => {
             btn.addEventListener('click', () => this.setActiveView(btn.dataset.view));
@@ -380,7 +388,11 @@ class MyAgentWebApp {
             this.sessionImportBtn.addEventListener('click', () => this.sessionImportFile.click());
         }
         if (this.sessionImportFile) {
-            this.sessionImportFile.addEventListener('change', (e) => this.importSession(e));
+            this.sessionImportFile.addEventListener('change', (e) => {
+                this.importSession(e);
+                // Reset so the same file can be selected again
+                e.target.value = '';
+            });
         }
     }
 
@@ -772,23 +784,62 @@ class MyAgentWebApp {
 
     performSearch(query) {
         this.clearSearchHighlights();
-        if (!query.trim()) return;
+        if (!query.trim()) {
+            this.updateSearchCount(0, 0);
+            return;
+        }
 
         const messages = this.messagesContainer.querySelectorAll('.message');
         const lowerQuery = query.toLowerCase();
+        this._searchMatches = [];
 
         messages.forEach(msg => {
             const content = msg.querySelector('.content');
             if (content && content.textContent.toLowerCase().includes(lowerQuery)) {
                 msg.classList.add('highlighted');
-                msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                this._searchMatches.push(msg);
             }
         });
+
+        this._searchIndex = 0;
+        this.updateSearchCount(this._searchMatches.length);
+        this.scrollToSearchMatch(0);
+    }
+
+    scrollToSearchMatch(index) {
+        if (!this._searchMatches || this._searchMatches.length === 0) return;
+        const clamped = Math.max(0, Math.min(index, this._searchMatches.length - 1));
+        this._searchIndex = clamped;
+        this._searchMatches[clamped].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        this.updateSearchCount(this._searchMatches.length);
+    }
+
+    updateSearchCount(total) {
+        const countEl = document.getElementById('search-count');
+        if (!countEl) return;
+        if (total === 0) {
+            countEl.textContent = '无结果';
+        } else {
+            countEl.textContent = `${this._searchIndex + 1} / ${total}`;
+        }
+    }
+
+    nextSearchResult() {
+        if (!this._searchMatches || this._searchMatches.length === 0) return;
+        this.scrollToSearchMatch(this._searchIndex + 1);
+    }
+
+    prevSearchResult() {
+        if (!this._searchMatches || this._searchMatches.length === 0) return;
+        this.scrollToSearchMatch(this._searchIndex - 1);
     }
 
     clearSearchHighlights() {
         this.messagesContainer.querySelectorAll('.message.highlighted')
             .forEach(msg => msg.classList.remove('highlighted'));
+        this._searchMatches = [];
+        this._searchIndex = 0;
+        this.updateSearchCount(0, 0);
     }
 
     // ========== Workspace ==========
@@ -825,20 +876,22 @@ class MyAgentWebApp {
     }
 
     bindQuickCards() {
-        document.querySelectorAll('.quick-card').forEach(card => {
-            card.addEventListener('click', () => {
+        this.welcomeScreen?.addEventListener('click', (e) => {
+            const card = e.target.closest('.quick-card[data-prompt]');
+            if (card) {
                 const prompt = card.dataset.prompt;
                 if (prompt) {
                     this.messageInput.value = prompt;
                     this.sendMessage();
                 }
-            });
+            }
         });
     }
 
     bindDemoPathCards() {
-        document.querySelectorAll('.demo-path-card').forEach(card => {
-            card.addEventListener('click', () => {
+        this.welcomeScreen?.addEventListener('click', (e) => {
+            const card = e.target.closest('.demo-path-card');
+            if (card) {
                 const viewName = card.dataset.demoView;
                 const prompt = card.dataset.demoPrompt;
                 if (viewName) {
@@ -850,20 +903,21 @@ class MyAgentWebApp {
                         this.messageInput.focus();
                     }
                 }
-            });
+            }
         });
     }
 
     bindDocsEntryCards() {
-        document.querySelectorAll('.docs-entry-card[data-doc-path]').forEach(card => {
-            card.addEventListener('click', async () => {
+        this.welcomeScreen?.addEventListener('click', (e) => {
+            const card = e.target.closest('.docs-entry-card[data-doc-path]');
+            if (card) {
                 const docPath = card.dataset.docPath;
                 const docName = card.dataset.docName || docPath || '文档';
                 if (!docPath) return;
                 this.setActiveView('files');
-                await this.loadFileTree('.');
-                await this.showFilePreview(docPath, docName);
-            });
+                this.loadFileTree('.');
+                this.showFilePreview(docPath, docName);
+            }
         });
     }
 
@@ -1139,6 +1193,28 @@ class MyAgentWebApp {
         this.fileTree.innerHTML = '';
         this.fileEntries = entries;
         this._fileTreeData = { entries, parentPath };
+
+        // Add "go to parent" button if not at root
+        if (parentPath && parentPath !== '.') {
+            const parentItem = document.createElement('div');
+            parentItem.className = 'file-tree-node';
+            parentItem.innerHTML = `
+                <div class="file-tree-item" style="padding-left: 12px">
+                    <span class="icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </span>
+                    <span class="name">..</span>
+                </div>
+            `;
+            parentItem.querySelector('.file-tree-item').addEventListener('click', () => {
+                const parent = parentPath.split('/').slice(0, -1).join('/') || '.';
+                this.loadFileTree(parent);
+            });
+            this.fileTree.appendChild(parentItem);
+        }
+
         this._renderFileTreeNodes(entries, this.fileTree, parentPath, 0);
         this.renderFileBrowser();
     }
@@ -1949,6 +2025,15 @@ class MyAgentWebApp {
         if (this.taskPollingTimer) {
             return;
         }
+        this._visibilityHandler = () => {
+            if (document.hidden) {
+                this.stopTaskPolling();
+            } else {
+                this.loadCurrentTask();
+                this.startTaskPolling();
+            }
+        };
+        document.addEventListener('visibilitychange', this._visibilityHandler);
         this.taskPollingTimer = window.setInterval(() => {
             this.loadCurrentTask();
         }, 1500);
@@ -1960,6 +2045,10 @@ class MyAgentWebApp {
         }
         window.clearInterval(this.taskPollingTimer);
         this.taskPollingTimer = null;
+        if (this._visibilityHandler) {
+            document.removeEventListener('visibilitychange', this._visibilityHandler);
+            this._visibilityHandler = null;
+        }
     }
 
     syncTaskPollingState() {
@@ -2637,7 +2726,11 @@ class MyAgentWebApp {
 
     renderMarkdown(text) {
         if (window.marked) {
-            return window.marked.parse(text);
+            const rawHtml = window.marked.parse(text);
+            if (window.DOMPurify) {
+                return window.DOMPurify.sanitize(rawHtml);
+            }
+            return rawHtml;
         }
         return this.escapeHtml(text).replace(/\n/g, '<br>');
     }
@@ -3187,9 +3280,6 @@ class MyAgentWebApp {
         } catch (error) {
             console.error('Failed to import session:', error);
             alert('导入失败: ' + error.message);
-        } finally {
-            // Reset file input
-            event.target.value = '';
         }
     }
 

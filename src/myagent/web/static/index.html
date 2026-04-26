@@ -17,8 +17,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
+    <script>
+      (function() {
+        const savedTheme = localStorage.getItem('myagent-theme') || 'dark';
+        const effective = savedTheme === 'auto'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : savedTheme;
+        document.documentElement.className = 'theme-' + effective;
+      })();
+    </script>
 </head>
-<body class="theme-dark">
+<body>
     <div class="app">
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
@@ -327,6 +337,19 @@
                         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                     </svg>
                     <input type="text" id="search-input" placeholder="搜索消息...">
+                </div>
+                <div class="search-nav">
+                    <button class="icon-btn" id="search-prev" title="上一个">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                    </button>
+                    <span id="search-count" class="search-count"></span>
+                    <button class="icon-btn" id="search-next" title="下一个">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </button>
                 </div>
                 <button class="icon-btn" id="search-close">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
