@@ -1566,11 +1566,8 @@ class MyAgentWebApp {
                 this.reconnectAttempts = this.maxReconnectAttempts;
                 return;
             }
-            // Session not found or other errors - show once and stop
-            if (this.reconnectAttempts === 0) {
-                this.addMessage('error', '会话不存在或已过期，请创建新会话。', false);
-            }
-            this.reconnectAttempts = this.maxReconnectAttempts;
+            // Other disconnects: attempt reconnect with backoff
+            this.attemptReconnect(sessionId);
         };
 
         this.ws.onerror = (error) => {
