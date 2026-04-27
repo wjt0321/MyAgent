@@ -94,8 +94,8 @@
 
 **验证清单**：
 - [x] 对比 Codex 截图检查 Header 是否达到类似的简洁程度
-- [ ] 模型切换通过 Command Palette 可正常使用
-- [ ] Agent 切换通过 Settings Modal 可正常使用
+- [x] 模型切换通过 Command Palette 可正常使用
+- [x] Agent 切换通过 Settings Modal 可正常使用
 
 ---
 

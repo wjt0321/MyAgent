@@ -25,6 +25,14 @@ class MyAgentWebApp {
         this.taskPollingTimer = null;
         this.restoreAvailable = false;
         this.toolCallRegistry = new Map();
+        this.availableModels = [
+            'qwen-max',
+            'qwen-plus',
+            'qwen-turbo',
+            'qwen-coder-plus',
+            'glm-4',
+            'glm-4-plus',
+        ];
 
         this.initTheme();
         this.initElements();
@@ -466,6 +474,14 @@ class MyAgentWebApp {
     }
 
     getCommandPaletteItems() {
+        const modelItems = this.availableModels.map(model => ({
+            id: `model-${model}`,
+            title: `切换模型: ${model}`,
+            meta: `使用 ${model} 模型进行对话`,
+            shortcut: 'model',
+            handler: () => this.switchModel(model),
+        }));
+
         return [
             {
                 id: 'new-session',
@@ -517,6 +533,13 @@ class MyAgentWebApp {
                 handler: () => this.openSettings(),
             },
             {
+                id: 'switch-model',
+                title: '切换模型',
+                meta: '选择要使用的 AI 模型',
+                shortcut: 'model',
+                handler: () => this.showModelPicker(),
+            },
+            {
                 id: 'focus-input',
                 title: '聚焦输入框',
                 meta: '准备发送消息',
@@ -530,7 +553,14 @@ class MyAgentWebApp {
                 shortcut: '/help',
                 handler: () => this.executeSlashCommand('/help'),
             },
+            ...modelItems,
         ];
+    }
+
+    showModelPicker() {
+        if (!this.commandPaletteModal) return;
+        this.renderCommandPalette('model');
+        this.commandPaletteModal.classList.add('show');
     }
 
     renderCommandPalette(query = '') {
