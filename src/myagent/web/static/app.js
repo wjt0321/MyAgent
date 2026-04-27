@@ -122,9 +122,8 @@ class MyAgentWebApp {
         this.newSessionBtn = document.getElementById('new-session-btn');
         this.statusIndicator = document.getElementById('status-indicator');
         this.statusDot = document.getElementById('status-dot');
-        this.currentAgent = document.getElementById('current-agent');
-        this.currentModel = document.getElementById('current-model');
-        this.modelSelect = document.getElementById('model-select');
+        this.threadTitle = document.getElementById('thread-title');
+        this.threadModel = document.getElementById('thread-model');
         this.fileTree = document.getElementById('file-tree');
         this.previewFilename = document.getElementById('preview-filename');
         this.previewContent = document.getElementById('preview-content');
@@ -133,7 +132,6 @@ class MyAgentWebApp {
         this.mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
         this.sidebar = document.getElementById('sidebar');
         this.sidebarOverlay = document.getElementById('sidebar-overlay');
-        this.agentSelect = document.getElementById('agent-select');
         this.searchToggle = document.getElementById('search-toggle');
         this.searchBar = document.getElementById('search-bar');
         this.searchInput = document.getElementById('search-input');
@@ -145,8 +143,6 @@ class MyAgentWebApp {
         this.sessionControlBar = document.getElementById('session-control-bar');
         this.sessionStatusChip = document.getElementById('session-status-chip');
         this.sessionStatusLabel = document.getElementById('session-status-label');
-        this.sessionSummaryLine = document.getElementById('session-summary-line');
-        this.contextHelpStrip = document.getElementById('context-help-strip');
         this.commandPaletteBtn = document.getElementById('command-palette-btn');
         this.commandPaletteModal = document.getElementById('command-palette-modal');
         this.commandPaletteInput = document.getElementById('command-palette-input');
@@ -284,13 +280,8 @@ class MyAgentWebApp {
         this.sidebarOverlay.addEventListener('click', () => this.closeSidebar());
         window.addEventListener('resize', () => this.syncResponsiveWorkbenchState());
 
-        // Agent select
-        this.agentSelect.addEventListener('change', (e) => this.switchAgent(e.target.value));
-
-        // Model select
-        if (this.modelSelect) {
-            this.modelSelect.addEventListener('change', (e) => this.switchModel(e.target.value));
-        }
+        // Agent/model select - moved to Settings Modal and Command Palette
+        // Model select removed from header in Step 05
 
         // Search
         this.searchToggle.addEventListener('click', () => this.toggleSearch());
@@ -441,18 +432,7 @@ class MyAgentWebApp {
     }
 
     updateContextHelp(viewName) {
-        if (!this.contextHelpStrip) return;
-        const viewHints = {
-            chat: '先描述需求，或直接使用 /plan 建立任务流',
-            tasks: '查看当前 Task、Team、Review 与执行时间线',
-            files: '浏览文件树，或打开文档与代码预览',
-            workspace: '检查用户画像、记忆与项目上下文是否齐全',
-            team: '查看成员负载、角色分工与协作状态',
-        };
-        const helpText = this.contextHelpStrip.querySelector('.context-help-text');
-        if (helpText) {
-            helpText.textContent = viewHints[viewName] || viewHints.chat;
-        }
+        // Removed in Step 05: context-help-strip moved from Header
     }
 
     updateMobileViewChip(viewName) {
@@ -670,21 +650,7 @@ class MyAgentWebApp {
     }
 
     renderSessionSummaryLine(session = null, statusText = '') {
-        if (!this.sessionSummaryLine) return;
-        if (!session) {
-            this.sessionSummaryLine.textContent = statusText || '当前会话尚未加载';
-            return;
-        }
-
-        const parts = [
-            session.agent || 'general',
-            session.model || 'default',
-            `${session.messages?.length || 0} 条消息`,
-        ];
-        if (statusText) {
-            parts.push(statusText);
-        }
-        this.sessionSummaryLine.textContent = parts.join(' · ');
+        // Removed in Step 05: session-summary-line removed from Header
     }
 
     refreshActiveSession(session, statusText = '') {
@@ -700,14 +666,8 @@ class MyAgentWebApp {
             this.sessions.unshift(session);
         }
 
-        this.currentAgent.textContent = session.agent || 'general';
-        this.currentModel.textContent = session.model || 'default';
-        if (this.agentSelect) {
-            this.agentSelect.value = session.agent || 'general';
-        }
-        if (this.modelSelect && session.model) {
-            this.modelSelect.value = session.model;
-        }
+        this.threadTitle.textContent = session.agent || 'general';
+        this.threadModel.textContent = session.model || 'default';
         this.renderSessionList();
         this.renderSessionSummaryLine(session, statusText);
         this.renderDetailSidebar('session', {
@@ -1462,7 +1422,7 @@ class MyAgentWebApp {
                         session.agent = newName;
                         this.renderSessionList();
                         if (this.currentSessionId === sessionId) {
-                            this.currentAgent.textContent = newName;
+                            this.threadTitle.textContent = newName;
                         }
                     }
                 } catch (error) {
@@ -1582,7 +1542,7 @@ class MyAgentWebApp {
             const response = await fetch('/api/sessions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ agent: 'general', model: this.modelSelect.value || 'glm-4' })
+                body: JSON.stringify({ agent: 'general', model: 'glm-4' })
             });
 
             const session = await response.json();
@@ -3246,8 +3206,7 @@ class MyAgentWebApp {
                     const session = this.sessions.find(s => s.id === this.currentSessionId);
                     if (session) {
                         session.agent = agent;
-                        this.currentAgent.textContent = agent;
-                        this.agentSelect.value = agent;
+                        this.threadTitle.textContent = agent;
                         this.renderSessionList();
                     }
                     this.connectWebSocket(this.currentSessionId);
@@ -3314,7 +3273,7 @@ class MyAgentWebApp {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     agent: data.agent,
-                    model: data.model || this.modelSelect.value || 'glm-4',
+                    model: data.model || 'glm-4',
                 }),
             });
 

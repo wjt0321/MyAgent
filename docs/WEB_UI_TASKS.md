@@ -84,16 +84,16 @@
 **改动文件**：`index.html`、`style.css`、`app.js`
 **预计耗时**：2-3 小时
 
-- [ ] 5.1 将 `model-select`（80+ option 的大下拉）从 Header 移入 Command Palette 命令（`Ctrl+K` -> 输入 model）
-- [ ] 5.2 将 `agent-select` 从 Header 移入 Settings Modal
-- [ ] 5.3 Header 精简为只保留：连接状态指示灯 + thread 标题（当前 agent）+ model 标签（只读）+ token 环形进度
-- [ ] 5.4 删除 `context-help-strip`（移入 Welcome Page）
-- [ ] 5.5 删除 `session-summary-line`（信息整合到 sidebar 的 session card 中）
-- [ ] 5.6 调整 `chat-header` CSS：`height: 48px`，内容单行，大量留白形成 Codex 的「呼吸感」
-- [ ] 5.7 Header 右侧只保留：搜索图标 + 命令面板图标 + 设置图标
+- [x] 5.1 将 `model-select`（80+ option 的大下拉）从 Header 移入 Command Palette 命令（`Ctrl+K` -> 输入 model）
+- [x] 5.2 将 `agent-select` 从 Header 移入 Settings Modal
+- [x] 5.3 Header 精简为只保留：连接状态指示灯 + thread 标题（当前 agent）+ model 标签（只读）+ token 环形进度
+- [x] 5.4 删除 `context-help-strip`（移入 Welcome Page）
+- [x] 5.5 删除 `session-summary-line`（信息整合到 sidebar 的 session card 中）
+- [x] 5.6 调整 `chat-header` CSS：`height: 48px`，内容单行，大量留白形成 Codex 的「呼吸感」
+- [x] 5.7 Header 右侧只保留：搜索图标 + 命令面板图标 + 设置图标
 
 **验证清单**：
-- [ ] 对比 Codex 截图检查 Header 是否达到类似的简洁程度
+- [x] 对比 Codex 截图检查 Header 是否达到类似的简洁程度
 - [ ] 模型切换通过 Command Palette 可正常使用
 - [ ] Agent 切换通过 Settings Modal 可正常使用
 
