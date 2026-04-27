@@ -298,6 +298,16 @@ class MyAgentWebApp {
         this.searchToggle.addEventListener('click', () => this.toggleSearch());
         this.searchClose.addEventListener('click', () => this.toggleSearch());
         this.searchInput.addEventListener('input', (e) => this.performSearch(e.target.value));
+        this.searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    this.prevSearchResult();
+                } else {
+                    this.nextSearchResult();
+                }
+            }
+        });
         document.getElementById('search-prev')?.addEventListener('click', () => this.prevSearchResult());
         document.getElementById('search-next')?.addEventListener('click', () => this.nextSearchResult());
 
@@ -829,35 +839,73 @@ class MyAgentWebApp {
         const messages = this.messagesContainer.querySelectorAll('.message');
         const lowerQuery = query.toLowerCase();
         this._searchMatches = [];
+        this._searchMatchElements = [];
 
-        messages.forEach(msg => {
+        messages.forEach((msg, msgIndex) => {
             const content = msg.querySelector('.content');
-            if (content && content.textContent.toLowerCase().includes(lowerQuery)) {
-                msg.classList.add('highlighted');
-                this._searchMatches.push(msg);
+            if (!content) return;
+
+            const text = content.textContent;
+            const lowerText = text.toLowerCase();
+            const matchStart = lowerText.indexOf(lowerQuery);
+
+            if (matchStart !== -1) {
+                msg.classList.add('search-match');
+                this._searchMatches.push({ msg, content, matchStart, matchLength: query.length });
+
+                // Highlight matching text with <mark>
+                const originalHTML = content.innerHTML;
+                const matchEnd = matchStart + query.length;
+                const before = text.slice(0, matchStart);
+                const match = text.slice(matchStart, matchEnd);
+                const after = text.slice(matchEnd);
+
+                content.innerHTML = `${this.escapeHtml(before)}<mark class="search-highlight">${this.escapeHtml(match)}</mark>${this.escapeHtml(after)}`;
+                this._searchMatchElements.push(content);
             }
         });
 
         this._searchIndex = 0;
-        this.updateSearchCount(this._searchMatches.length);
-        this.scrollToSearchMatch(0);
+        this.updateSearchCount(this._searchIndex, this._searchMatches.length);
+
+        // Scroll to first match only
+        if (this._searchMatches.length > 0) {
+            this._searchMatches[0].msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            this.highlightCurrentSearchMatch();
+        }
+    }
+
+    highlightCurrentSearchMatch() {
+        // Remove previous current match highlight
+        this._searchMatchElements.forEach(el => {
+            const mark = el?.querySelector('.search-highlight.current');
+            if (mark) mark.classList.remove('current');
+        });
+
+        // Add current highlight
+        if (this._searchMatches[this._searchIndex]) {
+            const content = this._searchMatchElements[this._searchIndex];
+            const mark = content?.querySelector('.search-highlight');
+            if (mark) mark.classList.add('current');
+        }
     }
 
     scrollToSearchMatch(index) {
         if (!this._searchMatches || this._searchMatches.length === 0) return;
         const clamped = Math.max(0, Math.min(index, this._searchMatches.length - 1));
         this._searchIndex = clamped;
-        this._searchMatches[clamped].scrollIntoView({ behavior: 'smooth', block: 'center' });
-        this.updateSearchCount(this._searchMatches.length);
+        this.updateSearchCount(this._searchIndex, this._searchMatches.length);
+        this._searchMatches[clamped].msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        this.highlightCurrentSearchMatch();
     }
 
-    updateSearchCount(total) {
+    updateSearchCount(current, total) {
         const countEl = document.getElementById('search-count');
         if (!countEl) return;
         if (total === 0) {
             countEl.textContent = '无结果';
         } else {
-            countEl.textContent = `${this._searchIndex + 1} / ${total}`;
+            countEl.textContent = `${current + 1}/${total}`;
         }
     }
 
@@ -872,8 +920,20 @@ class MyAgentWebApp {
     }
 
     clearSearchHighlights() {
-        this.messagesContainer.querySelectorAll('.message.highlighted')
-            .forEach(msg => msg.classList.remove('highlighted'));
+        // Restore original content by removing <mark> tags
+        this.messagesContainer.querySelectorAll('.search-match').forEach(msg => {
+            const content = msg.querySelector('.content');
+            if (content) {
+                const mark = content.querySelector('.search-highlight');
+                if (mark) {
+                    const textNode = document.createTextNode(mark.textContent);
+                    mark.parentNode.replaceChild(textNode, mark);
+                    // Normalize to merge adjacent text nodes
+                    content.normalize();
+                }
+            }
+            msg.classList.remove('search-match');
+        });
         this._searchMatches = [];
         this._searchIndex = 0;
         this.updateSearchCount(0, 0);

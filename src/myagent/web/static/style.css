@@ -1652,6 +1652,38 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+.message.search-match {
+  background: rgba(99, 102, 241, 0.04);
+  border-radius: var(--radius-md);
+}
+
+.search-highlight {
+  background: var(--warning-soft);
+  color: inherit;
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.search-highlight.current {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+mark.search-highlight {
+  all: unset;
+  background: var(--warning-soft);
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+mark.search-highlight.current {
+  background: var(--accent);
+  color: white;
+}
+
 .message.user {
   align-self: flex-end;
   align-items: flex-end;
