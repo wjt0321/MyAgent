@@ -882,153 +882,119 @@ class MyAgentWebApp {
     }
 
     renderWelcomeLanding() {
+        // Step 06: Codex-style minimal welcome - hero input + recent threads
         if (!this.welcomeScreen || !this.setupReady) return;
         this.welcomeScreen.style.display = 'flex';
+        const sessionCards = this.sessions.slice(0, 8).map((s, i) => `
+            <div class="thread-card" data-session-id="${s.id}" style="animation-delay: ${0.05 * i + 0.1}s">
+                <div class="thread-card-title">${this.escapeHtml(s.agent || 'general')}</div>
+                <div class="thread-card-meta">
+                    <span class="thread-card-time">${this.formatDate(s.updated_at)}</span>
+                    <span class="thread-card-msgs">${(s.messages || []).length} messages</span>
+                </div>
+            </div>
+        `).join('');
+
         this.welcomeScreen.innerHTML = `
-            <div class="welcome-hero">
-                <div class="welcome-eyebrow">MyAgent Workbench</div>
-                <h1>从对话式助手，进入可执行工作台</h1>
-                <p>把聊天、任务、团队和文件操作收敛到同一个 Workbench，让第一次进入也能快速知道下一步该做什么。</p>
-            </div>
-            <div class="welcome-quickstart">
-                <div class="welcome-panel-title">3 步 Quickstart</div>
-                <div class="welcome-quickstart-grid">
-                    <div class="quickstart-step">
-                        <div class="quickstart-step-index">01</div>
-                        <div class="quickstart-step-title">初始化环境</div>
-                        <div class="quickstart-step-desc"><code>myagent init --quick</code> 先生成最小可运行配置。</div>
-                    </div>
-                    <div class="quickstart-step">
-                        <div class="quickstart-step-index">02</div>
-                        <div class="quickstart-step-title">检查缺口</div>
-                        <div class="quickstart-step-desc"><code>myagent doctor</code> 查看缺失项与下一步动作。</div>
-                    </div>
-                    <div class="quickstart-step">
-                        <div class="quickstart-step-index">03</div>
-                        <div class="quickstart-step-title">进入工作台</div>
-                        <div class="quickstart-step-desc">使用 <code>myagent --tui</code> 或 <code>myagent web --port 8000</code> 开始工作。</div>
-                    </div>
+            <div class="welcome-codex-hero">
+                <div class="welcome-codex-brand">MyAgent</div>
+                <div class="welcome-codex-slogan">可计划、可执行、可审查的 AI 智能体工作台</div>
+                <div class="welcome-codex-input-wrap">
+                    <textarea class="welcome-codex-input" id="welcome-input" placeholder="描述你的需求，或按 Enter 创建新线程..." rows="1"></textarea>
+                    <button class="welcome-codex-send" id="welcome-send-btn" title="发送">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
-            <div class="welcome-positioning-grid">
-                <div class="positioning-card surface-card surface-card-strong">
-                    <div class="surface-eyebrow">Positioning</div>
-                    <div class="welcome-panel-title">Hermes 式初始化</div>
-                    <div class="positioning-card-desc">先把 setup、doctor 和 next action 讲清楚，降低首次进入的理解成本。</div>
-                </div>
-                <div class="positioning-card surface-card surface-card-strong">
-                    <div class="surface-eyebrow">Positioning</div>
-                    <div class="welcome-panel-title">OpenClaw 式工作台</div>
-                    <div class="positioning-card-desc">把导航、工具结果、任务状态和详情侧栏放到同一个可操作的 Workbench。</div>
-                </div>
-                <div class="positioning-card surface-card surface-card-strong">
-                    <div class="surface-eyebrow">Positioning</div>
-                    <div class="welcome-panel-title">MyAgent 的收敛方向</div>
-                    <div class="positioning-card-desc">强调“能计划、能执行、能审查”的任务闭环，而不是只有聊天与工具输出。</div>
-                </div>
-            </div>
-            <div class="welcome-demo-path">
-                <div class="welcome-panel-title">推荐演示路径</div>
-                <div class="demo-path-grid">
-                    <div class="demo-path-card surface-card surface-card-soft" data-demo-view="chat" data-demo-prompt="解释这个项目的核心架构与关键模块">
-                        <div class="demo-path-kicker">Step 1</div>
-                        <div class="quickstart-step-title">先讲清楚定位</div>
-                        <div class="quickstart-step-desc">回到聊天视图，直接预填“解释核心架构”作为第一步演示。</div>
-                    </div>
-                    <div class="demo-path-card surface-card surface-card-soft" data-demo-view="tasks" data-demo-prompt="/plan 分析当前代码库结构">
-                        <div class="demo-path-kicker">Step 2</div>
-                        <div class="quickstart-step-title">再展示任务流</div>
-                        <div class="quickstart-step-desc">切到任务视图，并预备 `/plan` 请求来展示 Task、Team、Review 主线。</div>
-                    </div>
-                    <div class="demo-path-card surface-card surface-card-soft" data-demo-view="workspace" data-demo-prompt="">
-                        <div class="demo-path-kicker">Step 3</div>
-                        <div class="quickstart-step-title">最后看工作台</div>
-                        <div class="quickstart-step-desc">进入 Workspace 视图，串起文件、工具结果和详情侧栏的统一体验。</div>
-                    </div>
-                </div>
-            </div>
-            <div class="welcome-grid">
-                <div class="welcome-panel">
-                    <div class="welcome-panel-title">推荐动作</div>
-                    <div class="welcome-action-grid">
-                        <div class="quick-card welcome-action-card" data-prompt="/plan 分析当前代码库结构">
-                            <div class="quick-icon">📊</div>
-                            <div class="quick-title">分析代码库</div>
-                            <div class="quick-desc">快速生成任务计划，了解结构与关键文件。</div>
-                        </div>
-                        <div class="quick-card welcome-action-card" data-prompt="解释这个项目的核心架构与关键模块">
-                            <div class="quick-icon">🧭</div>
-                            <div class="quick-title">理解架构</div>
-                            <div class="quick-desc">先看系统边界、模块关系和主流程。</div>
-                        </div>
-                        <div class="quick-card welcome-action-card" data-prompt="搜索关于 WebSocket 的代码">
-                            <div class="quick-icon">🔍</div>
-                            <div class="quick-title">搜索代码</div>
-                            <div class="quick-desc">定位接口、事件和实现入口。</div>
-                        </div>
-                        <div class="quick-card welcome-action-card" data-prompt="帮我写一个 Python 函数">
-                            <div class="quick-icon">✨</div>
-                            <div class="quick-title">开始实现</div>
-                            <div class="quick-desc">直接进入编码、修改或重构任务。</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="welcome-panel">
-                    <div class="welcome-panel-title">最近会话</div>
-                    <div class="recent-sessions" id="welcome-recent-sessions">
-                        <div class="recent-session-empty">暂无最近会话</div>
-                    </div>
-                </div>
-                <div class="welcome-panel">
-                    <div class="welcome-panel-title">开始提示</div>
-                    <div class="welcome-help-list">
-                        <div class="welcome-help-item"><strong>/plan</strong> 先生成任务计划，再决定是否执行</div>
-                        <div class="welcome-help-item"><strong>Ctrl+K</strong> 打开 Command Palette，快速跳转高频动作</div>
-                        <div class="welcome-help-item"><strong>任务视图</strong> 查看 Task、Team、Review 与执行时间线</div>
-                    </div>
-                </div>
-                <div class="welcome-panel">
-                    <div class="welcome-panel-title">文档入口</div>
-                    <div class="welcome-docs-grid">
-                        <div class="docs-entry-card is-link-card surface-card surface-card-soft" data-doc-path="README.md" data-doc-name="README.md">
-                            <div class="surface-eyebrow">Docs</div>
-                            <div class="docs-entry-title">README</div>
-                            <div class="docs-entry-desc">先看产品定位、Quickstart 与当前 Web 工作台亮点。</div>
-                            <div class="docs-entry-card-link">打开文档预览</div>
-                        </div>
-                        <div class="docs-entry-card is-link-card surface-card surface-card-soft" data-doc-path="docs/GETTING_STARTED.md" data-doc-name="GETTING_STARTED.md">
-                            <div class="surface-eyebrow">Docs</div>
-                            <div class="docs-entry-title">GETTING_STARTED</div>
-                            <div class="docs-entry-desc">按首次安装与配置流程逐步完成本地 setup。</div>
-                            <div class="docs-entry-card-link">打开文档预览</div>
-                        </div>
-                        <div class="docs-entry-card is-link-card surface-card surface-card-soft" data-doc-path="docs/design/03-interaction-patterns.md" data-doc-name="03-interaction-patterns.md">
-                            <div class="surface-eyebrow">Docs</div>
-                            <div class="docs-entry-title">Interaction Patterns</div>
-                            <div class="docs-entry-desc">查看 Task、Tool、Session 与详情侧栏的交互约定。</div>
-                            <div class="docs-entry-card-link">打开文档预览</div>
-                        </div>
-                    </div>
+            <div class="welcome-codex-recent">
+                <div class="welcome-recent-header">最近线程</div>
+                <div class="thread-list" id="welcome-thread-list">
+                    ${sessionCards || '<div class="thread-empty">还没有线程，从上方输入框开始吧</div>'}
                 </div>
             </div>
         `;
-        this.bindQuickCards();
-        this.bindDemoPathCards();
-        this.bindDocsEntryCards();
-        this.applyWelcomeMotion();
+
+        const input = document.getElementById('welcome-input');
+        const sendBtn = document.getElementById('welcome-send-btn');
+        const autoResize = () => {
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+        };
+        input.addEventListener('input', autoResize);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const text = input.value.trim();
+                if (text) this.createSessionAndSend(text);
+            }
+        });
+        sendBtn.addEventListener('click', () => {
+            const text = input.value.trim();
+            if (text) this.createSessionAndSend(text);
+        });
+
+        document.querySelectorAll('.thread-card').forEach(card => {
+            card.addEventListener('click', () => {
+                this.selectSession(card.dataset.sessionId);
+            });
+        });
     }
 
-    applyWelcomeMotion() {
-        if (!this.welcomeScreen) return;
-        const nodes = this.welcomeScreen.querySelectorAll(
-            '.welcome-hero, .welcome-quickstart, .welcome-positioning-grid, .welcome-panel'
-        );
-        nodes.forEach((node, index) => {
-            node.classList.remove('motion-enter');
-            node.style.animationDelay = `${Math.min(index * 70, 280)}ms`;
-            void node.offsetWidth;
-            node.classList.add('motion-enter');
-        });
+    async createSessionAndSend(text) {
+        try {
+            const res = await fetch('/api/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ agent: 'general', model: 'glm-4' }),
+            });
+            const session = await res.json();
+            this.currentSessionId = session.id;
+            this.messages = [];
+            this.welcomeScreen.style.display = 'none';
+            this.renderMessages();
+            this.sendBtn.disabled = true;
+            await this.sendMessageToWs(text);
+        } catch (error) {
+            console.error('Failed to create session and send:', error);
+        }
+    }
+
+    async sendMessageToWs(text) {
+        this.messages.push({ role: 'user', content: text, id: `user-${Date.now()}` });
+        this.renderMessages();
+        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+        const token = localStorage.getItem('myagent_token') || '';
+        const wsUrl = `ws://${window.location.host}/ws/${this.currentSessionId}?token=${token}`;
+        const ws = new WebSocket(wsUrl);
+        let assistantMsg = null;
+        ws.onopen = () => {
+            ws.send(JSON.stringify({ action: 'chat', message: text, session_id: this.currentSessionId }));
+        };
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'chunk') {
+                if (!assistantMsg) {
+                    assistantMsg = { role: 'assistant', content: '', id: `assistant-${Date.now()}` };
+                    this.messages.push(assistantMsg);
+                }
+                assistantMsg.content += data.text;
+                this.renderMessages();
+                this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+            } else if (data.type === 'done') {
+                ws.close();
+                this.sendBtn.disabled = false;
+                this.messageInput.value = '';
+                this.loadSessions();
+            } else if (data.type === 'error') {
+                ws.close();
+                this.sendBtn.disabled = false;
+            }
+        };
+        ws.onclose = () => {
+            this.sendBtn.disabled = false;
+        };
     }
 
     async loadWorkspace() {

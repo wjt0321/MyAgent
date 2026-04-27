@@ -105,18 +105,18 @@
 **改动文件**：`app.js`（`renderWelcomeLanding` 方法）、`style.css`
 **预计耗时**：3-4 小时
 
-- [ ] 6.1 Welcome Page 简化为两区：居中的 Hero 输入区域（含 brand + 一句话 slogan + 大型输入框）+ 最近会话 thread 列表
-- [ ] 6.2 删除 Positioning 卡片、Demo Path 卡片、文档入口卡片（移入 Settings -> 关于）
-- [ ] 6.3 大型输入框可直接创建新 thread 并发送第一条消息（合并"新建会话"和"发送消息"两步操作）
-- [ ] 6.4 最近会话以 Codex 风格的 thread card 展示：标题 + 时间 + 最后消息摘要
-- [ ] 6.5 Quickstart 步骤只在检测到未配置 API Key 时以 banner 形式展示，而非占据主区域
-- [ ] 6.6 入场动画：Hero 区域 `fadeInUp`（0.3s），thread 列表 stagger 延迟依次出现
-- [ ] 6.7 整体大量留白，背景使用当前的 radial-gradient cyber 效果增加质感
+- [x] 6.1 Welcome Page 简化为两区：居中的 Hero 输入区域（含 brand + 一句话 slogan + 大型输入框）+ 最近会话 thread 列表
+- [x] 6.2 删除 Positioning 卡片、Demo Path 卡片、文档入口卡片（移入 Settings -> 关于）
+- [x] 6.3 大型输入框可直接创建新 thread 并发送第一条消息（合并"新建会话"和"发送消息"两步操作）
+- [x] 6.4 最近会话以 Codex 风格的 thread card 展示：标题 + 时间 + 最后消息摘要
+- [x] 6.5 Quickstart 步骤只在检测到未配置 API Key 时以 banner 形式展示，而非占据主区域
+- [x] 6.6 入场动画：Hero 区域 `fadeInUp`（0.3s），thread 列表 stagger 延迟依次出现
+- [x] 6.7 整体大量留白，背景使用当前的 radial-gradient cyber 效果增加质感
 
 **验证清单**：
-- [ ] 启动 Web UI，与 Codex 首页对比，检查信息密度和视觉节奏
-- [ ] 大型输入框可直接创建 thread 并发送首条消息
-- [ ] 未配置 API Key 时显示 Quickstart banner
+- [x] 启动 Web UI，与 Codex 首页对比，检查信息密度和视觉节奏
+- [x] 大型输入框可直接创建 thread 并发送首条消息
+- [x] 未配置 API Key 时显示 Quickstart banner
 
 ---
 
