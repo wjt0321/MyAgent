@@ -126,18 +126,18 @@
 **改动文件**：`index.html`、`style.css`、`app.js`
 **预计耗时**：3-4 小时
 
-- [ ] 7.1 删除侧栏中的 Workbench Nav 按钮（聊天/任务/文件/Workspace/团队）
-- [ ] 7.2 将 Workbench 视图切换改为主内容区顶部的轻量 tab bar（icon + label 单行横向）
-- [ ] 7.3 侧栏精简为三层：品牌标识 -> 新建 Thread 按钮 -> Thread（会话）列表
-- [ ] 7.4 Thread 列表中每个 session card 展示：标题、agent 类型图标、最后消息时间、进行中的 task 状态指示器
-- [ ] 7.5 增加 thread 分组：「进行中」和「历史」
-- [ ] 7.6 底部只保留连接状态 + 设置按钮
-- [ ] 7.7 移动端侧栏使用 Codex 风格的半透明 overlay + slide-in 动画
+- [x] 7.1 删除侧栏中的 Workbench Nav 按钮（聊天/任务/文件/Workspace/团队）
+- [x] 7.2 将 Workbench 视图切换改为主内容区顶部的轻量 tab bar（icon + label 单行横向）
+- [x] 7.3 侧栏精简为三层：品牌标识 -> 新建 Thread 按钮 -> Thread（会话）列表
+- [x] 7.4 Thread 列表中每个 session card 展示：标题、agent 类型图标、最后消息时间、进行中的 task 状态指示器
+- [x] 7.5 增加 thread 分组：「进行中」和「历史」
+- [x] 7.6 底部只保留连接状态 + 设置按钮
+- [x] 7.7 移动端侧栏使用 Codex 风格的半透明 overlay + slide-in 动画
 
 **验证清单**：
-- [ ] 对比 Codex 的侧栏，检查布局和信息层级是否一致
-- [ ] 视图切换通过顶部 tab bar 正常工作
-- [ ] 移动端侧栏 slide-in 动画流畅
+- [x] 对比 Codex 的侧栏，检查布局和信息层级是否一致
+- [x] 视图切换通过顶部 tab bar 正常工作
+- [x] 移动端侧栏 slide-in 动画流畅
 
 ---
 

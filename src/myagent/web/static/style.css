@@ -233,6 +233,9 @@ body {
 }
 
 .nav-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -242,6 +245,10 @@ body {
   margin-bottom: 4px;
 }
 
+.nav-label span {
+  flex: 1;
+}
+
 /* Session List */
 .session-list {
   display: flex;
@@ -249,6 +256,172 @@ body {
   gap: 2px;
 }
 
+/* Thread Section (Codex-style sidebar) */
+.thread-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.thread-section + .thread-section {
+  border-top: 1px solid var(--border-default);
+  margin-top: 4px;
+  padding-top: 12px;
+}
+
+.thread-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+}
+
+.thread-group-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.thread-group-count {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+}
+
+.thread-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.thread-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+  position: relative;
+}
+
+.thread-card:hover {
+  background: var(--bg-hover);
+}
+
+.thread-card:hover .thread-card-actions {
+  opacity: 1;
+}
+
+.thread-card.active {
+  background: var(--accent-soft);
+  border-color: var(--accent-glow);
+}
+
+.thread-card.active .thread-card-title {
+  color: var(--accent);
+}
+
+.thread-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.thread-card-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.thread-card-title {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thread-card-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.thread-card-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 20px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.thread-card-time,
+.thread-card-msgs {
+  color: var(--text-muted);
+}
+
+.thread-card-actions {
+  display: flex;
+  gap: 2px;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.thread-rename,
+.thread-export,
+.thread-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.thread-rename:hover,
+.thread-export:hover,
+.thread-delete:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.thread-delete:hover {
+  color: var(--danger);
+}
+
+.thread-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+/* Old session-item (keep for backward compat) */
 .session-item {
   display: flex;
   flex-direction: column;
@@ -2311,10 +2484,17 @@ body {
     z-index: 100;
     transform: translateX(-100%);
     box-shadow: 8px 0 30px rgba(0,0,0,0.4);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--bg-primary);
+    backdrop-filter: blur(12px);
   }
 
   .sidebar.show {
     transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .chat-header {
@@ -3153,6 +3333,47 @@ body {
 }
 
 /* ---------- Phase 3 Workbench ---------- */
+/* Tab Bar (new, replaces workbench-nav in sidebar) */
+.workbench-tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-primary);
+  flex-shrink: 0;
+}
+
+.tab-bar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.tab-bar-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.tab-bar-btn.active {
+  background: var(--accent-soft);
+  color: var(--text-primary);
+}
+
+.tab-bar-btn svg {
+  flex-shrink: 0;
+}
+
+/* Old workbench-nav (deprecated, keep for backward compat in mobile) */
 .workbench-nav {
   display: grid;
   gap: 8px;
