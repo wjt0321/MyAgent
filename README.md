@@ -109,10 +109,19 @@ Recommended first tour:
 - The task view now includes a lightweight team summary so execution load and completion counts stay visible
 - Task snapshots now include an execution timeline so member assignment, tool activity, and review transitions stay visible
 - The TUI task panel can now consume task snapshots and surface progress, active agents, latest timeline event, and review summary
-- Codex-style minimal header: thread title + model tag + action icons
-- Minimalist welcome landing: large input box + recent thread cards with fade-in animation
-- Codex-style thread sidebar: active/historical thread grouping with session cards
-- Toast notification system: replaces `alert()` with non-blocking slide-in notifications
+- **Codex-style minimal header**: thread title + model tag + action icons with extensive white space
+- **Minimalist welcome landing**: large input box + recent thread cards with fade-in stagger animation
+- **Codex-style thread sidebar**: active/historical thread grouping with session cards
+- **Toast notification system**: replaces `alert()` with non-blocking slide-in notifications
+- **ES module architecture**: 3762-line monolithic JS refactored into 8 maintainable modules using class mixin pattern
+- **E2E test suite**: 27 Playwright tests integrated into CI pipeline for regression safety
+- **Approval gates**: Codex-style full-width banners with queue support, animations, and "always allow" option
+- **Context window visualization**: SVG ring progress indicator with color grading (green/yellow/red) and hover tooltip
+- **Skeleton loading states**: animated placeholders during data fetching for sessions, files, and tasks
+- **View transition animations**: fade + slide transitions between workbench views
+- **Search enhancement**: match counting, navigation buttons, keyboard shortcuts, and text highlighting
+- **Summary pane**: resizable split-pane showing agent status, plan overview, file changes, and tool call details
+- **Dynamic model list**: `GET /api/models` endpoint eliminates hardcoded options, supports 30+ providers
 
 ## Documentation
 

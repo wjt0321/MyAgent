@@ -13,7 +13,7 @@ Telegraph style. Root rules only. Read scoped `AGENTS.md` before touching a subt
 
 - Core Python: `src/myagent/`
 - CLI entry: `src/myagent/cli.py` (init, doctor, web, gateway, tui)
-- Web UI: `src/myagent/web/` (FastAPI + static files, JWT auth, WebSocket, Codex-style minimal UI, toast notifications)
+- Web UI: `src/myagent/web/` (FastAPI + static files, JWT auth, WebSocket, Codex-style minimal UI, ES modules, toast notifications, E2E tests)
 - TUI: `src/myagent/tui/` (Textual, status sidebar, task panel)
 - Gateway: `src/myagent/gateway/` (multi-platform adapters, session persistence)
 - Engine: `src/myagent/engine/` (QueryEngine, context compression)
@@ -71,6 +71,8 @@ Scoped guides:
 - If failures are unrelated on latest `origin/main`, say so and give scoped proof.
 - Gateway adapters: Telegram/Discord/Slack/Feishu/QQ/Weixin all support inline permission requests via `send_permission_request()`. Discord supports slash commands (`/ask`, `/reset`, `/agent`), message editing, and thread creation. Slack supports Block Kit messages. Feishu supports WebSocket mode. GitHub webhook supports server-side secret validation.
 - Web UI auth: JWT-based, optional password protection via `myagent.web.auth`.
+- Web UI architecture: 8 ES modules (theme, websocket, ui, session, message, task, workspace) using class mixin pattern, 3762-line monolithic JS refactored to maintainable modules.
+- Web UI E2E tests: 27 Playwright tests covering page load, theme switching, view switching, settings panel, command palette, search, session management, responsive layout.
 - Session isolation: Web UI sessions are scoped per-user via `user_id` field.
 - File API: path-restricted access (cwd/workspace only), requires authentication.
 - WebSocket: token validation with session owner verification.
