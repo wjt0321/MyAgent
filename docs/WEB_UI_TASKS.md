@@ -184,14 +184,15 @@
 **改动文件**：`style.css`、`app.js`
 **预计耗时**：1.5 小时
 
-- [ ] 10.1 给 `.workbench-view` 添加 `fade + slide` 过渡（CSS animation 或 `classList` 切换）
-- [ ] 10.2 侧栏展开/收起改为 `transform + opacity` 动画
-- [ ] 10.3 会话切换时消息区域添加 `fadeIn` 动画
+- [x] 10.1 给 `.workbench-view` 添加 `fade + slide` 过渡（CSS `viewFadeIn` animation，0.25s ease，translateY 8px→0）
+- [x] 10.2 侧栏展开/收改为 `transform + opacity` 动画（移动端 `transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)` + `backdrop-filter: blur(12px)`）
+- [x] 10.3 会话切换时消息区域添加 `fadeIn` 动画（`chatAreaFadeIn` 0.2s ease，动态添加/移除 `session-transitioning` class）
 
 **验证清单**：
-- [ ] 在聊天/任务/文件/Workspace/团队之间切换，确认过渡流畅
-- [ ] 侧栏展开/收起动画流畅
-- [ ] 会话切换时消息区域有 fadeIn 效果
+- [x] 在聊天/任务/文件/Workspace/团队之间切换，确认过渡流畅（viewFadeIn 动画）
+- [x] 侧栏展开/收起动画流畅（transform + backdrop-filter blur）
+- [x] 会话切换时消息区域有 fadeIn 效果（chatAreaFadeIn 动画）
+
 
 ---
 

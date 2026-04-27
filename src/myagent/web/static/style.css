@@ -1023,6 +1023,19 @@ body {
   background: var(--bg-root);
 }
 
+.chat-area.session-transitioning {
+  animation: chatAreaFadeIn 0.2s ease both;
+}
+
+@keyframes chatAreaFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Header */
 .chat-header {
   height: var(--header-height);
@@ -3732,6 +3745,18 @@ body {
 
 .workbench-view.active {
   display: flex;
+  animation: viewFadeIn 0.25s ease both;
+}
+
+@keyframes viewFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .view-shell {

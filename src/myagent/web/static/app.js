@@ -1746,6 +1746,15 @@ class MyAgentWebApp {
         this.renderSessionList();
         this.clearSearchHighlights();
 
+        // Trigger chat area fade-in animation
+        const chatArea = document.querySelector('.chat-area');
+        if (chatArea) {
+            chatArea.classList.remove('session-transitioning');
+            void chatArea.offsetWidth;
+            chatArea.classList.add('session-transitioning');
+            setTimeout(() => chatArea.classList.remove('session-transitioning'), 300);
+        }
+
         const session = this.sessions.find(s => s.id === sessionId);
         if (session) {
             this.welcomeScreen.style.display = 'none';
