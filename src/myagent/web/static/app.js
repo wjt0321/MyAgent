@@ -1421,19 +1421,71 @@ class MyAgentWebApp {
         this.renderRecentSessions();
     }
 
-    startRenameSession(sessionId) {
+    async startRenameSession(sessionId) {
         const session = this.sessions.find(s => s.id === sessionId);
         if (!session) return;
 
-        const newName = prompt('输入新会话名称:', session.agent);
-        if (newName && newName.trim() && newName.trim() !== session.agent) {
-            const trimmed = newName.trim();
-            session.agent = trimmed;
-            this.renderSessionList();
-            if (this.currentSessionId === sessionId) {
-                this.currentAgent.textContent = trimmed;
+        const card = this.sessionList.querySelector(`[data-session-id="${sessionId}"]`);
+        if (!card) return;
+
+        const titleEl = card.querySelector('.session-card-title') || card.querySelector('.session-title');
+        if (!titleEl) return;
+
+        const originalName = titleEl.textContent.trim();
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = originalName;
+        input.className = 'inline-rename-input';
+        input.style.cssText = `
+            width: 100%;
+            padding: 4px 8px;
+            border: 1px solid var(--accent);
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: inherit;
+            font-family: inherit;
+            outline: none;
+        `;
+
+        const finishEdit = async () => {
+            const newName = input.value.trim();
+            if (newName && newName !== originalName) {
+                try {
+                    const response = await fetch(`/api/sessions/${sessionId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ agent: newName }),
+                    });
+                    if (response.ok) {
+                        session.agent = newName;
+                        this.renderSessionList();
+                        if (this.currentSessionId === sessionId) {
+                            this.currentAgent.textContent = newName;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to rename session:', error);
+                }
+            } else {
+                titleEl.textContent = originalName;
             }
-        }
+        };
+
+        input.addEventListener('blur', finishEdit);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') input.blur();
+            if (e.key === 'Escape') {
+                input.value = originalName;
+                input.blur();
+            }
+        });
+
+        titleEl.textContent = '';
+        titleEl.appendChild(input);
+        input.focus();
+        input.select();
     }
 
     showExportMenu(sessionId, anchorBtn) {
@@ -1530,7 +1582,7 @@ class MyAgentWebApp {
             const response = await fetch('/api/sessions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ agent: 'general', model: 'glm-4.7' })
+                body: JSON.stringify({ agent: 'general', model: this.modelSelect.value || 'glm-4' })
             });
 
             const session = await response.json();
@@ -3262,7 +3314,7 @@ class MyAgentWebApp {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     agent: data.agent,
-                    model: data.model || 'glm-4',
+                    model: data.model || this.modelSelect.value || 'glm-4',
                 }),
             });
 

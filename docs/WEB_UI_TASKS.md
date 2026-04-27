@@ -66,15 +66,15 @@
 **改动文件**：`app.js`
 **预计耗时**：1 小时
 
-- [ ] 4.1 `startRenameSession`：重命名后调用 `PATCH /api/sessions/:id` 持久化
-- [ ] 4.2 `createSession`：读取 `this.modelSelect.value` 作为 model 参数，而非硬编码
-- [ ] 4.3 `importSession`：同样读取当前选择的 model
-- [ ] 4.4 `startRenameSession`：将 `prompt()` 替换为 inline 编辑模式（类似 `startEditMessage` 的实现方式）
+- [x] 4.1 `startRenameSession`：重命名后调用 `PATCH /api/sessions/:id` 持久化
+- [x] 4.2 `createSession`：读取 `this.modelSelect.value` 作为 model 参数，而非硬编码
+- [x] 4.3 `importSession`：同样读取当前选择的 model
+- [x] 4.4 `startRenameSession`：将 `prompt()` 替换为 inline 编辑模式（类似 `startEditMessage` 的实现方式）
 
 **验证清单**：
-- [ ] 新建会话 -> 检查 model 是否与下拉框一致
-- [ ] 重命名会话 -> 刷新页面检查是否保留
-- [ ] inline 编辑模式 UI 与 Workbench 风格一致
+- [x] 新建会话 -> 检查 model 是否与下拉框一致
+- [x] 重命名会话 -> 刷新页面检查是否保留
+- [x] inline 编辑模式 UI 与 Workbench 风格一致
 
 ---
 
