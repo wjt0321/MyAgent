@@ -3398,9 +3398,9 @@ body {
 .task-review-card {
   margin-top: 1rem;
   padding: 0.9rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
-  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
 }
 
 .task-review-section {
@@ -3435,8 +3435,8 @@ body {
 
 .task-timeline-item {
   padding: 0.7rem 0.8rem;
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
   background: var(--bg-secondary);
 }
 
@@ -3450,8 +3450,8 @@ body {
 .task-cancel-btn {
   margin-top: 0.85rem;
   padding: 0.55rem 0.8rem;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
@@ -3461,9 +3461,9 @@ body {
   margin-top: 0.65rem;
   margin-left: 0.5rem;
   padding: 0.55rem 0.8rem;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
   color: var(--text-primary);
   cursor: pointer;
 }
@@ -3471,9 +3471,9 @@ body {
 .task-restore-btn {
   margin-top: 0.85rem;
   padding: 0.55rem 0.8rem;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
   color: var(--text-primary);
   cursor: pointer;
 }

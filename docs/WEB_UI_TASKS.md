@@ -29,14 +29,14 @@
 **改动文件**：`style.css`
 **预计耗时**：45 分钟
 
-- [ ] 2.1 全局搜索 `--border-color` 替换为 `--border-default`
-- [ ] 2.2 全局搜索 `--surface-2` 替换为 `--bg-secondary`
-- [ ] 2.3 将 `task-cancel-btn`、`task-retry-btn`、`task-restore-btn`、`task-empty-primary` 改为复用 `btn-ghost`/`btn-primary`/`btn-outline` class
-- [ ] 2.4 将硬编码的 `border-radius: 14px`、`border-radius: 12px`、`border-radius: 10px` 改为 `var(--radius-lg)` 或 `var(--radius-md)`
+- [x] 2.1 全局搜索 `--border-color` 替换为 `--border-default`
+- [x] 2.2 全局搜索 `--surface-2` 替换为 `--bg-secondary`
+- [x] 2.3 将 `task-cancel-btn`、`task-retry-btn`、`task-restore-btn`、`task-empty-primary` 改为复用 `btn-ghost`/`btn-primary`/`btn-outline` class
+- [x] 2.4 将硬编码的 `border-radius: 14px`、`border-radius: 12px`、`border-radius: 10px` 改为 `var(--radius-lg)` 或 `var(--radius-md)`
 
 **验证清单**：
-- [ ] 浏览器中切换 Dark/Light 主题，Task 区域按钮样式正常
-- [ ] 无 CSS 变量未定义警告（DevTools Console）
+- [x] 浏览器中切换 Dark/Light 主题，Task 区域按钮样式正常
+- [x] 无 CSS 变量未定义警告（DevTools Console）
 
 ---
 
