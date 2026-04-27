@@ -46,17 +46,17 @@
 **改动文件**：`app.js`、`auth.py`
 **预计耗时**：1 小时
 
-- [ ] 3.1 `renderMemoryList`：对 `mem.name`、`mem.description` 和 `data-name` 属性调用 `escapeHtml()`
-- [ ] 3.2 `showPermissionModal`：对 `data.arguments` 的 key/value 调用 `escapeHtml()`
-- [ ] 3.3 `renderWorkspace`：对 `mem.filename`、`mem.name`、`mem.description` 调用 `escapeHtml()`
-- [ ] 3.4 `showPermissionModal` 改用 `addEventListener` 替代 `onclick="window.myAgentApp..."`
-- [ ] 3.5 `auth.py` 将 `hashlib.sha256` 改为 `hashlib.pbkdf2_hmac('sha256', password, salt, 100000)`，附带随机 salt
-- [ ] 3.6 `auth.py` 将 `datetime.utcnow()` 改为 `datetime.now(timezone.utc)`
+- [x] 3.1 `renderMemoryList`：对 `mem.name`、`mem.description` 和 `data-name` 属性调用 `escapeHtml()`
+- [x] 3.2 `showPermissionModal`：对 `data.arguments` 的 key/value 调用 `escapeHtml()`
+- [x] 3.3 `renderWorkspace`：对 `mem.filename`、`mem.name`、`mem.description` 调用 `escapeHtml()`
+- [x] 3.4 `showPermissionModal` 改用 `addEventListener` 替代 `onclick="window.myAgentApp..."`
+- [x] 3.5 `auth.py` 将 `hashlib.sha256` 改为 `hashlib.pbkdf2_hmac('sha256', password, salt, 100000)`，附带随机 salt
+- [x] 3.6 `auth.py` 将 `datetime.utcnow()` 改为 `datetime.now(timezone.utc)`
 
 **验证清单**：
-- [ ] 在记忆名称中输入 `<img src=x onerror=alert(1)>` 测试 XSS 是否被拦截
-- [ ] 旧密码仍可验证（向后兼容）
-- [ ] Python 3.12 无 DeprecationWarning
+- [x] 在记忆名称中输入 `<img src=x onerror=alert(1)>` 测试 XSS 是否被拦截
+- [x] 旧密码仍可验证（向后兼容）
+- [x] Python 3.12 无 DeprecationWarning
 
 ---
 

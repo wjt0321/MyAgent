@@ -1103,9 +1103,9 @@ class MyAgentWebApp {
         }
 
         const memoryItems = (data.memories || []).map(mem => `
-            <div class="workspace-memory-item" data-filename="${mem.filename}">
-                <div class="memory-name">${mem.name}</div>
-                <div class="memory-desc">${mem.description || mem.type}</div>
+            <div class="workspace-memory-item" data-filename="${this.escapeHtml(mem.filename)}">
+                <div class="memory-name">${this.escapeHtml(mem.name)}</div>
+                <div class="memory-desc">${this.escapeHtml(mem.description || mem.type)}</div>
             </div>
         `).join('');
 
@@ -1853,26 +1853,29 @@ class MyAgentWebApp {
         modal.className = 'permission-modal';
 
         const argsHtml = Object.entries(data.arguments)
-            .map(([k, v]) => `<div class="perm-arg"><strong>${k}:</strong> ${v}</div>`)
+            .map(([k, v]) => `<div class="perm-arg"><strong>${this.escapeHtml(k)}:</strong> ${this.escapeHtml(String(v))}</div>`)
             .join('');
 
         modal.innerHTML = `
             <div class="permission-dialog">
                 <h3>Permission Required</h3>
-                <p class="perm-reason">${data.reason}</p>
+                <p class="perm-reason">${this.escapeHtml(data.reason)}</p>
                 <div class="perm-details">
-                    <div><strong>Tool:</strong> ${data.tool_name}</div>
+                    <div><strong>Tool:</strong> ${this.escapeHtml(data.tool_name)}</div>
                     ${argsHtml}
                 </div>
                 <div class="perm-buttons">
-                    <button class="btn-deny" onclick="window.myAgentApp.handlePermission(false)">Deny</button>
-                    <button class="btn-allow" onclick="window.myAgentApp.handlePermission(true)">Allow</button>
+                    <button class="btn-deny" id="perm-deny-btn">Deny</button>
+                    <button class="btn-allow" id="perm-allow-btn">Allow</button>
                 </div>
             </div>
         `;
 
         this._pendingPermission = data;
         document.body.appendChild(modal);
+
+        modal.querySelector('#perm-allow-btn').addEventListener('click', () => this.handlePermission(true));
+        modal.querySelector('#perm-deny-btn').addEventListener('click', () => this.handlePermission(false));
     }
 
     handlePermission(approved) {
@@ -2930,16 +2933,16 @@ class MyAgentWebApp {
         };
 
         const items = this.memories.map(mem => `
-            <div class="memory-card" data-name="${mem.name}">
+            <div class="memory-card" data-name="${this.escapeHtml(mem.name)}">
                 <div class="memory-card-header">
-                    <div class="memory-card-name">${mem.name}</div>
+                    <div class="memory-card-name">${this.escapeHtml(mem.name)}</div>
                     <span class="memory-card-type">${typeLabels[mem.type] || mem.type}</span>
                 </div>
-                <div class="memory-card-desc">${mem.description || ''}</div>
+                <div class="memory-card-desc">${this.escapeHtml(mem.description || '')}</div>
                 <div class="memory-card-content">${this.escapeHtml(mem.content || '').substring(0, 100)}${(mem.content || '').length > 100 ? '...' : ''}</div>
                 <div class="memory-card-actions">
-                    <button class="memory-btn-edit" data-name="${mem.name}">编辑</button>
-                    <button class="memory-btn-delete" data-name="${mem.name}">删除</button>
+                    <button class="memory-btn-edit" data-name="${this.escapeHtml(mem.name)}">编辑</button>
+                    <button class="memory-btn-delete" data-name="${this.escapeHtml(mem.name)}">删除</button>
                 </div>
             </div>
         `).join('');

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -47,8 +47,8 @@ def create_token(user_id: str, expires_days: int = 7) -> str:
     _ensure_jwt()
     payload = {
         "user_id": user_id,
-        "exp": datetime.utcnow() + timedelta(days=expires_days),
-        "iat": datetime.utcnow(),
+        "exp": datetime.now(timezone.utc) + timedelta(days=expires_days),
+        "iat": datetime.now(timezone.utc),
     }
     return jwt.encode(payload, get_secret_key(), algorithm="HS256")  # type: ignore[union-attr]
 
@@ -106,7 +106,9 @@ class AuthConfig:
         """Set a new password."""
         import hashlib
 
-        self.password_hash = hashlib.sha256(password.encode()).hexdigest()
+        salt = secrets.token_hex(16)
+        pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000).hex()
+        self.password_hash = f"{salt}${pwd_hash}"
         self.enabled = True
         self._save()
 
@@ -116,7 +118,11 @@ class AuthConfig:
             return True
         import hashlib
 
-        return hashlib.sha256(password.encode()).hexdigest() == self.password_hash
+        if '$' not in self.password_hash:
+            return hashlib.sha256(password.encode()).hexdigest() == self.password_hash
+        salt, stored_hash = self.password_hash.split('$', 1)
+        pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000).hex()
+        return pwd_hash == stored_hash
 
     def disable(self) -> None:
         """Disable password protection."""
