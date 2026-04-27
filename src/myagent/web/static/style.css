@@ -2674,6 +2674,170 @@ mark.search-highlight.current {
   box-shadow: 0 0 0 3px var(--success-soft);
 }
 
+/* ---------- Approval Gates (Codex-style) ---------- */
+
+#approval-gates-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px;
+  margin-bottom: 12px;
+}
+
+.approval-gate-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--bg-input);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 1px var(--warning-soft), 0 4px 24px rgba(251, 146, 60, 0.12);
+  animation: shake 0.5s ease-in-out, glow-pulse 2s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.approval-gate-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(251, 146, 60, 0.08), transparent);
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+
+.approval-gate-banner.slide-in {
+  animation: slideInUp 0.35s ease-out, shake 0.5s ease-in-out 0.1s, glow-pulse 2s ease-in-out 0.5s infinite;
+}
+
+.approval-gate-banner.approved {
+  border-color: var(--success);
+  background: var(--success-soft);
+  animation: fadeOut 0.6s ease forwards;
+}
+
+.approval-gate-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--warning-soft);
+  border-radius: var(--radius-sm);
+  color: var(--warning);
+}
+
+.approval-gate-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.approval-gate-title {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.approval-gate-reason {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.approval-gate-args {
+  font-size: 0.75rem;
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  color: var(--accent);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.approval-gate-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.approval-gate-always-allow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  margin-right: 4px;
+}
+
+.approval-gate-always-allow input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.approval-gate-btn {
+  padding: 7px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.approval-gate-approve {
+  background: var(--success);
+  color: #fff;
+}
+
+.approval-gate-approve:hover {
+  background: #16a34a;
+  box-shadow: 0 0 0 3px var(--success-soft);
+}
+
+.approval-gate-deny {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+
+.approval-gate-deny:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px var(--warning-soft), 0 4px 24px rgba(251, 146, 60, 0.12); }
+  50% { box-shadow: 0 0 0 3px var(--warning-soft), 0 4px 32px rgba(251, 146, 60, 0.2); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(50%); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ---------- Scrollbar ---------- */
 ::-webkit-scrollbar {
   width: 5px;

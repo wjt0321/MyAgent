@@ -314,15 +314,16 @@
 ## Step 16 — Approval Gates 重新设计（对标 Codex）
 
 **目标**：权限审批界面向 Codex 的 Approval Gates 靠拢
-**改动文件**：`app.js`、`style.css`
+**改动文件**：`modules/websocket.js`、`style.css`
 **预计耗时**：3-4 小时
+**状态**：✅ 已完成
 
-- [ ] 16.1 重新设计 Permission Modal 为 Codex 风格：全宽 banner 而非居中弹窗
-- [ ] 16.2 Banner 内容：左侧展示操作描述 + 参数详情，右侧 Approve / Deny 按钮
-- [ ] 16.3 Banner 出现时附带轻微的 `shake` 或 `glow` 动画吸引注意力
-- [ ] 16.4 多个 pending 权限请求排队展示（而非只显示最后一个）
-- [ ] 16.5 已审批/已拒绝的操作以简洁的 status chip 在消息流中展示
-- [ ] 16.6 支持"始终允许此工具"的 checkbox（可选，减少重复审批）
+- [x] 16.1 重新设计 Permission Modal 为 Codex 风格：全宽 banner 而非居中弹窗
+- [x] 16.2 Banner 内容：左侧展示操作描述 + 参数详情，右侧 Approve / Deny 按钮
+- [x] 16.3 Banner 出现时附带轻微的 `shake` 或 `glow` 动画吸引注意力
+- [x] 16.4 多个 pending 权限请求排队展示（而非只显示最后一个）
+- [x] 16.5 已审批/已拒绝的操作以简洁的 status chip 在消息流中展示
+- [x] 16.6 支持"始终允许此工具"的 checkbox（可选，减少重复审批）
 
 **验证清单**：
 - [ ] 触发工具调用权限请求，确认 banner 风格和交互与 Codex 类似

@@ -144,41 +144,108 @@ export default (Base) => class WebSocketMixin extends Base {
     }
 
     showPermissionModal(data) {
-        const modal = document.createElement('div');
-        modal.className = 'permission-modal';
+        this._pendingPermissions = this._pendingPermissions || [];
+        this._pendingPermissions.push(data);
+        this._alwaysAllowTools = this._alwaysAllowTools || new Set();
 
-        const argsHtml = Object.entries(data.arguments)
-            .map(([k, v]) => `<div class="perm-arg"><strong>${this.escapeHtml(k)}:</strong> ${this.escapeHtml(String(v))}</div>`)
-            .join('');
+        const toolName = data.tool_name || 'Unknown';
+        if (this._alwaysAllowTools.has(toolName)) {
+            this.handlePermissionForItem(data, true);
+            return;
+        }
 
-        modal.innerHTML = `
-            <div class="permission-dialog">
-                <h3>Permission Required</h3>
-                <p class="perm-reason">${this.escapeHtml(data.reason)}</p>
-                <div class="perm-details">
-                    <div><strong>Tool:</strong> ${this.escapeHtml(data.tool_name)}</div>
-                    ${argsHtml}
+        this.renderPermissionBanners();
+    }
+
+    renderPermissionBanners() {
+        let container = document.getElementById('approval-gates-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'approval-gates-container';
+            const chatArea = document.querySelector('.chat-area') || document.querySelector('.workbench-view[data-view="chat"]');
+            if (chatArea) {
+                chatArea.insertBefore(container, chatArea.querySelector('.composer-bar'));
+            } else {
+                document.body.appendChild(container);
+            }
+        }
+
+        container.innerHTML = '';
+
+        this._pendingPermissions = this._pendingPermissions || [];
+        this._pendingPermissions.forEach((data, index) => {
+            const banner = document.createElement('div');
+            banner.className = 'approval-gate-banner';
+            banner.dataset.toolUseId = data.tool_use_id || '';
+
+            const argsText = Object.entries(data.arguments || {})
+                .map(([k, v]) => `${k}: ${String(v)}`)
+                .join(', ');
+
+            banner.innerHTML = `
+                <div class="approval-gate-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
                 </div>
-                <div class="perm-buttons">
-                    <button class="btn-deny" id="perm-deny-btn">Deny</button>
-                    <button class="btn-allow" id="perm-allow-btn">Allow</button>
+                <div class="approval-gate-body">
+                    <div class="approval-gate-title">${this.escapeHtml(data.tool_name || 'Permission Required')}</div>
+                    <div class="approval-gate-reason">${this.escapeHtml(data.reason || '')}</div>
+                    ${argsText ? `<div class="approval-gate-args">${this.escapeHtml(argsText)}</div>` : ''}
                 </div>
-            </div>
-        `;
+                <div class="approval-gate-actions">
+                    <label class="approval-gate-always-allow">
+                        <input type="checkbox" data-tool="${this.escapeHtml(data.tool_name)}" />
+                        <span>总是允许</span>
+                    </label>
+                    <button class="approval-gate-btn approval-gate-deny" data-index="${index}">拒绝</button>
+                    <button class="approval-gate-btn approval-gate-approve" data-index="${index}">允许</button>
+                </div>
+            `;
 
-        this._pendingPermission = data;
-        document.body.appendChild(modal);
+            container.appendChild(banner);
 
-        modal.querySelector('#perm-allow-btn').addEventListener('click', () => this.handlePermission(true));
-        modal.querySelector('#perm-deny-btn').addEventListener('click', () => this.handlePermission(false));
+            void banner.offsetWidth;
+            banner.classList.add('slide-in');
+
+            banner.querySelector('.approval-gate-approve').addEventListener('click', () => {
+                const alwaysAllow = banner.querySelector('.approval-gate-always-allow input');
+                if (alwaysAllow && alwaysAllow.checked) {
+                    this._alwaysAllowTools.add(data.tool_name);
+                }
+                this.handlePermissionForItem(data, true);
+            });
+
+            banner.querySelector('.approval-gate-deny').addEventListener('click', () => {
+                this.handlePermissionForItem(data, false);
+            });
+        });
+    }
+
+    handlePermissionForItem(data, approved) {
+        this.sendPermissionResponse(data.tool_use_id, approved);
+
+        this._pendingPermissions = (this._pendingPermissions || []).filter(
+            p => p.tool_use_id !== data.tool_use_id
+        );
+
+        const banner = document.querySelector(`.approval-gate-banner[data-tool-use-id="${data.tool_use_id}"]`);
+        if (banner) {
+            banner.classList.add('approved');
+            setTimeout(() => banner.remove(), 600);
+        }
+
+        if (this._pendingPermissions.length === 0) {
+            const container = document.getElementById('approval-gates-container');
+            if (container) container.remove();
+        } else {
+            this.renderPermissionBanners();
+        }
     }
 
     handlePermission(approved) {
-        if (this._pendingPermission) {
-            this.sendPermissionResponse(this._pendingPermission.tool_use_id, approved);
-            this._pendingPermission = null;
+        if (this._pendingPermissions && this._pendingPermissions.length > 0) {
+            this.handlePermissionForItem(this._pendingPermissions[0], approved);
         }
-        const modal = document.querySelector('.permission-modal');
-        if (modal) modal.remove();
     }
 };
