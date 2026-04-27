@@ -98,7 +98,7 @@ Recommended first tour:
 
 ### Web Workbench Highlights
 
-- Use the left-side workbench navigation to switch between `Chat`, `Tasks`, `Files`, `Workspace`, and `Team`
+- Use the top tab bar to switch between `Chat`, `Tasks`, `Files`, `Workspace`, and `Team`
 - Press `Ctrl+K` to open the command palette and jump to common actions
 - Use slash commands like `/plan`, `/agent`, `/model`, `/session`, `/setup`, and `/doctor`
 - Click tool cards, tasks, sessions, or files to inspect details in the right sidebar
@@ -109,16 +109,10 @@ Recommended first tour:
 - The task view now includes a lightweight team summary so execution load and completion counts stay visible
 - Task snapshots now include an execution timeline so member assignment, tool activity, and review transitions stay visible
 - The TUI task panel can now consume task snapshots and surface progress, active agents, latest timeline event, and review summary
-- Phase 5 branding begins with shared workbench naming and brand theme tokens across the Web shell and TUI header
-- Phase 5 batch 2 upgrades the welcome screen and empty states with a clearer hero, recommended actions, and stronger task-entry guidance
-- Phase 5 batch 3 upgrades tool execution into a unified card system with summaries, status chips, and linked result cards by `tool_use_id`
-- Phase 5 batch 4 improves narrow-screen usability with a mobile view chip, horizontal workbench navigation, and clearer full-width detail sidebars
-- Phase 5 batch 5 upgrades the session control bar with instant agent/model switching feedback, a live session summary line, and a reconnect path that keeps the active session state in sync
-- Phase 5 batch 6 upgrades the welcome screen into a screenshot-ready Quickstart showcase with onboarding steps, product positioning, and clearer docs entry cards
-- Phase 5 batch 7 aligns the TUI side panel with the Web Workbench vocabulary through clearer section titles and a concise session summary line
-- Phase 5 batch 8 adds lightweight micro-interactions for the welcome screen, tool event cards, and session switching states so the workbench feels more responsive without changing core flows
-- Phase 5 batch 9 introduces a shared surface family for task cards, tool cards, and docs entry cards so the workbench reads like one product instead of separate panels
-- Phase 5 batch 12 adds a contextual `Next Step` help strip in the header so each workbench view explains the most useful follow-up action
+- Codex-style minimal header: thread title + model tag + action icons
+- Minimalist welcome landing: large input box + recent thread cards with fade-in animation
+- Codex-style thread sidebar: active/historical thread grouping with session cards
+- Toast notification system: replaces `alert()` with non-blocking slide-in notifications
 
 ## Documentation
 

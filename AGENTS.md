@@ -13,7 +13,7 @@ Telegraph style. Root rules only. Read scoped `AGENTS.md` before touching a subt
 
 - Core Python: `src/myagent/`
 - CLI entry: `src/myagent/cli.py` (init, doctor, web, gateway, tui)
-- Web UI: `src/myagent/web/` (FastAPI + static files, JWT auth, WebSocket)
+- Web UI: `src/myagent/web/` (FastAPI + static files, JWT auth, WebSocket, Codex-style minimal UI, toast notifications)
 - TUI: `src/myagent/tui/` (Textual, status sidebar, task panel)
 - Gateway: `src/myagent/gateway/` (multi-platform adapters, session persistence)
 - Engine: `src/myagent/engine/` (QueryEngine, context compression)

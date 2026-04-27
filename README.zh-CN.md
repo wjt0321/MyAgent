@@ -98,7 +98,7 @@ myagent gateway --port 18789
 
 ### Web 工作台亮点
 
-- 使用左侧工作台导航在 `Chat`、`Tasks`、`Files`、`Workspace`、`Team` 之间切换
+- 使用顶部 tab bar 在 `Chat`、`Tasks`、`Files`、`Workspace`、`Team` 之间切换
 - 按 `Ctrl+K` 打开命令面板，快速跳转到常用操作
 - 支持 `/plan`、`/agent`、`/model`、`/session`、`/setup`、`/doctor` 等 Slash Commands
 - 点击工具卡片、任务、会话或文件后，可在右侧详情侧栏查看上下文
@@ -109,16 +109,10 @@ myagent gateway --port 18789
 - 任务视图会同步显示轻量 Team 摘要，便于快速判断当前执行负载与完成数
 - 任务快照现在会附带执行时间线，成员接手、工具进展与审查切换都能持续可见
 - TUI 任务面板现在也能消费任务快照，并显示进度、参与 agent、最近事件与审查摘要
-- Phase 5 第一批先统一了 Web 壳层与 TUI Header 的 Workbench 品牌命名与主题 token
-- Phase 5 第二批进一步重做欢迎页与空状态，让首屏推荐动作、帮助提示与任务入口更清楚
-- Phase 5 第三批把工具执行升级为统一卡片系统，按 `tool_use_id` 串联调用与结果，并补充摘要与状态芯片
-- Phase 5 第四批进一步收口窄屏体验，补充移动端视图 chip、横向工作台导航与全宽详情侧栏
-- Phase 5 第五批补齐会话控制条，增加 agent/model 即时切换反馈、会话摘要行，以及保持当前会话状态同步的重连路径
-- Phase 5 第六批把欢迎页升级为可截图的 Quickstart 首屏，补齐上手步骤、产品定位与文档入口卡片
-- Phase 5 第七批继续统一 TUI 视觉语言，把侧栏分区标题和会话摘要术语向 Web Workbench 收口
-- Phase 5 第八批补齐欢迎页、工具卡片与会话切换的轻量微交互，让工作台反馈更灵敏但不改变主流程
-- Phase 5 第九批补齐共享的 surface 表面系统，把任务卡片、工具卡片与文档入口卡片统一到同一家族化主题层级
-- Phase 5 第十二批在 Header 中补齐随视图变化的 `Next Step` 上下文帮助提示条，明确每个工作台视图的下一步动作
+- Codex 风格极简 Header：线程标题 + 模型标识 + 操作图标
+- 极简 Welcome Page：大型输入框 + 最近线程卡片带渐入动画
+- Codex 风格线程侧栏：进行中/历史线程分组 + 会话卡片
+- Toast 通知系统：替代 `alert()`，非阻塞滑入通知
 
 ## 文档
 
