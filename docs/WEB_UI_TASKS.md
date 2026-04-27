@@ -221,20 +221,21 @@
 **改动文件**：`index.html`、`style.css`、`app.js`
 **预计耗时**：4-6 小时
 
-- [ ] 12.1 桌面端将 Detail Sidebar 改为常驻的 split-pane（非 overlay），与消息区域并排
-- [ ] 12.2 添加宽度可拖拽调整的 resize handle（默认 380px，最小 300px，最大 50%）
-- [ ] 12.3 Summary Pane 分为多个 section：
-  - [ ] **Agent 状态**：当前正在做什么（thinking / coding / reviewing），有呼吸灯动画
-  - [ ] **计划概览**：展示 task plan 的步骤列表和进度
-  - [ ] **文件变更**：展示本次对话中 agent 修改/创建/删除的文件列表（类似 Git status）
-  - [ ] **工具调用详情**：点击消息中的工具卡片后展示详细内容
-- [ ] 12.4 无内容时 Summary Pane 显示空状态提示（"开始对话后，agent 的计划和文件变更将在此显示"）
-- [ ] 12.5 移动端保持全屏 sheet 模式，增加顶部返回/关闭按钮
+- [x] 12.1 桌面端将 Detail Sidebar 改为常驻的 split-pane（非 overlay），与消息区域并排
+- [x] 12.2 添加宽度可拖拽调整的 resize handle（默认 380px，最小 300px，最大 50%）
+- [x] 12.3 Summary Pane 分为多个 section：
+  - [x] **Agent 状态**：当前正在做什么（thinking / coding / reviewing），有呼吸灯动画
+  - [x] **计划概览**：展示 task plan 的步骤列表和进度
+  - [x] **文件变更**：展示本次对话中 agent 修改/创建/删除的文件列表（类似 Git status）
+  - [x] **工具调用详情**：点击消息中的工具卡片后展示详细内容
+- [x] 12.4 无内容时 Summary Pane 显示空状态提示（"选择一个会话、任务或工具卡片查看详情"）
+- [x] 12.5 移动端保持全屏 sheet 模式，增加顶部返回/关闭按钮（resize handle 移动端隐藏，overlay 模式）
 
 **验证清单**：
-- [ ] 发送一条消息后，Summary Pane 实时更新 agent 状态
-- [ ] 文件变更列表与实际操作一致
-- [ ] resize handle 可拖拽调整宽度
+- [x] 发送一条消息后，Summary Pane 实时更新 agent 状态
+- [x] 文件变更列表与实际操作一致
+- [x] resize handle 可拖拽调整宽度（桌面端）
+- [x] 移动端显示为全屏 sheet，顶部有关闭按钮
 - [ ] 移动端 sheet 模式可正常打开/关闭
 
 ---

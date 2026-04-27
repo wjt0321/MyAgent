@@ -4010,33 +4010,115 @@ mark.search-highlight.current {
 }
 
 .detail-sidebar {
-  display: flex;
-}
-
-.detail-sidebar .preview-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-}
-
-.detail-sidebar .preview-body pre {
+  width: var(--detail-sidebar-width, 380px);
+  min-width: 300px;
+  max-width: 50%;
   display: none;
-  border-radius: var(--radius-md);
+  flex-direction: column;
+  border-left: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+  position: relative;
 }
 
-.detail-sidebar.has-preview .preview-body pre {
-  display: block;
+.detail-sidebar.show {
+  display: flex;
 }
 
-.detail-sidebar-heading {
+.resize-handle {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 10;
+  transition: background var(--transition-fast);
+}
+
+.resize-handle:hover,
+.resize-handle.active {
+  background: var(--accent-soft);
+}
+
+.detail-sidebar-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.detail-sidebar-title {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
+}
+
+.detail-sidebar-filename {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .detail-sidebar-meta {
   font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.detail-sidebar-body {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+}
+
+.detail-sidebar-content {
+  padding: 16px;
+}
+
+.detail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.detail-empty svg {
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+
+.detail-empty p {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.detail-sidebar-body pre {
+  margin: 0;
+  padding: 16px;
+  background: var(--bg-code);
+  min-height: 100%;
+  overflow-x: auto;
+}
+
+.detail-sidebar-body code {
+  font-family: "Fira Code", "JetBrains Mono", Consolas, Menlo, Monaco, monospace;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
   color: var(--text-muted);
 }
 
@@ -4267,13 +4349,24 @@ mark.search-highlight.current {
   }
 
   .detail-sidebar {
-    width: 100%;
-  }
-
-  .detail-sidebar.show-mobile {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
     max-width: 100%;
     z-index: 180;
+    display: none;
+    animation: slideInRight 0.25s ease;
+    border-left: none;
+  }
+
+  .detail-sidebar.show-mobile {
+    display: flex;
+  }
+
+  .resize-handle {
+    display: none;
   }
 }
 

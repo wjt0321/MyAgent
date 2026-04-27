@@ -291,6 +291,10 @@ class MyAgentWebApp {
         this.sidebarOverlay.addEventListener('click', () => this.closeSidebar());
         window.addEventListener('resize', () => this.syncResponsiveWorkbenchState());
 
+        // Detail sidebar resize handle
+        this.detailSidebarResize = document.getElementById('detail-sidebar-resize');
+        this.initDetailSidebarResize();
+
         // Agent/model select - moved to Settings Modal and Command Palette
         // Model select removed from header in Step 05
 
@@ -2696,7 +2700,7 @@ class MyAgentWebApp {
 
     renderDetailSidebar(kind, payload) {
         if (!this.detailSidebar || !this.previewFilename || !this.detailSidebarContent) return;
-        this.previewFilename.textContent = payload.title || '详情侧栏';
+        this.previewFilename.textContent = payload.title || '详情';
         this.detailSidebarMeta.textContent = payload.meta || kind;
 
         const bodyHtml = this.escapeHtml(payload.body || '').replace(/\n/g, '<br>');
@@ -2708,6 +2712,45 @@ class MyAgentWebApp {
         `;
         this.detailSidebar.classList.add('show');
         this.detailSidebar.classList.toggle('show-mobile', window.innerWidth <= 768);
+    }
+
+    initDetailSidebarResize() {
+        if (!this.detailSidebarResize) return;
+
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 0;
+        const minWidth = 300;
+        const maxWidthRatio = 0.5;
+
+        const onMouseDown = (e) => {
+            isResizing = true;
+            startX = e.clientX;
+            startWidth = this.detailSidebar.offsetWidth;
+            this.detailSidebarResize.classList.add('active');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        };
+
+        const onMouseMove = (e) => {
+            if (!isResizing) return;
+            const delta = startX - e.clientX;
+            const newWidth = Math.max(minWidth, Math.min(startWidth + delta, window.innerWidth * maxWidthRatio));
+            this.detailSidebar.style.width = `${newWidth}px`;
+        };
+
+        const onMouseUp = () => {
+            if (!isResizing) return;
+            isResizing = false;
+            this.detailSidebarResize.classList.remove('active');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+
+        this.detailSidebarResize.addEventListener('mousedown', onMouseDown);
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
     }
 
     // ========== Messages ==========
