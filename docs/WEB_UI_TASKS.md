@@ -147,16 +147,16 @@
 **改动文件**：`app.js`、`style.css`、`index.html`
 **预计耗时**：2 小时
 
-- [ ] 8.1 实现一个 `showToast(message, type, duration)` 方法（type: success/error/info/warning）
-- [ ] 8.2 Toast 样式：固定在右上角，`fadeInDown` 入场，自动消失
-- [ ] 8.3 替换所有 `alert()` 调用为 `showToast()`（约 8 处）
-- [ ] 8.4 替换所有非对话性质的 `addMessage('assistant', '设置已保存')` 为 `showToast()`
-- [ ] 8.5 Agent/Model 切换成功、保存设置等场景使用 Toast 而不是在聊天中插入消息
+- [x] 8.1 实现一个 `showToast(message, type, duration)` 方法（type: success/error/info/warning）
+- [x] 8.2 Toast 样式：固定在右上角，`fadeInDown` 入场，自动消失
+- [x] 8.3 替换所有 `alert()` 调用为 `showToast()`（约 8 处）
+- [x] 8.4 替换所有非对话性质的 `addMessage('assistant', '设置已保存')` 为 `showToast()`
+- [x] 8.5 Agent/Model 切换成功、保存设置等场景使用 Toast 而不是在聊天中插入消息
 
 **验证清单**：
-- [ ] 保存设置、切换 Agent、删除记忆等操作确认 Toast 正常弹出
-- [ ] Toast 自动消失，不阻塞用户操作
-- [ ] 无 `alert()` 残留
+- [x] 保存设置、切换 Agent、删除记忆等操作确认 Toast 正常弹出
+- [x] Toast 自动消失，不阻塞用户操作
+- [x] 无 `alert()` 残留
 
 ---
 

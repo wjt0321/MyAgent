@@ -184,6 +184,9 @@ class MyAgentWebApp {
         this.sessionImportBtn = document.getElementById('session-import-btn');
         this.sessionImportFile = document.getElementById('session-import-file');
 
+        // Toast notifications
+        this.toastContainer = document.getElementById('toast-container');
+
         // Memory management
         this.memoryList = document.getElementById('memory-list');
         this.memoryForm = document.getElementById('memory-form');
@@ -392,6 +395,50 @@ class MyAgentWebApp {
                 // Reset so the same file can be selected again
                 e.target.value = '';
             });
+        }
+    }
+
+    // ========== Toast Notifications ==========
+
+    showToast(message, type = 'info', duration = 3000) {
+        if (!this.toastContainer) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+
+        const icons = {
+            success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+            error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+            warning: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+            info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+        };
+
+        toast.innerHTML = `
+            <div class="toast-icon">${icons[type] || icons.info}</div>
+            <div class="toast-content">${this.escapeHtml(message)}</div>
+            <button class="toast-close" title="关闭">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        `;
+
+        this.toastContainer.appendChild(toast);
+
+        void toast.offsetWidth;
+        toast.classList.add('toast-show');
+
+        const closeToast = () => {
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            setTimeout(() => toast.remove(), 300);
+        };
+
+        toast.querySelector('.toast-close').addEventListener('click', closeToast);
+
+        if (duration > 0) {
+            setTimeout(closeToast, duration);
         }
     }
 
@@ -725,7 +772,7 @@ class MyAgentWebApp {
                 const session = await response.json();
                 this.refreshActiveSession(session, `agent 已切换为 ${agentName}`);
                 this.connectWebSocket(this.currentSessionId);
-                this.addMessage('assistant', `已切换到 agent: **${agentName}**`, false);
+                this.showToast(`已切换到 agent: ${agentName}`, 'success');
             }
         } catch (error) {
             console.error('Failed to switch agent:', error);
@@ -751,7 +798,7 @@ class MyAgentWebApp {
                 const session = await response.json();
                 this.refreshActiveSession(session, `模型已切换为 ${modelName}`);
                 this.connectWebSocket(this.currentSessionId);
-                this.addMessage('assistant', `已切换到模型: **${modelName}**`, false);
+                this.showToast(`已切换到模型: ${modelName}`, 'success');
             }
         } catch (error) {
             console.error('Failed to switch model:', error);
@@ -1878,7 +1925,7 @@ class MyAgentWebApp {
                 return true;
             case '/setup':
                 this.openSettings();
-                this.addMessage('assistant', '已打开设置面板。', false);
+                this.showToast('已打开设置面板', 'info');
                 return true;
             case '/doctor':
                 this.addMessage(
@@ -3088,7 +3135,7 @@ class MyAgentWebApp {
         const content = this.memoryContent.value.trim();
 
         if (!name || !content) {
-            alert('名称和内容不能为空');
+            this.showToast('名称和内容不能为空', 'warning');
             return;
         }
 
@@ -3102,14 +3149,14 @@ class MyAgentWebApp {
             if (response.ok) {
                 this.hideMemoryForm();
                 await this.loadMemories();
-                // Also refresh workspace sidebar
                 this.loadWorkspace();
+                this.showToast('记忆保存成功', 'success');
             } else {
-                alert('保存失败');
+                this.showToast('保存失败', 'error');
             }
         } catch (error) {
             console.error('Failed to save memory:', error);
-            alert('保存失败: ' + error.message);
+            this.showToast('保存失败: ' + error.message, 'error');
         }
     }
 
@@ -3124,12 +3171,13 @@ class MyAgentWebApp {
             if (response.ok) {
                 await this.loadMemories();
                 this.loadWorkspace();
+                this.showToast('记忆已删除', 'success');
             } else {
-                alert('删除失败');
+                this.showToast('删除失败', 'error');
             }
         } catch (error) {
             console.error('Failed to delete memory:', error);
-            alert('删除失败: ' + error.message);
+            this.showToast('删除失败: ' + error.message, 'error');
         }
     }
 
@@ -3225,11 +3273,11 @@ class MyAgentWebApp {
             const response = await fetch('/api/codebase/index/rebuild', { method: 'POST' });
             if (response.ok) {
                 await this.loadCodebaseIndex();
-                alert('索引重建完成');
+                this.showToast('索引重建完成', 'success');
             }
         } catch (error) {
             console.error('Failed to rebuild index:', error);
-            alert('重建失败');
+            this.showToast('重建失败', 'error');
         } finally {
             this.rebuildIndexBtn.disabled = false;
             this.rebuildIndexBtn.textContent = '重建索引';
@@ -3288,18 +3336,18 @@ class MyAgentWebApp {
         }
 
         this.closeSettings();
-        this.addMessage('assistant', '设置已保存', false);
+        this.showToast('设置已保存', 'success');
     }
 
     async saveSystemPrompt() {
         const prompt = this.settingsSystemPrompt.value.trim();
         if (!prompt) {
-            alert('系统提示词不能为空');
+            this.showToast('系统提示词不能为空', 'warning');
             return;
         }
 
         if (!this.currentSessionId) {
-            alert('请先选择一个会话');
+            this.showToast('请先选择一个会话', 'warning');
             return;
         }
 
@@ -3311,16 +3359,16 @@ class MyAgentWebApp {
             });
 
             if (response.ok) {
-                // Clear messages and reconnect to apply new system prompt
                 this.messagesContainer.innerHTML = '';
                 this.addMessage('assistant', '系统提示词已更新，对话上下文已重置', false);
                 this.connectWebSocket(this.currentSessionId);
+                this.showToast('系统提示词已保存', 'success');
             } else {
-                alert('保存失败');
+                this.showToast('保存失败', 'error');
             }
         } catch (error) {
             console.error('Failed to save system prompt:', error);
-            alert('保存失败: ' + error.message);
+            this.showToast('保存失败: ' + error.message, 'error');
         }
     }
 
@@ -3332,9 +3380,8 @@ class MyAgentWebApp {
             const text = await file.text();
             const data = JSON.parse(text);
 
-            // Validate imported data
             if (!data.agent || !Array.isArray(data.messages)) {
-                alert('无效的会话文件格式');
+                this.showToast('无效的会话文件格式', 'error');
                 return;
             }
 
@@ -3366,10 +3413,10 @@ class MyAgentWebApp {
             // Reload sessions and select the imported one
             await this.loadSessions();
             this.selectSession(session.id);
-            this.addMessage('assistant', `会话 "${data.agent}" 导入成功`, false);
+            this.showToast(`会话 "${data.agent}" 导入成功`, 'success');
         } catch (error) {
             console.error('Failed to import session:', error);
-            alert('导入失败: ' + error.message);
+            this.showToast('导入失败: ' + error.message, 'error');
         }
     }
 
@@ -3475,7 +3522,7 @@ class MyAgentWebApp {
 
                 case 'config':
                     await fetch('/api/config', { method: 'DELETE' });
-                    this.addMessage('assistant', '配置已重置为默认值', false);
+                    this.showToast('配置已重置为默认值', 'info');
                     break;
             }
         } catch (error) {
