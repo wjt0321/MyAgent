@@ -307,7 +307,7 @@
 
 **验证清单**：
 - [x] `pytest tests/test_web_e2e.py --browser chromium` 全部通过（27 passed）
-- [ ] CI pipeline 中自动运行测试（待后续配置）
+- [x] CI pipeline 中自动运行测试（已添加到 phase0-smoke.yml）
 
 ---
 

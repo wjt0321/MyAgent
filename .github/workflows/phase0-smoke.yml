@@ -51,3 +51,39 @@ jobs:
           path: |
             pytest-output.log
             pytest-report.xml
+
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]" pytest-playwright
+
+      - name: Install Playwright browsers
+        run: playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: >
+          python -m pytest
+          tests/test_web_e2e.py
+          -v --tb=long
+          --browser chromium
+          --junitxml=e2e-report.xml
+          2>&1 | tee e2e-output.log
+
+      - name: Upload E2E logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs
+          path: |
+            e2e-output.log
+            e2e-report.xml
