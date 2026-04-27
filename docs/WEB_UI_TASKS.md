@@ -166,15 +166,15 @@
 **改动文件**：`app.js`、`style.css`
 **预计耗时**：2 小时
 
-- [ ] 9.1 定义 `.skeleton` CSS 类（条形闪烁动画）
-- [ ] 9.2 `loadSessions` 加载中时在会话列表显示 3-5 条 skeleton 占位
-- [ ] 9.3 `loadFileTree` 加载中时在文件树显示 skeleton 占位
-- [ ] 9.4 `loadCurrentTask` 加载中时在任务面板显示 skeleton
-- [ ] 9.5 发送按钮在 `isSending` 时显示旋转动画（替代 opacity 变化）
+- [x] 9.1 定义 `.skeleton` CSS 类（条形闪烁动画）
+- [x] 9.2 `loadSessions` 加载中时在会话列表显示 3-5 条 skeleton 占位
+- [x] 9.3 `loadFileTree` 加载中时在文件树显示 skeleton 占位
+- [x] 9.4 `loadCurrentTask` 加载中时在任务面板显示 skeleton
+- [x] 9.5 发送按钮在 `isSending` 时显示旋转动画（替代 opacity 变化）
 
 **验证清单**：
-- [ ] 清空缓存刷新页面，观察加载过程中是否有 skeleton 闪烁
-- [ ] 发送消息时按钮显示旋转动画
+- [x] 清空缓存刷新页面，观察加载过程中是否有 skeleton 闪烁
+- [x] 发送消息时按钮显示旋转动画
 
 ---
 

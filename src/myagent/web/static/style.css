@@ -150,6 +150,117 @@ body {
   overflow: hidden;
 }
 
+/* ---------- Skeleton Loading ---------- */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--bg-secondary) 25%,
+    var(--bg-tertiary) 50%,
+    var(--bg-secondary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+.skeleton-thread-title {
+  height: 14px;
+  width: 80%;
+}
+
+.skeleton-thread-meta {
+  height: 10px;
+  width: 50%;
+}
+
+.skeleton-message {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+.skeleton-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-message-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-text {
+  height: 12px;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-text-short { width: 60%; }
+.skeleton-text-medium { width: 80%; }
+.skeleton-text-long { width: 95%; }
+
+.skeleton-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-card-title {
+  height: 16px;
+  width: 40%;
+}
+
+.skeleton-icon-row {
+  display: flex;
+  gap: 8px;
+}
+
+.skeleton-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+}
+
+/* Loading container overlay */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-default);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ---------- Sidebar ---------- */
 .sidebar {
   width: var(--sidebar-width);
@@ -743,6 +854,12 @@ body {
 .status-dot.connected {
   background: var(--success);
   box-shadow: 0 0 6px var(--success);
+}
+
+.status-dot.connecting {
+  background: var(--warning);
+  box-shadow: 0 0 6px var(--warning);
+  animation: statusPulse 1s ease-in-out infinite;
 }
 
 .status-text {
@@ -3562,6 +3679,18 @@ body {
 .session-status-chip.switching .session-status-dot {
   background: var(--accent);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
+}
+
+.session-status-chip.connecting {
+  border-color: var(--warning);
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--warning);
+}
+
+.session-status-chip.connecting .session-status-dot {
+  background: var(--warning);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16);
+  animation: statusPulse 1s ease-in-out infinite;
 }
 
 .session-status-chip.is-pulsing {

@@ -1075,6 +1075,12 @@ class MyAgentWebApp {
     }
 
     async loadWorkspace() {
+        if (this.workspaceInfo) {
+            this.workspaceInfo.innerHTML = this.renderWorkspaceSkeleton();
+        }
+        if (this.workspaceOverview) {
+            this.workspaceOverview.innerHTML = this.renderWorkspaceSkeleton();
+        }
         try {
             const response = await fetch('/api/workspace');
             const data = await response.json();
@@ -1088,6 +1094,22 @@ class MyAgentWebApp {
                 this.workspaceOverview.innerHTML = '<div class="workspace-empty">Workspace 未初始化</div>';
             }
         }
+    }
+
+    renderWorkspaceSkeleton() {
+        return `
+            <div class="skeleton-card">
+                <div class="skeleton skeleton-card-title"></div>
+                <div class="skeleton skeleton-text skeleton-text-long"></div>
+                <div class="skeleton skeleton-text skeleton-text-medium"></div>
+                <div class="skeleton skeleton-text skeleton-text-short"></div>
+            </div>
+            <div class="skeleton-icon-row" style="margin-top: 12px;">
+                <div class="skeleton skeleton-icon"></div>
+                <div class="skeleton skeleton-icon"></div>
+                <div class="skeleton skeleton-icon"></div>
+            </div>
+        `;
     }
 
     renderWorkspace(data) {
@@ -1339,6 +1361,7 @@ class MyAgentWebApp {
     // ========== Sessions ==========
 
     async loadSessions() {
+        this.renderSessionListSkeleton();
         try {
             const response = await fetch('/api/sessions');
             this.sessions = await response.json();
@@ -1352,7 +1375,28 @@ class MyAgentWebApp {
             }
         } catch (error) {
             console.error('Failed to load sessions:', error);
+            this.sessionList.innerHTML = '<div class="thread-empty">加载失败，请刷新重试</div>';
         }
+    }
+
+    renderSessionListSkeleton() {
+        const skeletonItems = Array(4).fill('').map(() => `
+            <div class="skeleton-thread">
+                <div class="skeleton skeleton-thread-title"></div>
+                <div class="skeleton skeleton-thread-meta"></div>
+            </div>
+        `).join('');
+
+        this.sessionList.innerHTML = `
+            <div class="thread-section">
+                <div class="thread-group-header">
+                    <span class="thread-group-title">加载中...</span>
+                </div>
+                <div class="thread-group-list">
+                    ${skeletonItems}
+                </div>
+            </div>
+        `;
     }
 
     renderSessionList() {
@@ -1700,17 +1744,20 @@ class MyAgentWebApp {
     selectSession(sessionId) {
         this.currentSessionId = sessionId;
         this.renderSessionList();
-        this.messagesContainer.innerHTML = '';
         this.clearSearchHighlights();
 
         const session = this.sessions.find(s => s.id === sessionId);
         if (session) {
             this.welcomeScreen.style.display = 'none';
-            this.refreshActiveSession(session, '当前会话已同步');
+            this.messagesContainer.innerHTML = '';
+            this.renderMessageLoadingSkeleton();
+            this.refreshActiveSession(session, '当前会话正在加载');
 
             session.messages.forEach(msg => {
                 this.addMessage(msg.role, msg.content, false);
             });
+
+            this.refreshActiveSession(session, '当前会话已同步');
         } else {
             this.renderSessionSummaryLine(null, '当前会话尚未加载');
             this.renderWelcomeLanding();
@@ -1723,6 +1770,27 @@ class MyAgentWebApp {
         }
         this.setActiveView('chat');
         this.connectWebSocket(sessionId);
+    }
+
+    renderMessageLoadingSkeleton() {
+        const skeletonMessages = Array(3).fill('').map(() => `
+            <div class="skeleton-message">
+                <div class="skeleton skeleton-avatar"></div>
+                <div class="skeleton-message-body">
+                    <div class="skeleton skeleton-text skeleton-text-long"></div>
+                    <div class="skeleton skeleton-text skeleton-text-medium"></div>
+                    <div class="skeleton skeleton-text skeleton-text-short"></div>
+                </div>
+            </div>
+        `).join('');
+
+        this.messagesContainer.innerHTML = `
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <span>正在加载消息...</span>
+            </div>
+            ${skeletonMessages}
+        `;
     }
 
     // ========== WebSocket ==========
@@ -1746,6 +1814,7 @@ class MyAgentWebApp {
         const wsUrl = `${protocol}//${window.location.host}/ws/${sessionId}`;
 
         this.ws = new WebSocket(wsUrl);
+        this.setStatus('connecting');
 
         this.ws.onopen = () => {
             this.setStatus('connected');
@@ -2895,18 +2964,23 @@ class MyAgentWebApp {
     setStatus(status, label = '') {
         const isConnected = status === 'connected';
         const isSwitching = status === 'switching';
-        this.statusIndicator.textContent = isConnected ? '已连接' : (isSwitching ? '切换中' : '未连接');
+        const isConnecting = status === 'connecting';
+        this.statusIndicator.textContent = isConnected ? '已连接' : (isSwitching ? '切换中' : (isConnecting ? '连接中' : '未连接'));
         this.statusDot.classList.toggle('connected', isConnected);
+        this.statusDot.classList.toggle('connecting', isConnecting);
         if (this.sessionStatusChip && this.sessionStatusLabel) {
-            this.sessionStatusLabel.textContent = label || (isConnected ? '会话已连接' : (isSwitching ? '会话切换中' : '等待连接'));
+            this.sessionStatusLabel.textContent = label || (isConnected ? '会话已连接' : (isSwitching ? '会话切换中' : (isConnecting ? '正在连接...' : '等待连接')));
             this.sessionStatusChip.classList.toggle('connected', isConnected);
-            this.sessionStatusChip.classList.toggle('disconnected', !isConnected && !isSwitching);
+            this.sessionStatusChip.classList.toggle('disconnected', !isConnected && !isSwitching && !isConnecting);
             this.sessionStatusChip.classList.toggle('switching', isSwitching);
+            this.sessionStatusChip.classList.toggle('connecting', isConnecting);
         }
         if (status === 'connected') {
             this.renderSessionSummaryLine(this.getCurrentSessionRecord(), label || '当前会话已连接');
         } else if (status === 'switching') {
             this.renderSessionSummaryLine(this.getCurrentSessionRecord(), label || '正在同步会话设置');
+        } else if (status === 'connecting') {
+            this.renderSessionSummaryLine(this.getCurrentSessionRecord(), label || '正在连接服务器...');
         }
     }
 
