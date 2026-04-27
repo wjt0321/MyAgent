@@ -263,18 +263,19 @@
 **目标**：3300 行单文件拆分为可维护的模块
 **改动文件**：`app.js` -> 多个文件
 **预计耗时**：4-6 小时
+**状态**：✅ 已完成
 
-- [ ] 14.1 拆分为以下模块：
-  - [ ] `theme.js` — 主题切换逻辑
-  - [ ] `websocket.js` — WebSocket 连接和重连
-  - [ ] `session.js` — 会话 CRUD 和渲染
-  - [ ] `message.js` — 消息渲染、流式更新、编辑
-  - [ ] `task.js` — 任务创建、审批、轮询
-  - [ ] `workspace.js` — 文件树、记忆、代码库
-  - [ ] `ui.js` — 命令面板、Toast、Modal 等 UI 组件
-  - [ ] `app.js` — 入口文件，组合各模块
-- [ ] 14.2 使用 ES Module (`import`/`export`) 语法
-- [ ] 14.3 `index.html` 中改为 `<script type="module" src="app.js">`
+- [x] 14.1 拆分为以下模块：
+  - [x] `modules/theme.js` — 主题切换逻辑（6 个方法）
+  - [x] `modules/websocket.js` — WebSocket 连接和重连（12 个方法）
+  - [x] `modules/ui.js` — Toast、Modal、CommandPalette、Search、Sidebar、Status（30+ 个方法）
+  - [x] `modules/session.js` — 会话 CRUD 和渲染（20+ 个方法）
+  - [x] `modules/message.js` — 消息渲染、流式更新、编辑（14 个方法）
+  - [x] `modules/task.js` — 任务创建、审批、轮询（15 个方法）
+  - [x] `modules/workspace.js` — 文件树、记忆、代码库、设置（20+ 个方法）
+  - [x] `app.js` — 入口文件，组合各模块（607 行）
+- [x] 14.2 使用 ES Module (`import`/`export`) 语法，采用 class mixin 模式
+- [x] 14.3 `index.html` 中改为 `<script type="module" src="app.js">`
 
 **验证清单**：
 - [ ] 所有功能正常工作（会话管理、聊天、任务流、文件预览等）
