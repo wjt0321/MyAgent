@@ -4348,6 +4348,21 @@ mark.search-highlight.current {
     display: none;
   }
 
+  .detail-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 170;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+  }
+
+  .detail-sidebar-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .detail-sidebar {
     position: fixed;
     top: 0;

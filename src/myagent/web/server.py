@@ -147,6 +147,49 @@ def create_app() -> FastAPI:
         """Health check endpoint."""
         return {"status": "ok", "version": "0.1.0"}
 
+    @app.get("/api/models")
+    async def list_models() -> list[dict[str, Any]]:
+        """List all available models from configured providers."""
+        from myagent.config.settings import Settings
+        from myagent.llm.registry import get_registry
+
+        models = []
+        try:
+            settings = Settings.load()
+            registry = get_registry()
+
+            for provider_id, provider_class in registry.items():
+                try:
+                    provider_name = provider_class.name if hasattr(provider_class, 'name') else provider_id
+                    api_key = getattr(settings.api_keys, provider_id, None) if hasattr(settings, 'api_keys') else None
+
+                    if api_key:
+                        supported_models = getattr(provider_class, 'supported_models', [])
+                        if supported_models:
+                            for model_name in supported_models:
+                                models.append({
+                                    "id": f"{provider_id}/{model_name}",
+                                    "name": model_name,
+                                    "provider": provider_id,
+                                    "provider_name": provider_name,
+                                })
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+        if not models:
+            default_models = [
+                {"id": "qwen/qwen-max", "name": "qwen-max", "provider": "qwen", "provider_name": "Qwen"},
+                {"id": "qwen/qwen-plus", "name": "qwen-plus", "provider": "qwen", "provider_name": "Qwen"},
+                {"id": "qwen/qwen-turbo", "name": "qwen-turbo", "provider": "qwen", "provider_name": "Qwen"},
+                {"id": "zhipu/glm-4", "name": "glm-4", "provider": "zhipu", "provider_name": "Zhipu"},
+                {"id": "zhipu/glm-4-plus", "name": "glm-4-plus", "provider": "zhipu", "provider_name": "Zhipu"},
+            ]
+            models = default_models
+
+        return models
+
     @app.get("/api/config/status")
     async def config_status() -> dict[str, Any]:
         """Get configuration hot-reload status."""

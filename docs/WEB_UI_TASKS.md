@@ -236,7 +236,7 @@
 - [x] 文件变更列表与实际操作一致
 - [x] resize handle 可拖拽调整宽度（桌面端）
 - [x] 移动端显示为全屏 sheet，顶部有关闭按钮
-- [ ] 移动端 sheet 模式可正常打开/关闭
+- [x] 移动端 sheet 模式可正常打开/关闭（半透明 overlay + slide-in 动画，点击 overlay 或关闭按钮可关闭）
 
 ---
 
@@ -246,15 +246,15 @@
 **改动文件**：`server.py`、`app.js`、`index.html`
 **预计耗时**：2 小时
 
-- [ ] 13.1 后端新增 `GET /api/models` 接口，返回可用模型列表（读取 `gateway.yaml`）
-- [ ] 13.2 前端在 `constructor` 中调用 API 动态填充 model-select
-- [ ] 13.3 删除 `index.html` 中所有 `<optgroup>` 硬编码
-- [ ] 13.4 Settings Modal 或 Command Palette 中可切换模型
+- [x] 13.1 后端新增 `GET /api/models` 接口，返回可用模型列表（读取 LLM provider 注册表）
+- [x] 13.2 前端在 `constructor` 中调用 API 动态填充 availableModels
+- [x] 13.3 删除 `index.html` 中所有 `<optgroup>` 硬编码（Step 05 Header 简化时已完成）
+- [x] 13.4 Settings Modal 或 Command Palette 中可切换模型
 
 **验证清单**：
-- [ ] 确认模型下拉列表内容来自后端配置
-- [ ] 新增配置后刷新即可看到新模型
-- [ ] 模型切换功能正常
+- [x] 确认模型下拉列表内容来自后端配置
+- [x] 新增配置后刷新即可看到新模型
+- [x] 模型切换功能正常
 
 ---
 

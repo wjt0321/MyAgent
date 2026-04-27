@@ -40,6 +40,7 @@ class MyAgentWebApp {
         this.syncResponsiveWorkbenchState();
         this.loadSetupStatus();
         this.renderCommandPalette();
+        this.loadAvailableModels();
         this.renderDetailSidebar('overview', {
             title: '工作台详情',
             meta: '准备就绪',
@@ -1415,10 +1416,30 @@ class MyAgentWebApp {
 
     hideFilePreview() {
         this.filePreviewPanel.classList.remove('show', 'has-preview');
-        this.detailSidebar?.classList.remove('show-mobile');
+        this.detailSidebar?.classList.remove('show', 'show-mobile');
+
+        // Hide mobile overlay
+        const overlay = document.getElementById('detail-sidebar-overlay');
+        if (overlay) overlay.classList.remove('show');
+
         if (this.previewContent) {
             this.previewContent.textContent = '';
             this.previewContent.className = '';
+        }
+    }
+
+    // ========== Models ==========
+
+    async loadAvailableModels() {
+        try {
+            const response = await fetch('/api/models');
+            if (response.ok) {
+                const models = await response.json();
+                this.availableModels = models.map(m => m.name);
+                this.availableModelDetails = models;
+            }
+        } catch (error) {
+            console.warn('Failed to load models from API, using defaults:', error);
         }
     }
 
@@ -2711,7 +2732,22 @@ class MyAgentWebApp {
             </div>
         `;
         this.detailSidebar.classList.add('show');
-        this.detailSidebar.classList.toggle('show-mobile', window.innerWidth <= 768);
+
+        const isMobile = window.innerWidth <= 768;
+        this.detailSidebar.classList.toggle('show-mobile', isMobile);
+
+        if (isMobile) {
+            // Show mobile overlay
+            let overlay = document.getElementById('detail-sidebar-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'detail-sidebar-overlay';
+                overlay.className = 'detail-sidebar-overlay';
+                overlay.addEventListener('click', () => this.hideFilePreview());
+                document.body.appendChild(overlay);
+            }
+            overlay.classList.add('show');
+        }
     }
 
     initDetailSidebarResize() {
