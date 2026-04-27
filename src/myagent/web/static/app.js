@@ -1635,14 +1635,19 @@ class MyAgentWebApp {
             }
             // Server-side error (code 1006 = abnormal, 1011 = server error)
             if (event.code === 1006 || event.code === 1011) {
-                // Show error once and stop reconnecting
+                // Show error once and try delayed reconnect
                 if (this.reconnectAttempts === 0) {
                     this.addMessage('error', '连接失败：服务器配置错误，请检查 LLM API Key 设置。', false);
                 }
-                this.reconnectAttempts = this.maxReconnectAttempts;
+                this.reconnectAttempts++;
+                if (this.reconnectAttempts <= this.maxReconnectAttempts) {
+                    setTimeout(() => {
+                        this.connectWebSocket(sessionId);
+                    }, 5000);
+                }
                 return;
             }
-            // Other disconnects: attempt reconnect with backoff
+            // Non-fatal close codes (1001, 1002, 1003, etc.) - attempt reconnect
             this.attemptReconnect(sessionId);
         };
 
@@ -3121,7 +3126,7 @@ class MyAgentWebApp {
                 const path = item.dataset.path;
                 if (path) {
                     this.loadFileTree('.');
-                    this.previewFile(path);
+                    this.showFilePreview(path, path.split('/').pop());
                 }
             });
         });
