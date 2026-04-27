@@ -169,8 +169,15 @@ class MyAgentWebApp extends MixinBase {
 
         this.saveSystemPromptBtn = document.getElementById('save-system-prompt-btn');
 
-        this.tokenDisplay = document.getElementById('token-display');
-        this.tokenCount = document.getElementById('token-count');
+        this.tokenUsageIndicator = document.getElementById('token-usage-indicator');
+        this.tokenUsageText = document.getElementById('token-usage-text');
+        this.tokenTooltip = document.getElementById('token-tooltip');
+        this.tokenRingProgress = document.querySelector('.token-ring-progress');
+        this.tokenRingBg = document.querySelector('.token-ring-bg');
+        this.tooltipUsed = document.getElementById('tooltip-used');
+        this.tooltipTotal = document.getElementById('tooltip-total');
+        this.tooltipPercent = document.getElementById('tooltip-percent');
+        this.contextWindowLimit = 128000;
 
         this.updateThemeIcon();
         this.setupSystemThemeListener();

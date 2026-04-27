@@ -335,19 +335,20 @@
 ## Step 17 — Context Window 可视化
 
 **目标**：让用户直观感知当前对话的 context 使用情况
-**改动文件**：`app.js`、`style.css`、`index.html`
+**改动文件**：`index.html`、`app.js`、`modules/websocket.js`、`style.css`
 **预计耗时**：2-3 小时
+**状态**：✅ 已完成
 
-- [ ] 17.1 将 `token-display`（当前 `display:none`）改为 Header 中的环形进度指示器
-- [ ] 17.2 环形图使用 SVG `stroke-dasharray` 实现，颜色根据使用量变化：绿 -> 黄 -> 红
-- [ ] 17.3 Hover 时显示 tooltip：`已使用 15,240 / 128,000 tokens (12%)`
-- [ ] 17.4 接近上限（>80%）时自动变色提醒
-- [ ] 17.5 后端 `WebEngineManager` 在每次响应后返回 token usage 数据
+- [x] 17.1 将 `token-display`（当前 `display:none`）改为 Header 中的环形进度指示器
+- [x] 17.2 环形图使用 SVG `stroke-dasharray` 实现，颜色根据使用量变化：绿 -> 黄 -> 红
+- [x] 17.3 Hover 时显示 tooltip：`已使用 15,240 / 128,000 tokens (12%)`
+- [x] 17.4 接近上限（>80%）时自动变色提醒
+- [x] 17.5 后端 `WebEngineManager` 在每次响应后返回 token usage 数据
 
 **验证清单**：
-- [ ] 发送几条消息后检查环形图是否实时更新
-- [ ] Hover 时显示详细 tooltip
-- [ ] 超过 80% 时颜色变为红色
+- [x] 发送几条消息后检查环形图是否实时更新
+- [x] Hover 时显示详细 tooltip
+- [x] 超过 80% 时颜色变为红色
 
 ---
 

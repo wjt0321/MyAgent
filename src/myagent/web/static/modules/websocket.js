@@ -118,12 +118,40 @@ export default (Base) => class WebSocketMixin extends Base {
     }
 
     updateTokenDisplay(tokens) {
-        if (!this.tokenDisplay || !this.tokenCount) return;
-        if (tokens > 0) {
-            this.tokenDisplay.style.display = 'flex';
-            this.tokenCount.textContent = tokens.toLocaleString();
-        } else {
-            this.tokenDisplay.style.display = 'none';
+        if (!this.tokenUsageIndicator) return;
+        
+        const percent = Math.min((tokens / this.contextWindowLimit) * 100, 100);
+        const offset = 100 - percent;
+        
+        if (this.tokenRingProgress) {
+            this.tokenRingProgress.style.strokeDashoffset = offset;
+        }
+        
+        if (this.tokenUsageText) {
+            this.tokenUsageText.textContent = tokens > 0 ? tokens.toLocaleString() : '';
+        }
+        
+        if (this.tooltipUsed) {
+            this.tooltipUsed.textContent = tokens.toLocaleString();
+        }
+        if (this.tooltipTotal) {
+            this.tooltipTotal.textContent = this.contextWindowLimit.toLocaleString();
+        }
+        if (this.tooltipPercent) {
+            this.tooltipPercent.textContent = `${percent.toFixed(1)}%`;
+        }
+        
+        this.tokenUsageIndicator.classList.toggle('visible', tokens > 0);
+        
+        if (this.tokenRingProgress) {
+            this.tokenRingProgress.classList.remove('low', 'medium', 'high');
+            if (percent > 80) {
+                this.tokenRingProgress.classList.add('high');
+            } else if (percent > 50) {
+                this.tokenRingProgress.classList.add('medium');
+            } else {
+                this.tokenRingProgress.classList.add('low');
+            }
         }
     }
 
