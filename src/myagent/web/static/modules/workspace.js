@@ -871,4 +871,126 @@ export default (Base) => class WorkspaceMixin extends Base {
 
         this.hideResetModal();
     }
+
+    // ========== Plugins Management ==========
+
+    async renderPluginsOverview() {
+        if (!this.pluginsOverview) return;
+
+        this.pluginsOverview.innerHTML = '<div class="workspace-empty">正在加载插件...</div>';
+
+        try {
+            const response = await fetch('/api/plugins');
+            if (!response.ok) {
+                throw new Error('Failed to load plugins');
+            }
+            const plugins = await response.json();
+            this._lastLoadedPlugins = plugins;
+
+            if (!plugins || plugins.length === 0) {
+                this.pluginsOverview.innerHTML = `
+                    <div class="workspace-empty">
+                        <div class="workspace-empty-title">暂无插件</div>
+                        <div class="workspace-empty-desc">在 workspace/plugins 目录下安装插件</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const pluginCards = plugins.map(plugin => `
+                <div class="workspace-overview-card" data-plugin-id="${this.escapeHtml(plugin.id)}">
+                    <div class="workspace-overview-title">
+                        <span class="plugin-name">${this.escapeHtml(plugin.name)}</span>
+                        <span class="plugin-version">${this.escapeHtml(plugin.version)}</span>
+                        <span class="plugin-status-badge ${plugin.enabled ? 'enabled' : 'disabled'}">
+                            ${plugin.enabled ? '已启用' : '已禁用'}
+                        </span>
+                    </div>
+                    <div class="workspace-overview-body">${this.escapeHtml(plugin.description || '暂无描述')}</div>
+                    <div class="plugin-metadata">
+                        <span class="plugin-meta-item">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            工具: ${(plugin.tools || []).length}
+                        </span>
+                        <span class="plugin-meta-item">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            Agent: ${(plugin.agents || []).length}
+                        </span>
+                    </div>
+                    <div class="plugin-actions">
+                        <button class="btn-primary btn-sm plugin-toggle-btn" data-plugin-id="${this.escapeHtml(plugin.id)}" data-enabled="${plugin.enabled}">
+                            ${plugin.enabled ? '禁用' : '启用'}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            this.pluginsOverview.innerHTML = pluginCards;
+
+            // 绑定事件
+            this.pluginsOverview.querySelectorAll('.plugin-toggle-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    await this.togglePlugin(btn.dataset.pluginId, btn.dataset.enabled === 'false');
+                });
+            });
+
+            this.pluginsOverview.querySelectorAll('.workspace-overview-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('.plugin-toggle-btn')) {
+                        this.showPluginDetail(card.dataset.pluginId);
+                    }
+                });
+            });
+
+        } catch (error) {
+            console.error('Failed to load plugins:', error);
+            this.pluginsOverview.innerHTML = `
+                <div class="workspace-empty">
+                    <div class="workspace-empty-title">加载失败</div>
+                    <div class="workspace-empty-desc">请稍后重试</div>
+                </div>
+            `;
+        }
+    }
+
+    async togglePlugin(pluginId, enable) {
+        try {
+            const response = await fetch(`/api/plugins/${encodeURIComponent(pluginId)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: enable })
+            });
+
+            if (response.ok) {
+                this.showToast(enable ? '插件已启用' : '插件已禁用', 'success');
+                await this.renderPluginsOverview();
+            } else {
+                this.showToast('操作失败', 'error');
+            }
+        } catch (error) {
+            console.error('Failed to toggle plugin:', error);
+            this.showToast('操作失败: ' + error.message, 'error');
+        }
+    }
+
+    showPluginDetail(pluginId) {
+        const plugin = this._lastLoadedPlugins?.find(p => p.id === pluginId);
+        if (!plugin) {
+            this.renderPluginsOverview();
+            return;
+        }
+
+        this.renderDetailSidebar('plugin', {
+            title: plugin.name,
+            meta: `${plugin.version} | ${plugin.id}`,
+            body: `描述: ${plugin.description || '暂无描述'}\n\n工具: ${(plugin.tools || []).length}\nAgent: ${(plugin.agents || []).length}\n状态: ${plugin.enabled ? '已启用' : '已禁用'}`,
+        });
+        this.filePreviewPanel.classList.add('show', 'has-preview');
+    }
 };

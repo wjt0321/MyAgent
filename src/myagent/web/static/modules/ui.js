@@ -81,6 +81,9 @@ export default (Base) => class UIMixin extends Base {
         if (viewName === 'team') {
             this.renderTeamOverview();
         }
+        if (viewName === 'plugins') {
+            this.renderPluginsOverview();
+        }
         this.updateContextHelp(viewName);
         this.updateMobileViewChip(viewName);
         this.scrollActiveWorkbenchNavIntoView();
@@ -101,6 +104,7 @@ export default (Base) => class UIMixin extends Base {
             files: '文件',
             workspace: 'Workspace',
             team: '团队',
+            plugins: '插件',
         };
         this.mobileViewChip.textContent = labels[viewName] || '工作台';
     }
@@ -176,6 +180,13 @@ export default (Base) => class UIMixin extends Base {
                 meta: '查看当前团队状态',
                 shortcut: 'team',
                 handler: () => this.setActiveView('team'),
+            },
+            {
+                id: 'focus-plugins',
+                title: '切换到插件视图',
+                meta: '管理已安装的插件',
+                shortcut: 'plugins',
+                handler: () => this.setActiveView('plugins'),
             },
             {
                 id: 'open-settings',

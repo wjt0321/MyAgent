@@ -219,6 +219,13 @@
                     </svg>
                     <span>团队</span>
                 </button>
+                <button class="tab-bar-btn" data-view="plugins" title="插件">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M12 2L2 7v10l10 5 10-5V7z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <span>插件</span>
+                </button>
             </div>
 
             <div class="workbench-main">
@@ -335,6 +342,18 @@
                         </div>
                         <div class="team-overview" id="team-overview">
                             <div class="team-empty">正在加载团队信息...</div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="workbench-view" data-view="plugins">
+                    <div class="view-shell">
+                        <div class="view-shell-header">
+                            <h2>插件管理</h2>
+                            <p>管理和配置已安装的插件，扩展 Agent 的功能。</p>
+                        </div>
+                        <div class="plugins-overview" id="plugins-overview">
+                            <div class="plugins-empty">正在加载插件...</div>
                         </div>
                     </div>
                 </section>

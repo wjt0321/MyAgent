@@ -108,6 +108,7 @@ class MyAgentWebApp extends MixinBase {
         this.fileBrowserView = document.getElementById('file-browser-view');
         this.workspaceOverview = document.getElementById('workspace-overview');
         this.teamOverview = document.getElementById('team-overview');
+        this.pluginsOverview = document.getElementById('plugins-overview');
         this.detailSidebar = document.getElementById('detail-sidebar');
         this.detailSidebarMeta = document.getElementById('detail-sidebar-meta');
         this.detailSidebarContent = document.getElementById('detail-sidebar-content');

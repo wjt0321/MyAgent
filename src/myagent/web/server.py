@@ -669,6 +669,10 @@ def create_app() -> FastAPI:
         for manifest in discover_plugins(plugins_dir):
             registry.register(manifest)
 
+        # Load plugin states from config
+        settings = Settings.load()
+        plugin_states = getattr(settings, 'plugins', {})
+
         return [
             {
                 "id": p.id,
@@ -678,9 +682,59 @@ def create_app() -> FastAPI:
                 "entry": p.entry,
                 "tools": p.tools,
                 "agents": p.agents,
+                "enabled": plugin_states.get(p.id, {}).get('enabled', True),
+                "path": str(p._plugin_dir) if hasattr(p, '_plugin_dir') and p._plugin_dir else None,
             }
             for p in registry.list_plugins()
         ]
+
+    @app.patch("/api/plugins/{plugin_id}")
+    async def update_plugin(
+        plugin_id: str,
+        request: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update plugin settings."""
+        ws_dir = get_workspace_dir()
+        plugins_dir = ws_dir / "plugins"
+        if not plugins_dir.exists():
+            raise HTTPException(status_code=404, detail="Plugins directory not found")
+
+        registry = PluginRegistry()
+        for manifest in discover_plugins(plugins_dir):
+            registry.register(manifest)
+
+        plugin = registry.get(plugin_id)
+        if plugin is None:
+            raise HTTPException(status_code=404, detail="Plugin not found")
+
+        # Update plugin settings
+        settings = Settings.load()
+        plugin_states = getattr(settings, 'plugins', {})
+        if plugin_id not in plugin_states:
+            plugin_states[plugin_id] = {}
+
+        if 'enabled' in request:
+            plugin_states[plugin_id]['enabled'] = request['enabled']
+
+        settings.plugins = plugin_states
+        settings.save()
+
+        return {
+            "id": plugin.id,
+            "name": plugin.name,
+            "enabled": request.get('enabled', True),
+            "status": "updated",
+        }
+
+    @app.post("/api/plugins/{plugin_id}/enable")
+    async def enable_plugin(plugin_id: str) -> dict[str, Any]:
+        """Enable a plugin."""
+        return await update_plugin(plugin_id, {"enabled": True})
+
+    @app.post("/api/plugins/{plugin_id}/disable")
+    async def disable_plugin(plugin_id: str) -> dict[str, Any]:
+        """Disable a plugin."""
+        return await update_plugin(plugin_id, {"enabled": False})
 
     def _resolve_allowed_path(path: str) -> Path:
         """Resolve and validate that path stays within allowed directories.
