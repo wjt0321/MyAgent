@@ -27,17 +27,20 @@
 - **TUI 工作台** — 具备 setup 感知、状态侧栏、Command Palette、Slash Commands、浮层审批与任务时间线的终端主界面
 - **Web UI** — 工作台式浏览器界面，提供分组导航、命令面板、工具详情侧栏、任务/团队快照、审查结果卡片、执行时间线与基于 WebSocket 的实时聊天
 - **多 LLM 支持** — 30+ Provider（含国内/国际版）：Anthropic（Claude）、OpenAI（GPT）、DeepSeek、Gemini、xAI（Grok）、Qwen、Ollama、OpenRouter、智谱/智谱-CN、Moonshot/Moonshot-CN、MiniMax/MiniMax-CN、阿里云/阿里云-CN、HuggingFace、NVIDIA、Arcee、Xiaomi、百度文心一言、讯飞星火、字节豆包、腾讯混元、Cohere、SiliconFlow、Azure
-- **上下文压缩** — 自动压缩对话历史，支持动态阈值与关键决策点保留
+- **上下文压缩** — 自动压缩对话历史，支持动态阈值与关键决策点保留，LRU 缓存优化性能
 - **会话管理** — 支持按用户、按群组、按话题的会话隔离，支持持久化绑定与会话摘要实时同步
-- **工具调用** — Bash、代码解释器（Python 沙箱）、文件编辑、网页搜索、网页获取、图像分析、文本转语音、Git 操作、待办追踪
+- **工具调用** — Bash、代码解释器（Python 沙箱）、文件编辑、网页搜索、网页获取、图像分析、文本转语音、Git 操作（pull/reset/merge/init/clone/fetch/stash）、待办追踪
 - **权限系统** — Telegram、Discord、Slack、飞书内联键盘审批与 Web UI 权限请求，支持 tool_use_id 追踪
 - **GitHub 集成** — Webhook 驱动的 PR/Issue 分析与自动评论，服务端密钥验证
 - **任务引擎** — Plan → Execute → Review 工作流，支持任务快照、重试、恢复与团队编排
 - **智能体团队** — 多智能体协作，支持 Planner、Explorer、Executor、Reviewer 角色
 - **记忆系统** — 自动提取与 RAG 检索增强，支持持久化记忆文件
-- **代码库索引** — 自动代码扫描、索引与语义搜索
+- **代码库索引** — 自动代码扫描、索引与语义搜索，支持正则表达式搜索、文件名搜索和结果高亮
+- **插件系统** — 完整的插件管理 UI，支持启用/禁用插件，查看插件详情和工具/Agent 数量
 - **部署工具链** — Docker 镜像、compose 编排、健康检查、Prometheus 指标、结构化 JSON 日志、Grafana 仪表盘和 Helm Chart
 - **安全增强** — Web UI JWT 认证、文件访问路径限制、WebSocket 会话隔离、Webhook 签名验证
+- **性能优化** — LRU 缓存、智能上下文压缩、统一工具超时管理
+- **用户体验** — 欢迎页快捷指令卡片、代码块复制按钮、工具调用结果折叠、响应式布局
 
 ## 界面截图
 
