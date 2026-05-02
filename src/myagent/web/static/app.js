@@ -154,6 +154,8 @@ class MyAgentWebApp extends MixinBase {
         this.rebuildIndexBtn = document.getElementById('rebuild-index-btn');
         this.codebaseSearchInput = document.getElementById('codebase-search-input');
         this.codebaseSearchBtn = document.getElementById('codebase-search-btn');
+        this.codebaseSearchRegex = document.getElementById('codebase-search-regex');
+        this.codebaseSearchFilename = document.getElementById('codebase-search-filename');
         this.codebaseStats = document.getElementById('codebase-stats');
         this.codebaseResults = document.getElementById('codebase-results');
 

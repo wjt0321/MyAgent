@@ -335,10 +335,25 @@ def create_app() -> FastAPI:
         return {"status": "rebuilt"}
 
     @app.get("/api/codebase/search")
-    async def search_codebase(q: str, limit: int = 10) -> list[dict[str, Any]]:
-        """Search codebase."""
+    async def search_codebase(
+        q: str, 
+        limit: int = 10,
+        use_regex: bool = False,
+        search_filenames: bool = True
+    ) -> list[dict[str, Any]]:
+        """Search codebase.
+        
+        Args:
+            q: Search query
+            limit: Maximum number of results
+            use_regex: Whether to treat query as regular expression
+            search_filenames: Whether to search by filename
+            
+        Returns:
+            List of search results
+        """
         searcher = CodebaseSearch(Path.cwd())
-        results = searcher.search(q, limit=limit)
+        results = searcher.search(q, limit=limit, use_regex=use_regex, search_filenames=search_filenames)
         return [r.to_dict() for r in results]
 
     @app.get("/api/memories")

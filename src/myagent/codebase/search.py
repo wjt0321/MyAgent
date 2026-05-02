@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import html
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -20,12 +21,15 @@ class SearchResult:
     score: float
     context_before: list[str] = None
     context_after: list[str] = None
+    matches: list[tuple[int, int]] = None
 
     def __post_init__(self):
         if self.context_before is None:
             self.context_before = []
         if self.context_after is None:
             self.context_after = []
+        if self.matches is None:
+            self.matches = []
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -39,6 +43,7 @@ class SearchResult:
                 "line": self.content,
                 "after": self.context_after,
             },
+            "matches": self.matches,
         }
 
 
@@ -50,26 +55,55 @@ class CodebaseSearch:
         self.indexer = CodebaseIndexer(self.root)
         self._file_cache: dict[str, list[str]] = {}
 
-    def search(self, query: str, limit: int = 10) -> list[SearchResult]:
+    def search(self, query: str, limit: int = 10, use_regex: bool = False, search_filenames: bool = True) -> list[SearchResult]:
         """Search codebase for matching content.
 
         Args:
-            query: Search query (keywords or natural language)
+            query: Search query (keywords or regular expression)
             limit: Maximum number of results
+            use_regex: Whether to treat query as regular expression
+            search_filenames: Whether to search by filename
 
         Returns:
             List of search results sorted by relevance
         """
         results = []
-        keywords = self._extract_keywords(query)
+        
+        # Determine search mode
+        if use_regex:
+            try:
+                pattern = re.compile(query, re.IGNORECASE)
+                search_func = lambda line: self._search_regex(line, pattern)
+            except re.error:
+                # Fallback to keyword search if regex is invalid
+                keywords = self._extract_keywords(query)
+                search_func = lambda line: self._search_keywords(line, keywords)
+        else:
+            keywords = self._extract_keywords(query)
+            search_func = lambda line: self._search_keywords(line, keywords)
 
         for file_path in self.indexer._iter_files():
             rel_path = str(file_path.relative_to(self.root))
+            
+            # Search by filename
+            if search_filenames:
+                filename_score, filename_matches = self._search_filename(rel_path, query, use_regex)
+                if filename_score > 0:
+                    results.append(SearchResult(
+                        path=rel_path,
+                        language=self.indexer.LANGUAGE_MAP.get(file_path.suffix.lower(), "unknown"),
+                        content="",
+                        line_number=0,
+                        score=filename_score,
+                        matches=filename_matches,
+                    ))
+            
+            # Search file content
             lines = self._get_file_lines(file_path)
             language = self.indexer.LANGUAGE_MAP.get(file_path.suffix.lower(), "unknown")
 
             for i, line in enumerate(lines):
-                score = self._score_line(line, keywords)
+                score, matches = search_func(line)
                 if score > 0:
                     context_before = lines[max(0, i - 2):i]
                     context_after = lines[i + 1:min(len(lines), i + 3)]
@@ -82,11 +116,100 @@ class CodebaseSearch:
                         score=score,
                         context_before=[l.strip() for l in context_before],
                         context_after=[l.strip() for l in context_after],
+                        matches=matches,
                     ))
 
         # Sort by score descending
         results.sort(key=lambda r: r.score, reverse=True)
         return results[:limit]
+
+    def _search_regex(self, line: str, pattern: re.Pattern) -> tuple[float, list[tuple[int, int]]]:
+        """Search a line using regular expression."""
+        matches = []
+        for match in pattern.finditer(line):
+            matches.append((match.start(), match.end()))
+        
+        if matches:
+            # Higher score for definition lines
+            score = 1.0
+            line_lower = line.lower().strip()
+            if any(line_lower.startswith(prefix) for prefix in
+                   ["class ", "def ", "function ", "const ", "let ", "var "]):
+                score = 3.0
+            elif any(c in line for c in ["#", "//", "/*", "*", '"""']):
+                score = 2.0
+            
+            return score, matches
+        return 0.0, []
+
+    def _search_keywords(self, line: str, keywords: list[str]) -> tuple[float, list[tuple[int, int]]]:
+        """Search a line using keywords."""
+        if not keywords:
+            return 0.0, []
+            
+        score = 0.0
+        matches = []
+        line_lower = line.lower()
+
+        for keyword in keywords:
+            if keyword in line_lower:
+                # Find all match positions
+                start_idx = 0
+                while True:
+                    start_idx = line_lower.find(keyword, start_idx)
+                    if start_idx == -1:
+                        break
+                    end_idx = start_idx + len(keyword)
+                    matches.append((start_idx, end_idx))
+                    start_idx = end_idx
+                
+                # Higher score for definition lines
+                if any(line_lower.strip().startswith(prefix) for prefix in
+                       ["class ", "def ", "function ", "const ", "let ", "var "]):
+                    score += 3.0
+                elif any(c in line for c in ["#", "//", "/*", "*", '"""']):
+                    score += 2.0
+                else:
+                    score += 1.0
+
+        # Normalize by keyword count
+        if keywords:
+            score = score / len(keywords)
+
+        return score, matches
+
+    def _search_filename(self, filepath: str, query: str, use_regex: bool) -> tuple[float, list[tuple[int, int]]]:
+        """Search by filename."""
+        filename = Path(filepath).name
+        filename_lower = filename.lower()
+        query_lower = query.lower()
+        
+        if use_regex:
+            try:
+                pattern = re.compile(query, re.IGNORECASE)
+                if pattern.search(filename):
+                    # Find match positions
+                    matches = []
+                    for match in pattern.finditer(filename):
+                        matches.append((match.start(), match.end()))
+                    return 4.0, matches
+            except re.error:
+                pass
+        else:
+            if query_lower in filename_lower:
+                # Find match positions
+                matches = []
+                start_idx = 0
+                while True:
+                    start_idx = filename_lower.find(query_lower, start_idx)
+                    if start_idx == -1:
+                        break
+                    end_idx = start_idx + len(query_lower)
+                    matches.append((start_idx, end_idx))
+                    start_idx = end_idx
+                return 4.0, matches
+                
+        return 0.0, []
 
     def find_definition(self, symbol: str) -> list[SearchResult]:
         """Find where a symbol (class/function/variable) is defined.

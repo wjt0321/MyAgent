@@ -496,6 +496,16 @@
                         </div>
                         <div class="codebase-search">
                             <input type="text" id="codebase-search-input" placeholder="搜索代码库...">
+                            <div class="codebase-search-options">
+                                <label class="search-option-label">
+                                    <input type="checkbox" id="codebase-search-regex" class="search-option-checkbox">
+                                    <span class="search-option-text">正则表达式</span>
+                                </label>
+                                <label class="search-option-label">
+                                    <input type="checkbox" id="codebase-search-filename" class="search-option-checkbox" checked>
+                                    <span class="search-option-text">文件名</span>
+                                </label>
+                            </div>
                             <button class="btn-primary btn-sm" id="codebase-search-btn">搜索</button>
                         </div>
                         <div class="codebase-stats" id="codebase-stats"></div>

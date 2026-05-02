@@ -44,6 +44,34 @@
 
 ---
 
+## 迭代 3: 代码库搜索增强 ✅ 已完成
+
+**目标**: 增强代码库搜索功能，支持更强大的搜索选项
+
+**完成内容**:
+- 支持正则表达式搜索
+- 支持文件名搜索
+- 搜索结果高亮显示
+- 搜索结果显示匹配位置信息
+- 界面优化，添加搜索选项开关
+- 所有 41 个测试通过
+
+**后端增强**:
+- `search.py`: 更新 SearchResult 数据结构，添加 matches 字段
+- `search.py`: 新增 `_search_regex`、`_search_keywords`、`_search_filename` 方法
+- `search.py`: 更新 search 方法，支持 use_regex 和 search_filenames 参数
+- `server.py`: 更新 `/api/codebase/search` API 接口，新增查询参数
+
+**前端实现**:
+- `index.html`: 添加搜索选项复选框
+- `app.js`: 添加搜索选项 DOM 引用
+- `workspace.js`: 更新 `searchCodebase` 方法，支持新功能
+- `workspace.js`: 更新 `renderCodebaseResults` 方法，添加高亮显示
+- `workspace.js`: 新增 `highlightMatches` 辅助方法
+- `style.css`: 添加搜索选项和高亮显示的样式
+
+**分支**: phase3-code-search (已合并到 master)
+
 ## 待执行的迭代
 
 ---

@@ -4773,6 +4773,59 @@ pre {
   text-align: center;
 }
 
+/* ---------- Codebase Search Options ---------- */
+.codebase-search {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.codebase-search-options {
+  display: flex;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.search-option-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.search-option-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent-color);
+}
+
+.search-option-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Codebase Match Highlight */
+.codebase-match-highlight {
+  background: var(--accent-color-soft);
+  color: var(--accent-color);
+  padding: 0 2px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+/* Codebase Result Tag */
+.codebase-result-tag {
+  padding: 2px 8px;
+  background: var(--accent-color-soft);
+  color: var(--accent-color);
+  font-size: 0.7rem;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
 /* ---------- Plugin UI ---------- */
 .plugin-name {
   font-weight: 600;

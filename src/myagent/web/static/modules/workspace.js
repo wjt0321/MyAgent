@@ -659,12 +659,17 @@ export default (Base) => class WorkspaceMixin extends Base {
         const query = this.codebaseSearchInput.value.trim();
         if (!query) return;
 
+        const useRegex = this.codebaseSearchRegex?.checked || false;
+        const searchFilenames = this.codebaseSearchFilename?.checked || true;
+
         try {
             this.codebaseResults.innerHTML = '<div class="codebase-empty">搜索中...</div>';
-            const response = await fetch(`/api/codebase/search?q=${encodeURIComponent(query)}&limit=20`);
+            const response = await fetch(
+                `/api/codebase/search?q=${encodeURIComponent(query)}&limit=20&use_regex=${useRegex}&search_filenames=${searchFilenames}`
+            );
             if (response.ok) {
                 const results = await response.json();
-                this.renderCodebaseResults(results);
+                this.renderCodebaseResults(results, query);
             }
         } catch (error) {
             console.error('Failed to search codebase:', error);
@@ -672,7 +677,7 @@ export default (Base) => class WorkspaceMixin extends Base {
         }
     }
 
-    renderCodebaseResults(results) {
+    renderCodebaseResults(results, query) {
         if (!this.codebaseResults) return;
 
         if (!results || results.length === 0) {
@@ -680,13 +685,37 @@ export default (Base) => class WorkspaceMixin extends Base {
             return;
         }
 
-        const items = results.map(result => `
-            <div class="codebase-result-item" data-path="${result.path}" data-line="${result.line_number}">
-                <div class="codebase-result-path">${result.path}:${result.line_number}</div>
-                <div class="codebase-result-line">${this.escapeHtml(result.content)}</div>
-                <div class="codebase-result-meta">${result.language} | 相关度: ${(result.score * 100).toFixed(0)}%</div>
+        const items = results.map(result => {
+            // Render matches with highlight
+            let contentHtml = result.content ? this.escapeHtml(result.content) : '';
+            
+            // Highlight matches using the matches positions
+            if (result.matches && result.matches.length > 0 && contentHtml) {
+                contentHtml = this.highlightMatches(contentHtml, result.matches);
+            }
+
+            // Highlight path matches if it's a filename match (line_number === 0)
+            let pathHtml = this.escapeHtml(result.path);
+            if (result.line_number === 0 && result.matches && result.matches.length > 0) {
+                const filename = pathHtml.split('/').pop();
+                const dir = pathHtml.substring(0, pathHtml.length - filename.length);
+                const highlightedFilename = this.highlightMatches(this.escapeHtml(filename), result.matches);
+                pathHtml = this.escapeHtml(dir) + highlightedFilename;
+            }
+
+            const lineDisplay = result.line_number > 0 ? `:${result.line_number}` : '';
+            
+            return `
+            <div class="codebase-result-item" data-path="${this.escapeHtml(result.path)}" data-line="${result.line_number}">
+                <div class="codebase-result-path">${pathHtml}${lineDisplay}</div>
+                ${contentHtml ? `<div class="codebase-result-line">${contentHtml}</div>` : ''}
+                <div class="codebase-result-meta">
+                    ${result.language} 
+                    | 相关度: ${(result.score * 100).toFixed(0)}%
+                    ${result.line_number === 0 ? '<span class="codebase-result-tag">文件名</span>' : ''}
+                </div>
             </div>
-        `).join('');
+        `}).join('');
 
         this.codebaseResults.innerHTML = items;
 
@@ -699,6 +728,22 @@ export default (Base) => class WorkspaceMixin extends Base {
                 }
             });
         });
+    }
+
+    highlightMatches(text, matches) {
+        if (!matches || matches.length === 0) return text;
+        
+        let result = '';
+        let lastEnd = 0;
+        
+        for (const [start, end] of matches) {
+            result += text.substring(lastEnd, start);
+            result += `<mark class="codebase-match-highlight">${text.substring(start, end)}</mark>`;
+            lastEnd = end;
+        }
+        
+        result += text.substring(lastEnd);
+        return result;
     }
 
     async rebuildCodebaseIndex() {
