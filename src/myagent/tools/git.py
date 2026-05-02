@@ -14,7 +14,7 @@ from myagent.tools.base import BaseTool, ToolExecutionContext, ToolResult
 class GitInput(BaseModel):
     command: str = Field(
         description="Git subcommand to execute",
-        json_schema_extra={"enum": ["status", "diff", "log", "add", "commit", "push", "branch", "checkout"]},
+        json_schema_extra={"enum": ["status", "diff", "log", "add", "commit", "push", "pull", "branch", "checkout", "reset", "merge", "init", "clone", "fetch", "stash"]},
     )
     args: str = Field(default="", description="Additional arguments for the git command")
     path: str = Field(default=".", description="Working directory for git command")
@@ -22,7 +22,7 @@ class GitInput(BaseModel):
 
 class Git(BaseTool):
     name = "Git"
-    description = """Execute git operations: status, diff, log, add, commit, push, branch, checkout.
+    description = """Execute git operations: status, diff, log, add, commit, push, pull, branch, checkout, reset, merge, init, clone, fetch, stash.
 
 Commands:
 - status: Show working tree status
@@ -31,13 +31,20 @@ Commands:
 - add: Add file contents to the index
 - commit: Record changes to the repository (requires message)
 - push: Update remote refs along with associated objects
+- pull: Fetch from and integrate with another repository or a local branch
 - branch: List, create, or delete branches
 - checkout: Switch branches or restore working tree files
+- reset: Reset current HEAD to the specified state
+- merge: Join two or more development histories together
+- init: Create an empty Git repository or reinitialize an existing one
+- clone: Clone a repository into a new directory
+- fetch: Download objects and refs from another repository
+- stash: Stash the changes in a dirty working directory away
 """
     input_model = GitInput
 
     def is_read_only(self, arguments: GitInput) -> bool:
-        return arguments.command in ("status", "diff", "log", "branch")
+        return arguments.command in ("status", "diff", "log", "branch", "fetch")
 
     async def execute(self, arguments: GitInput, context: ToolExecutionContext) -> ToolResult:
         work_dir = Path(arguments.path).resolve()
