@@ -17,8 +17,9 @@ class Glob(BaseTool):
     name = "Glob"
     description = "Find files matching a glob pattern."
     input_model = GlobInput
+    default_timeout = 10
 
-    async def execute(self, arguments: GlobInput, context: ToolExecutionContext) -> ToolResult:
+    async def _execute_impl(self, arguments: GlobInput, context: ToolExecutionContext) -> ToolResult:
         try:
             pattern = arguments.pattern
             matches = sorted(context.cwd.glob(pattern))

@@ -19,8 +19,9 @@ class Edit(BaseTool):
     name = "Edit"
     description = "Edit a file by replacing a string with another string."
     input_model = EditInput
+    default_timeout = 10
 
-    async def execute(self, arguments: EditInput, context: ToolExecutionContext) -> ToolResult:
+    async def _execute_impl(self, arguments: EditInput, context: ToolExecutionContext) -> ToolResult:
         target = Path(arguments.path)
         if not target.is_absolute():
             target = context.cwd / target

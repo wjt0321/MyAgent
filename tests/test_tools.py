@@ -19,7 +19,7 @@ class DummyTool(BaseTool):
     description = "A dummy tool for testing"
     input_model = DummyInput
 
-    async def execute(self, arguments: DummyInput, context: ToolExecutionContext) -> ToolResult:
+    async def _execute_impl(self, arguments: DummyInput, context: ToolExecutionContext) -> ToolResult:
         return ToolResult(output=f"Echo: {arguments.message}")
 
 
@@ -28,7 +28,7 @@ class ReadOnlyTool(BaseTool):
     description = "A read-only tool"
     input_model = DummyInput
 
-    async def execute(self, arguments: DummyInput, context: ToolExecutionContext) -> ToolResult:
+    async def _execute_impl(self, arguments: DummyInput, context: ToolExecutionContext) -> ToolResult:
         return ToolResult(output="readonly result")
 
     def is_read_only(self, arguments: BaseModel) -> bool:

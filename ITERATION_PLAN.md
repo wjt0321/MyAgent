@@ -72,33 +72,28 @@
 
 **分支**: phase3-code-search (已合并到 master)
 
+## 迭代 4: 性能优化 ✅ 已完成
+
+**目标**: 优化系统性能和响应速度
+
+**完成内容**:
+- 添加 LRU 缓存优化 token 估算性能
+- 改进上下文压缩策略（智能梯度压缩）
+- 完善工具执行超时支持
+- 添加统一的工具超时处理机制
+- 所有 41 个测试通过
+
+**后端优化**:
+- `context_compression.py`: 添加 `LRUCache` 类，优化 token 估算性能
+- `context_compression.py`: 更新 `estimate_tokens` 和 `estimate_message_tokens` 函数，使用缓存
+- `context_compression.py`: 新增 `_smart_truncate_tool_results` 方法，梯度压缩
+- `context_compression.py`: 新增 `_truncate_oldest_tool_results` 方法，渐进式压缩
+- `base.py`: 添加通用超时支持，所有工具自动获得超时保护
+- `bash.py`, `read.py`, `write.py`, `edit.py`, `glob.py`, `grep.py`: 更新使用新的 `_execute_impl` 方法
+
+**分支**: phase4-performance (已合并到 master)
+
 ## 待执行的迭代
-
----
-
-### 迭代 3: 代码库搜索增强
-**优先级**: 中
-
-**目标**: 增强代码库搜索功能
-- 支持正则表达式搜索
-- 支持文件名搜索
-- 搜索结果高亮
-- 搜索历史记录
-
-**预计工时**: 1-2 天
-
----
-
-### 迭代 4: 性能优化
-**优先级**: 中
-
-**目标**: 优化系统性能
-- 上下文压缩优化
-- 工具执行超时完善
-- 内存使用优化
-- 数据库索引优化
-
-**预计工时**: 2-3 天
 
 ---
 

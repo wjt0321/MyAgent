@@ -17,8 +17,9 @@ class Read(BaseTool):
     name = "Read"
     description = "Read the contents of a file."
     input_model = ReadInput
+    default_timeout = 10
 
-    async def execute(self, arguments: ReadInput, context: ToolExecutionContext) -> ToolResult:
+    async def _execute_impl(self, arguments: ReadInput, context: ToolExecutionContext) -> ToolResult:
         target = Path(arguments.path)
         if not target.is_absolute():
             target = context.cwd / target

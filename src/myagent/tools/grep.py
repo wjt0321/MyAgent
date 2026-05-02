@@ -20,8 +20,9 @@ class Grep(BaseTool):
     name = "Grep"
     description = "Search for a regex pattern in files."
     input_model = GrepInput
+    default_timeout = 30
 
-    async def execute(self, arguments: GrepInput, context: ToolExecutionContext) -> ToolResult:
+    async def _execute_impl(self, arguments: GrepInput, context: ToolExecutionContext) -> ToolResult:
         try:
             regex = re.compile(arguments.pattern)
             results: list[str] = []

@@ -18,8 +18,9 @@ class Write(BaseTool):
     name = "Write"
     description = "Write content to a file. Creates the file if it does not exist, overwrites if it does."
     input_model = WriteInput
+    default_timeout = 10
 
-    async def execute(self, arguments: WriteInput, context: ToolExecutionContext) -> ToolResult:
+    async def _execute_impl(self, arguments: WriteInput, context: ToolExecutionContext) -> ToolResult:
         target = Path(arguments.path)
         if not target.is_absolute():
             target = context.cwd / target
