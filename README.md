@@ -27,17 +27,20 @@ Supported platforms: **Feishu/Lark, Slack, Discord, Telegram, Weixin, QQ, GitHub
 - **TUI Workbench** — Setup-aware terminal UI with status sidebar, command palette, slash commands, modal approvals, and task timeline
 - **Web UI** — Workbench-style browser UI with grouped navigation, command palette, tool detail sidebar, task/team snapshots, review cards, execution timeline, and real-time WebSocket chat
 - **Multi-LLM Support** — 30+ Providers (Intl + China): Anthropic (Claude), OpenAI (GPT), DeepSeek, Gemini, xAI (Grok), Qwen, Ollama, OpenRouter, Zhipu/Zhipu-CN, Moonshot/Moonshot-CN, MiniMax/MiniMax-CN, Alibaba/Alibaba-CN, HuggingFace, NVIDIA, Arcee, Xiaomi, Baidu ERNIE, iFlytek Spark, ByteDance Doubao, Tencent Hunyuan, Cohere, SiliconFlow, Azure
-- **Context Compression** — Automatic conversation compaction with dynamic threshold and key decision point retention
+- **Context Compression** — Automatic conversation compaction with dynamic threshold, key decision point retention, and LRU cache optimization
 - **Session Management** — Per-user, per-group, per-thread sessions with persistent bindings and live session summary
-- **Tool Calling** — Bash, Code Interpreter (Python sandbox), file edit, web search, web fetch, image analysis, text-to-speech, Git operations, todo tracking
+- **Tool Calling** — Bash, Code Interpreter (Python sandbox), file edit, web search, web fetch, image analysis, text-to-speech, Git operations (pull/reset/merge/init/clone/fetch/stash), todo tracking
 - **Permission System** — Inline approval requests in Telegram, Discord, Slack, Feishu, and Web UI with tool_use_id tracking
 - **GitHub Integration** — Webhook-based PR/Issue analysis and auto-comments with server-side secret validation
 - **Task Engine** — Plan → Execute → Review workflow with task snapshots, retry, restore, and team orchestration
 - **Agent Teams** — Multi-agent collaboration with Planner, Explorer, Executor, and Reviewer roles
 - **Memory System** — Auto-extraction and RAG retrieval with persistent memory files
-- **Codebase Indexing** — Automatic code scanning, indexing, and semantic search
+- **Codebase Indexing** — Automatic code scanning, indexing, and semantic search with regex support, filename search, and result highlighting
+- **Plugin System** — Complete plugin management UI with enable/disable functionality, plugin details, and tool/agent count display
 - **Deployment Toolkit** — Docker image, compose stack, health checks, Prometheus metrics, structured JSON logging, Grafana Dashboard, and Helm Chart
 - **Security** — JWT authentication for Web UI, path-restricted file access, WebSocket session isolation, webhook signature verification
+- **Performance Optimization** — LRU cache, smart context compression, unified tool timeout management
+- **User Experience** — Welcome page quick action cards, code block copy buttons, collapsible tool results, responsive layout
 
 ## Screenshots
 
