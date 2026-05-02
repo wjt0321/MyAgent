@@ -14,18 +14,37 @@
 
 ---
 
-## 待执行的迭代
-
-### 迭代 2: 插件系统 UI 完善
-**优先级**: 高
+## 迭代 2: 插件系统 UI 完善 ✅ 已完成
 
 **目标**: 完善插件系统的 UI 界面
-- Web UI 添加 "插件" 标签页
-- 插件列表展示
-- 插件启用/禁用功能
-- 插件安装功能
 
-**预计工时**: 2-3 天
+**完成内容**:
+- Web UI 添加 "插件" 标签页
+- 插件列表展示（名称、版本、描述、启用状态、工具/Agent 数量）
+- 插件启用/禁用功能
+- 插件详情查看
+- 命令面板支持快速切换到插件视图
+- 移动端视图支持
+- 所有测试通过
+
+**后端增强** ([server.py](file:///workspace/src/myagent/web/server.py#L660-L737)):
+- `/api/plugins` 增强：返回 `enabled` 和 `path` 字段
+- `/api/plugins/{plugin_id}/enable` 新增：启用插件
+- `/api/plugins/{plugin_id}/disable` 新增：禁用插件
+- `/api/plugins/{plugin_id}` 新增：更新插件配置
+
+**前端实现**:
+- [index.html](file:///workspace/src/myagent/web/static/index.html#L222-L228)：添加插件标签页
+- [app.js](file:///workspace/src/myagent/web/static/app.js#L108)：初始化插件 DOM 引用
+- [ui.js](file:///workspace/src/myagent/web/static/modules/ui.js)：视图切换和命令面板支持
+- [workspace.js](file:///workspace/src/myagent/web/static/modules/workspace.js#L876-L994)：插件管理逻辑
+- [style.css](file:///workspace/src/myagent/web/static/style.css#L4776-L4844)：插件 UI 样式
+
+**分支**: phase2-plugin-ui (已合并到 master)
+
+---
+
+## 待执行的迭代
 
 ---
 
