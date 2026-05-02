@@ -19,8 +19,9 @@ class Bash(BaseTool):
     name = "Bash"
     description = "Execute a bash command."
     input_model = BashInput
+    default_timeout = 30
 
-    async def execute(self, arguments: BashInput, context: ToolExecutionContext) -> ToolResult:
+    async def _execute_impl(self, arguments: BashInput, context: ToolExecutionContext) -> ToolResult:
         try:
             process = await asyncio.create_subprocess_shell(
                 arguments.command,
@@ -28,9 +29,7 @@ class Bash(BaseTool):
                 stderr=asyncio.subprocess.PIPE,
                 cwd=str(context.cwd),
             )
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(), timeout=arguments.timeout
-            )
+            stdout, stderr = await process.communicate()
 
             output = stdout.decode("utf-8", errors="replace")
             if stderr:
@@ -47,8 +46,5 @@ class Bash(BaseTool):
                 )
 
             return ToolResult(output=output or "")
-        except asyncio.TimeoutError:
-            process.kill()
-            return ToolResult(output="Error: Command timed out.", is_error=True)
         except Exception as e:
             return ToolResult(output=f"Error executing command: {e}", is_error=True)

@@ -5,12 +5,14 @@ Provides strategies to reduce token usage in long conversations:
 - Sliding window truncation
 - Semantic compression
 - Token counting
+- LRU cache for token estimates for performance
 """
 
 from __future__ import annotations
 
 import logging
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional
 
@@ -20,24 +22,73 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Token cache (LRU) for performance optimization
+# ---------------------------------------------------------------------------
+class LRUCache:
+    """LRU cache for storing recently computed token estimates."""
+
+    def __init__(self, maxsize: int = 1000) -> None:
+        self.cache: OrderedDict[str, int] = OrderedDict()
+        self.maxsize = maxsize
+
+    def get(self, key: str) -> Optional[int]:
+        if key not in self.cache:
+            return None
+        self.cache.move_to_end(key)
+        return self.cache[key]
+
+    def put(self, key: str, value: int) -> None:
+        if key in self.cache:
+            self.cache.move_to_end(key)
+        else:
+            if len(self.cache) >= self.maxsize:
+                self.cache.popitem(last=False)
+        self.cache[key] = value
+
+
+# Create a global cache instance
+_token_cache = LRUCache(maxsize=1000)
+
+
+# ---------------------------------------------------------------------------
 # Token estimation
 # ---------------------------------------------------------------------------
 
 def estimate_tokens(text: str) -> int:
-    """Estimate token count for text.
+    """Estimate token count for text, using LRU cache.
 
     Uses a simple heuristic: ~4 characters per token for English/Chinese mixed text.
     For production, use tiktoken or the provider's tokenizer.
     """
     if not text:
         return 0
+
+    # Check cache first
+    cache_key = f"text:{hash(text)}"
+    cached = _token_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     # Rough estimate: English ~4 chars/token, Chinese ~1.5 chars/token
     # Mixed content average ~3 chars/token
-    return max(1, len(text) // 3)
+    count = max(1, len(text) // 3)
+    _token_cache.put(cache_key, count)
+    return count
 
 
 def estimate_message_tokens(msg: ConversationMessage) -> int:
-    """Estimate tokens for a conversation message."""
+    """Estimate tokens for a conversation message, using LRU cache."""
+    # Check cache first using a hash based on message content
+    # We'll use a simple content fingerprint
+    try:
+        content_fingerprint = str(msg.content)
+        cache_key = f"msg:{hash(content_fingerprint)}"
+        cached = _token_cache.get(cache_key)
+        if cached is not None:
+            return cached
+    except:
+        pass  # Fallback to computing without cache
+
     total = 0
     for block in msg.content:
         if isinstance(block, TextBlock):
@@ -48,7 +99,17 @@ def estimate_message_tokens(msg: ConversationMessage) -> int:
         elif isinstance(block, ToolResultBlock):
             total += estimate_tokens(block.content)
     # Add overhead for message structure
-    return total + 4
+    total = total + 4
+
+    # Update cache
+    try:
+        content_fingerprint = str(msg.content)
+        cache_key = f"msg:{hash(content_fingerprint)}"
+        _token_cache.put(cache_key, total)
+    except:
+        pass
+
+    return total
 
 
 # ---------------------------------------------------------------------------
@@ -73,19 +134,22 @@ class ContextCompressor:
         max_tokens: int = 8000,
         preserve_recent: int = 4,
         summarizer: Optional[Callable[[List[ConversationMessage]], str]] = None,
+        tool_truncation_threshold: int = 2000,
     ) -> None:
         self.max_tokens = max_tokens
         self.preserve_recent = preserve_recent
         self.summarizer = summarizer
+        self.tool_truncation_threshold = tool_truncation_threshold
 
     def compress(self, messages: List[ConversationMessage]) -> CompressionResult:
         """Compress messages to fit within max_tokens.
 
         Tries strategies in order:
         1. If under limit, return as-is
-        2. Truncate old tool results
-        3. Summarize old messages
-        4. Sliding window (drop oldest)
+        2. Truncate tool results (smart, from oldest to newest)
+        3. Truncate oldest tool results first
+        4. Summarize old messages
+        5. Sliding window (drop oldest)
         """
         tokens_before = sum(estimate_message_tokens(m) for m in messages)
 
@@ -97,18 +161,29 @@ class ContextCompressor:
                 strategy_used="none",
             )
 
-        # Strategy 1: Truncate tool results
-        result = self._truncate_tool_results(messages)
+        # Strategy 1: Smart truncate tool results (start with oldest)
+        result = self._smart_truncate_tool_results(messages)
         tokens_after = sum(estimate_message_tokens(m) for m in result)
         if tokens_after <= self.max_tokens:
             return CompressionResult(
                 messages=result,
                 tokens_before=tokens_before,
                 tokens_after=tokens_after,
-                strategy_used="truncate_tools",
+                strategy_used="smart_truncate_tools",
             )
 
-        # Strategy 2: Summarize old messages
+        # Strategy 2: Hard truncate old tool results
+        result = self._truncate_oldest_tool_results(messages)
+        tokens_after = sum(estimate_message_tokens(m) for m in result)
+        if tokens_after <= self.max_tokens:
+            return CompressionResult(
+                messages=result,
+                tokens_before=tokens_before,
+                tokens_after=tokens_after,
+                strategy_used="truncate_old_tools",
+            )
+
+        # Strategy 3: Summarize old messages
         if self.summarizer:
             result = self._summarize_old_messages(messages)
             tokens_after = sum(estimate_message_tokens(m) for m in result)
@@ -120,7 +195,7 @@ class ContextCompressor:
                     strategy_used="summarize",
                 )
 
-        # Strategy 3: Sliding window
+        # Strategy 4: Sliding window
         result = self._sliding_window(messages)
         tokens_after = sum(estimate_message_tokens(m) for m in result)
         return CompressionResult(
@@ -130,19 +205,43 @@ class ContextCompressor:
             strategy_used="sliding_window",
         )
 
-    def _truncate_tool_results(
+    def _smart_truncate_tool_results(
         self, messages: List[ConversationMessage]
     ) -> List[ConversationMessage]:
-        """Truncate long tool result outputs while preserving structure."""
+        """Truncate long tool result outputs with gradient compression."""
         result = []
-        for msg in messages:
+        # Find tool result indices
+        tool_result_indices = []
+        for i, msg in enumerate(messages):
+            for block in msg.content:
+                if isinstance(block, ToolResultBlock):
+                    tool_result_indices.append(i)
+                    break
+
+        for idx, msg in enumerate(messages):
             new_msg = ConversationMessage(role=msg.role, content=[])
+            # Determine truncation level based on age
+            age_factor = 0.0
+            if tool_result_indices:
+                age_factor = tool_result_indices.index(idx) / len(tool_result_indices) if idx in tool_result_indices else 0
+
             for block in msg.content:
                 if isinstance(block, ToolResultBlock):
                     content = block.content
-                    # Truncate very long outputs
-                    if len(content) > 2000:
-                        content = content[:1000] + "\n... [truncated] ...\n" + content[-500:]
+                    # More aggressive truncation for older messages
+                    threshold = self.tool_truncation_threshold
+                    if age_factor > 0.7:  # Very old
+                        threshold = 500
+                    elif age_factor > 0.5:  # Old
+                        threshold = 1000
+                    elif age_factor > 0.2:  # Moderate age
+                        threshold = 1500
+
+                    if len(content) > threshold:
+                        if threshold <= 500:
+                            content = content[:300] + "\n... [content truncated, too old] ..."
+                        else:
+                            content = content[:threshold//2] + "\n... [content truncated] ...\n" + content[-threshold//4:]
                     new_msg.content.append(
                         ToolResultBlock(
                             tool_use_id=block.tool_use_id,
@@ -154,6 +253,45 @@ class ContextCompressor:
                     new_msg.content.append(block)
             result.append(new_msg)
         return result
+
+    def _truncate_oldest_tool_results(
+        self, messages: List[ConversationMessage]
+    ) -> List[ConversationMessage]:
+        """Truncate oldest tool results completely first."""
+        result = []
+        tool_result_indices = []
+        for i, msg in enumerate(messages):
+            for block in msg.content:
+                if isinstance(block, ToolResultBlock):
+                    tool_result_indices.append(i)
+                    break
+
+        # Skip first 50% of tool results
+        skip_until = len(tool_result_indices) // 2
+        skipped_indices = set(tool_result_indices[:skip_until])
+
+        for idx, msg in enumerate(messages):
+            new_msg = ConversationMessage(role=msg.role, content=[])
+            for block in msg.content:
+                if isinstance(block, ToolResultBlock) and idx in skipped_indices:
+                    # Replace with minimal placeholder
+                    new_msg.content.append(
+                        ToolResultBlock(
+                            tool_use_id=block.tool_use_id,
+                            content="[Tool result truncated for context management]",
+                            is_error=False,
+                        )
+                    )
+                else:
+                    new_msg.content.append(block)
+            result.append(new_msg)
+        return result
+
+    def _truncate_tool_results(
+        self, messages: List[ConversationMessage]
+    ) -> List[ConversationMessage]:
+        """Truncate long tool result outputs (compat method)."""
+        return self._smart_truncate_tool_results(messages)
 
     def _summarize_old_messages(
         self, messages: List[ConversationMessage]
