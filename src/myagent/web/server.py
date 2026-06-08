@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 
+from myagent import __version__
 from myagent.codebase.indexer import CodebaseIndexer
 from myagent.codebase.search import CodebaseSearch
 from myagent.config.hot_reload import get_watcher
@@ -96,7 +97,7 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(
         title="MyAgent Web UI",
-        version="0.6.0",
+        version=__version__,
         lifespan=lifespan,
     )
 
@@ -145,7 +146,7 @@ def create_app() -> FastAPI:
     @app.get("/api/health")
     async def health() -> dict[str, str]:
         """Health check endpoint."""
-        return {"status": "ok", "version": "0.1.0"}
+        return {"status": "ok", "version": __version__}
 
     @app.get("/api/models")
     async def list_models() -> list[dict[str, Any]]:

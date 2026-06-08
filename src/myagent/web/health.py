@@ -11,6 +11,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Response
 
+from myagent import __version__
 from myagent.gateway.manager import GatewayManager
 from myagent.monitoring.metrics import get_registry
 
@@ -55,7 +56,7 @@ async def health_check() -> Dict[str, Any]:
     return {
         "status": "healthy",
         "uptime_seconds": round(time.time() - _STARTUP_TIME, 2),
-        "version": "0.6.0",
+        "version": __version__,
     }
 
 
