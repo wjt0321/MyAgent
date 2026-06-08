@@ -307,6 +307,7 @@ class WebEngineManager:
             system_prompt=agent_def.system_prompt or "You are a helpful assistant.",
             permission_checker=checker,
             max_turns=agent_def.max_turns or 50,
+            auto_compact_threshold=0.8,  # 启用自动上下文压缩
         )
 
     async def process_message(
